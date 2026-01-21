@@ -1,0 +1,71 @@
+{
+  "name": "glyphforge",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build:web": "vue-tsc -b && vite build",
+    "electron:build:prod": "vue-tsc -b && vite build --mode production && electron-builder",
+    "electron:build:dev": "vue-tsc -b && vite build --mode debug && electron-builder -c.productName=\"GlyphForge Dev\" -c.artifactName=\"${productName}-Setup-${version}-Dev.${ext}\"",
+    "preview": "vite preview"
+  },
+  "build": {
+    "appId": "com.glyphforge.app",
+    "productName": "GlyphForge",
+    "directories": {
+      "output": "release"
+    },
+    "fileAssociations": [
+      {
+        "ext": "gfp",
+        "name": "GlyphForge Project",
+        "description": "GlyphForge Project File",
+        "role": "Editor",
+        "icon": "public/gfp-icon.png"
+      },
+      {
+        "ext": "txt",
+        "name": "Text File",
+        "role": "Editor"
+      }
+    ],
+    "files": [
+      "dist",
+      "dist-electron"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    }
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.1.0",
+    "chardet": "^2.1.1",
+    "monaco-editor": "^0.55.1",
+    "pinia": "^2.2.0",
+    "uuid": "^13.0.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/chardet": "^0.8.3",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-vue": "^5.1.0",
+    "@vue/tsconfig": "^0.8.1",
+    "autoprefixer": "^10.4.20",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "postcss": "^8.4.41",
+    "tailwindcss": "^3.4.10",
+    "typescript": "~5.5.4",
+    "vite": "^5.4.1",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vite-plugin-monaco-editor": "^1.1.0",
+    "vue-tsc": "^2.0.29"
+  }
+}
