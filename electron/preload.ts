@@ -17,11 +17,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimize: () => ipcRenderer.send('minimize-window'),
   maximize: () => ipcRenderer.send('maximize-window'),
   close: () => ipcRenderer.send('close-window'),
+  forceClose: () => ipcRenderer.send('force-close'),
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
   toggleDevTools: () => ipcRenderer.send('toggle-devtools'),
   quit: () => ipcRenderer.send('quit-app'),
   
   onOpenFileRequest: (callback: (filePath: string) => void) => {
     ipcRenderer.on('open-file-request', (_event, filePath) => callback(filePath));
+  },
+  onRequestClose: (callback: () => void) => {
+    ipcRenderer.on('request-close', () => callback());
   }
 });

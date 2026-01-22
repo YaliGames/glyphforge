@@ -220,7 +220,7 @@ import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/store/project'
 import { useUIStore } from '@/store/ui'
 import { useChapterStore } from '@/store/chapters'
-import { fsProvider } from '@/core/bridge'
+import { useActions } from '@/composables/useActions'
 import { TxtImporter } from '@/core/bridge/txt-importer'
 import { APP_CONFIG } from '@/config'
 import { isElectron } from '@/utils/env'
@@ -229,6 +229,7 @@ const router = useRouter()
 const projectStore = useProjectStore()
 const uiStore = useUIStore()
 const chapterStore = useChapterStore()
+const { handleAction, ensureSaved } = useActions()
 
 const isDragging = ref(false)
 
@@ -237,20 +238,11 @@ const formatDate = (timestamp: number) => {
 }
 
 async function createNewProject() {
-  projectStore.createProject('新故事')
-  router.push('/outline')
+  handleAction('new-project')
 }
 
 async function triggerFileInput() {
-  const result = await fsProvider.readFile({
-    filters: [{ name: `${APP_CONFIG.name}项目文件`, extensions: [APP_CONFIG.projectExtension.replace('.', '')] }]
-  })
-  if (result && result.path) {
-    const success = await projectStore.openProject(result.path)
-    if (success) {
-      router.push('/outline')
-    }
-  }
+  handleAction('open-project')
 }
 
 async function clearRecentFiles() {
@@ -269,10 +261,7 @@ async function clearRecentFiles() {
 
 async function handleRecentClick(file: any) {
   if (file.path) {
-    const success = await projectStore.openProject(file.path)
-    if (success) {
-      router.push('/outline')
-    }
+    handleAction('open-project', file.path)
   }
 }
 
@@ -280,6 +269,9 @@ async function handleDrop(e: DragEvent) {
   isDragging.value = false
   const file = e.dataTransfer?.files[0]
   if (!file) return
+
+  // 检查当前项目是否需要保存
+  if (!(await ensureSaved())) return
 
   if (file.name.endsWith(APP_CONFIG.projectExtension)) {
     if (isElectron && (file as any).path) {

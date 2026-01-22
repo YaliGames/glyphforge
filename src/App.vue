@@ -41,6 +41,7 @@ import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
 import { getActionFromKey } from '@/utils/shortcuts'
 import { useActions } from '@/composables/useActions'
+import { isElectron } from '@/utils/env'
 import TopBar from '@/components/layout/TopBar.vue'
 import ActivityBar from '@/components/layout/ActivityBar.vue'
 import StatusBar from '@/components/layout/StatusBar.vue'
@@ -51,7 +52,7 @@ import Confirm from '@/components/common/Confirm.vue'
 
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
-const { handleAction } = useActions()
+const { handleAction, ensureSaved } = useActions()
 
 // 监听深色模式变化
 watch(() => settingsStore.isDarkMode, (isDark) => {
@@ -74,6 +75,26 @@ const handleGlobalKeyDown = (e: KeyboardEvent) => {
 onMounted(() => {
   uiStore.loadRecentFiles()
   window.addEventListener('keydown', handleGlobalKeyDown)
+
+  if (isElectron && (window as any).electronAPI) {
+    const api = (window as any).electronAPI
+    
+    // 监听外部文件打开请求
+    if (typeof api.onOpenFileRequest === 'function') {
+      api.onOpenFileRequest((path: string) => {
+        handleAction('open-project', path)
+      })
+    }
+
+    // 监听窗口关闭请求
+    if (typeof api.onRequestClose === 'function') {
+      api.onRequestClose(async () => {
+        if (await ensureSaved()) {
+          api.forceClose?.()
+        }
+      })
+    }
+  }
 })
 
 onUnmounted(() => {

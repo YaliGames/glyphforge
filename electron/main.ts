@@ -45,6 +45,14 @@ if (!gotTheLock) {
             },
         });
 
+        // 拦截原生关闭事件（如 Alt+F4）
+        mainWindow.on('close', (e) => {
+            if (mainWindow) {
+                e.preventDefault();
+                mainWindow.webContents.send('request-close');
+            }
+        });
+
         if (process.env.VITE_DEV_SERVER_URL) {
             await mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
             mainWindow.webContents.openDevTools();
@@ -112,7 +120,16 @@ if (!gotTheLock) {
             mainWindow?.maximize();
         }
     });
-    ipcMain.on('close-window', () => mainWindow?.close());
+    ipcMain.on('close-window', () => {
+        if (mainWindow) {
+            mainWindow.webContents.send('request-close');
+        }
+    });
+
+    ipcMain.on('force-close', () => {
+        mainWindow?.destroy();
+    });
+
     ipcMain.on('toggle-fullscreen', () => {
         if (mainWindow) {
             mainWindow.setFullScreen(!mainWindow.isFullScreen());

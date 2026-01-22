@@ -28,6 +28,10 @@
 </template>
 
 <script setup lang="ts">
+import { useActions } from '@/composables/useActions'
+
+const { handleAction } = useActions()
+
 const minimize = () => {
   (window as any).electronAPI?.minimize()
 }
@@ -37,6 +41,6 @@ const maximize = () => {
 }
 
 const close = () => {
-  (window as any).electronAPI?.close()
+  handleAction('exit')
 }
 </script>
