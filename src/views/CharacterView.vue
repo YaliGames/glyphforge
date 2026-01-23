@@ -194,7 +194,7 @@
           <div class="flex items-center justify-between border-b dark:border-[#333333] pb-2">
             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
               <i class="fa-solid fa-timeline text-[10px]"></i>
-              叙事阶段 (Phases)
+              叙事阶段
             </h3>
             <button 
               @click="addPhase"
@@ -306,7 +306,7 @@
                     </div>
 
                     <div class="space-y-4">
-                      <label class="text-[10px] font-bold text-gray-500 uppercase">属性覆盖 (Overrides)</label>
+                      <label class="text-[10px] font-bold text-gray-500 uppercase">属性覆盖</label>
                       <div class="flex flex-wrap gap-2">
                         <button v-for="field in baseFields" :key="field.key" @click="toggleOverride(phase, field.key)"
                           :class="['px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-all', (phase.overrides as any)[field.key] !== undefined ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-[#252525] border-gray-200 dark:border-[#33] text-gray-500 hover:border-blue-400']">
@@ -413,8 +413,8 @@
       <EmptyState
         v-else
         icon="fa-user-pen"
-        title="选择一个角色开始设计"
-        subtitle="“文学形象是一个完整的生命，而非属性的堆砌。”"
+        title="选择或创建角色"
+        subtitle="选择一个角色，或点击“新建角色”按钮创建一个新角色"
       />
     </main>
   </div>
@@ -512,7 +512,7 @@ const removeCharacter = async (id: string) => {
 
   const confirmed = await uiStore.showConfirm({
     title: '删除角色',
-    message: `确定要删除角色 "${name}" 吗？此操作不可撤销。`,
+    message: `确定要删除角色 "${name}" 吗？`,
     confirmText: '确定删除',
     cancelText: '取消',
     type: 'danger'

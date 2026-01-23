@@ -36,9 +36,10 @@
           @select="handleChapterSelect"
           @remove="confirmRemoveChapter"
         />
-        <div v-if="chapterStore.chapters.length === 0" class="py-10 text-center text-[11px] text-gray-400 leading-relaxed px-4">
-          正文中尚无章节标记<br />选中一行并点击上方 "+" 号开始
-        </div>
+        <EmptyState
+          v-if="chapterStore.chapters.length === 0"
+          subtitle="正文中尚无章节标记，选择一行并点击上方按钮添加为标题"
+        />
       </div>
     </SidePanel>
 
@@ -57,12 +58,12 @@
     </main>
 
     <!-- 右侧：属性与大纲参考 (规范 6.3) -->
-    <SidePanel title="属性 / 大纲" width="w-80" side="right">
+    <SidePanel title="属性" width="w-80" side="right">
       <div v-if="activeChapter" class="p-5 space-y-6">
         <!-- 章节基本属性 -->
         <div class="space-y-4">
           <div class="space-y-2">
-            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">章节名称 (Title)</label>
+            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">章节名称</label>
             <input 
               :value="activeChapter.title"
               @input="(e: any) => chapterStore.updateChapter(activeChapter.id, { title: e.target.value })"
@@ -77,7 +78,7 @@
           <div class="space-y-2">
             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
               <i class="fa-solid fa-tags text-[9px]"></i>
-              章节标签 (Phase Tags)
+              章节标签
             </label>
             <input 
               :value="activeChapter.tags?.join(', ')"
@@ -98,7 +99,7 @@
               </div>
             </div>
             <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">逻辑深度 (Depth)</label>
+              <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">逻辑深度</label>
               <div class="flex items-center gap-2">
                 <button 
                   @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: Math.max(0, activeChapter.depth - 1) })" 
@@ -123,7 +124,7 @@
 
         <!-- 关联参考 -->
         <div class="space-y-4">
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">对应大纲情节 (Bound Act)</label>
+          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">对应大纲情节</label>
           <select 
             :value="activeChapter.linkedOutlineActId"
             @change="(e: any) => chapterStore.updateChapter(activeChapter.id, { linkedOutlineActId: e.target.value })"
@@ -151,7 +152,7 @@
         v-else
         icon="fa-list-check"
         size="md"
-        subtitle="在左侧选择章节，以查看其属性与对应大纲参考"
+        subtitle="在左侧菜单中选择一个标题，或将光标移动到设置的标题处"
       />
     </SidePanel>
 

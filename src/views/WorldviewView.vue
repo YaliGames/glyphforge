@@ -123,7 +123,7 @@
         v-else
         class="h-full"
         icon="fa-book-atlas"
-        title="选择或创建一个设定维度"
+        title="选择或创建设定维度"
         subtitle="地理、政治、魔法、习俗... 每一个维度都是构建宏大叙事的基石。"
       />
     </div>
@@ -294,7 +294,7 @@ const removeDetailItem = (cat: any, index: number) => {
 async function confirmRemoveCategory(cat: any) {
   const confirmed = await uiStore.showConfirm({
     title: '删除设定维度',
-    message: `确定要删除 "${cat.name}" 及其所有条目吗？此操作不可撤销。`,
+    message: `确定要删除 "${cat.name}" 及其所有条目吗？`,
     confirmText: '确定删除',
     cancelText: '取消',
     type: 'danger'

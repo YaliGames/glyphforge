@@ -294,7 +294,7 @@
             icon="fa-layer-group"
             size="xl"
             :circle="false"
-            subtitle="选择左侧的一个配置进行编辑，或添加新配置"
+            subtitle="选择一个配置进行编辑，或创建一个新配置"
           />
           
           <div class="p-6 border-t dark:border-[#333] bg-gray-50/50 dark:bg-[#252526]/50 flex justify-end">

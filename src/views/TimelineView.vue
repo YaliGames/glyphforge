@@ -68,8 +68,8 @@
             v-if="worldviewStore.worldview.timeline.length === 0" 
             class="h-full"
             icon="fa-hourglass-start"
-            title="开始创建第一个时间点"
-            subtitle="这个世界还没有过去，直到你写下第一个时刻。"
+            title="尚未创建时间点"
+            subtitle="这个世界还没有过去，直到你写下第一个时刻"
           />
 
           <div v-else class="space-y-8 relative before:absolute before:left-[11px] before:top-2 before:bottom-0 before:w-[2px] before:bg-gray-100 dark:before:bg-[#2d2d2d]">

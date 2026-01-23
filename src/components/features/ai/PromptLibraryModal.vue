@@ -81,7 +81,7 @@
           v-else
           icon="fa-wand-sparkles"
           :circle="false"
-          subtitle="选择一个模板开始编辑，或创建一个新模板"
+          subtitle="选择一个模板进行编辑，或创建一个新模板"
         />
 
         <div v-if="activePrompt && !activePrompt.id?.startsWith('builtin-')" class="p-4 border-t dark:border-[#333] flex gap-3 bg-gray-50/50 dark:bg-black/10">

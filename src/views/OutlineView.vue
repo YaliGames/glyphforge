@@ -73,7 +73,7 @@
     </main>
 
     <!-- 右栏：结构属性区 -->
-    <SidePanel title="当前幕属性" width="w-80" side="right">
+    <SidePanel title="属性" width="w-80" side="right">
       <template #actions>
         <div v-if="currentAct">
           <span v-if="currentAct.range"
@@ -87,7 +87,7 @@
         <div class="space-y-2">
           <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
             <i class="fa-solid fa-heading"></i>
-            幕标题 (Act Title)
+            幕标题
           </label>
           <input v-model="currentAct.title" placeholder="为这一幕起个名字..."
             class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 shadow-sm transition-all"
@@ -135,7 +135,7 @@
         v-else
         icon="fa-i-cursor"
         size="md"
-        subtitle="将光标移动到带有标识符的“幕”区域，或在上方点击“设定为幕”"
+        subtitle="在左侧菜单中选择一个幕，或将光标移动到绑定幕的文本处"
       />
     </SidePanel>
   </div>

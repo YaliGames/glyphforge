@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col items-center justify-center text-center text-gray-400 p-12">
+  <div class="flex flex-col items-center justify-center text-center text-gray-400 p-6">
     <div
       v-if="icon"
       :class="[
