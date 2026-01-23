@@ -93,9 +93,8 @@
           
           <div class="flex-1 overflow-y-auto space-y-1">
             <!-- 下载客户端 -->
-            <a 
-              href="https://github.com/glyphforge/app/releases" 
-              target="_blank"
+            <div 
+              @click="openExternalLink('https://github.com/glyphforge/app/releases')" 
               class="group flex items-center justify-between p-3 rounded-lg hover:bg-white dark:hover:bg-[#2d2d2d] hover:shadow-sm transition-all cursor-pointer"
             >
               <div class="flex items-center gap-4">
@@ -113,12 +112,11 @@
               <div class="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
                 下载 <i class="fa-solid fa-chevron-right ml-1"></i>
               </div>
-            </a>
+            </div>
 
             <!-- 官方文档 -->
-            <a 
-              :href="APP_CONFIG.links.docs" 
-              target="_blank"
+            <div 
+              @click="openExternalLink(APP_CONFIG.links.docs)" 
               class="group flex items-center justify-between p-3 rounded-lg hover:bg-white dark:hover:bg-[#2d2d2d] hover:shadow-sm transition-all cursor-pointer"
             >
               <div class="flex items-center gap-4">
@@ -130,13 +128,12 @@
                   <div class="text-[10px] text-gray-400 dark:text-gray-500">快速学习结构化写作的核心逻辑与 GlyphForge 的高效用法</div>
                 </div>
               </div>
-              <i class="fa-solid fa-up-right-from_square text-[10px] text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-            </a>
+              <i class="fa-solid fa-up-right-from-square text-[10px] text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </div>
 
             <!-- 开发者社区 -->
-            <a 
-              :href="APP_CONFIG.links.github" 
-              target="_blank" 
+            <div 
+              @click="openExternalLink(APP_CONFIG.links.github)" 
               class="group flex items-center justify-between p-3 rounded-lg hover:bg-white dark:hover:bg-[#2d2d2d] hover:shadow-sm transition-all cursor-pointer"
             >
               <div class="flex items-center gap-4">
@@ -148,8 +145,8 @@
                   <div class="text-[10px] text-gray-400 dark:text-gray-500">本项目已开源，欢迎通过 Issue 或 Pull Request 参与建设</div>
                 </div>
               </div>
-              <i class="fa-solid fa-up-right_from_square text-[10px] text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-            </a>
+              <i class="fa-solid fa-up-right-from_square text-[10px] text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </div>
           </div>
         </div>
 
@@ -229,7 +226,7 @@ const router = useRouter()
 const projectStore = useProjectStore()
 const uiStore = useUIStore()
 const chapterStore = useChapterStore()
-const { handleAction, ensureSaved } = useActions()
+const { handleAction, ensureSaved, openExternalLink } = useActions()
 
 const isDragging = ref(false)
 

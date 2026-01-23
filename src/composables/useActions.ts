@@ -60,6 +60,27 @@ export function useActions() {
     }
   }
 
+  /**
+   * 安全地打开外部链接
+   */
+  async function openExternalLink(url: string) {
+    const confirmed = await uiStore.showConfirm({
+      title: '打开外部链接',
+      message: '将打开外部链接，是否继续？',
+      confirmText: '继续',
+      cancelText: '取消',
+      type: 'info'
+    })
+
+    if (confirmed === true) {
+      if (isElectron && (window as any).electronAPI?.openExternal) {
+        (window as any).electronAPI.openExternal(url)
+      } else {
+        window.open(url, '_blank')
+      }
+    }
+  }
+
   async function handleAction(id: AppAction, payload?: any) {
     switch (id) {
       case 'new-project':
@@ -151,16 +172,16 @@ export function useActions() {
       case 'open-settings': uiStore.showSettingsModal = true; break
       
       case 'license':
-        window.open(APP_CONFIG.links.license, '_blank')
+        await openExternalLink(APP_CONFIG.links.license)
         break
       case 'privacy-policy':
-        window.open(APP_CONFIG.links.privacy, '_blank')
+        await openExternalLink(APP_CONFIG.links.privacy)
         break
       case 'check-updates':
-        window.open(APP_CONFIG.links.releases, '_blank')
+        await openExternalLink(APP_CONFIG.links.releases)
         break
       case 'report-issue':
-        window.open(APP_CONFIG.links.feedback, '_blank')
+        await openExternalLink(APP_CONFIG.links.feedback)
         break
 
       // 主题快速切换
@@ -204,6 +225,7 @@ export function useActions() {
   return {
     handleAction,
     ensureSaved,
+    openExternalLink,
     invokeAI
   }
 }

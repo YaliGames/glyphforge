@@ -1,4 +1,4 @@
-﻿import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+﻿import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -143,4 +143,7 @@ if (!gotTheLock) {
         }
     });
     ipcMain.on('quit-app', () => app.quit());
+    ipcMain.on('open-external', (_event, url) => {
+        shell.openExternal(url);
+    });
 }

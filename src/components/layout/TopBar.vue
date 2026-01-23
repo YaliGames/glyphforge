@@ -1,10 +1,10 @@
 <template>
   <header 
-    class="h-10 border-b dark:border-[#333333] bg-white dark:bg-[#252526] flex items-center px-2 justify-between shrink-0 z-[200] relative drag-region"
+    class="h-10 border-b dark:border-[#333333] bg-white dark:bg-[#252526] flex items-center justify-between shrink-0 z-[200] relative drag-region"
   >
     <div class="flex-1 h-full min-w-0 flex items-center pointer-events-none">
       <div class="flex items-center h-full shrink-0 pointer-events-auto no-drag">
-        <div class="flex items-center gap-2 px-2 mr-4 cursor-pointer no-drag" @click="router.push('/')">
+        <div class="flex items-center gap-2 mx-4 cursor-pointer" @click="router.push('/')">
           <div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">G</div>
           <h1 class="font-bold text-sm tracking-tight hidden sm:block dark:text-gray-200">GlyphForge</h1>
         </div>

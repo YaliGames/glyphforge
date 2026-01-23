@@ -28,7 +28,12 @@
               常用资源
             </h3>
             <div class="space-y-3">
-              <a v-for="link in commonLinks" :key="link.title" :href="link.url" target="_blank" class="group flex items-center p-3 rounded-xl border border-gray-100 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#252526] transition-all">
+              <div 
+                v-for="link in commonLinks" 
+                :key="link.title" 
+                @click="openExternalLink(link.url)" 
+                class="group flex items-center p-3 rounded-xl border border-gray-100 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#252526] transition-all cursor-pointer"
+              >
                 <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#333] flex items-center justify-center mr-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <i :class="[link.icon, 'text-sm']"></i>
                 </div>
@@ -37,7 +42,7 @@
                   <div class="text-[11px] text-gray-400">{{ link.desc }}</div>
                 </div>
                 <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 group-hover:text-blue-500 transition-colors pr-2"></i>
-              </a>
+              </div>
             </div>
           </div>
         </section>
@@ -64,11 +69,11 @@
 
       <footer class="mt-20 pt-8 border-t border-gray-100 dark:border-[#333] flex flex-col items-center gap-4">
         <div class="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
-          <a :href="APP_CONFIG.links.docs" target="_blank" class="hover:text-blue-500">服务条款</a>
+          <button @click="openExternalLink(APP_CONFIG.links.docs)" class="hover:text-blue-500 transition-colors">服务条款</button>
           <span class="opacity-30">|</span>
-          <a :href="APP_CONFIG.links.docs" target="_blank" class="hover:text-blue-500">隐私政策</a>
+          <button @click="openExternalLink(APP_CONFIG.links.docs)" class="hover:text-blue-500 transition-colors">隐私政策</button>
           <span class="opacity-30">|</span>
-          <a :href="APP_CONFIG.links.github" target="_blank" class="hover:text-blue-500">开源协议</a>
+          <button @click="openExternalLink(APP_CONFIG.links.github)" class="hover:text-blue-500 transition-colors">开源协议</button>
         </div>
         <p class="text-[10px] text-gray-400">Copyright &copy; {{ APP_CONFIG.copyright }}</p>
       </footer>
@@ -78,6 +83,9 @@
 
 <script setup lang="ts">
 import { APP_CONFIG } from '@/config'
+import { useActions } from '@/composables/useActions'
+
+const { openExternalLink } = useActions()
 
 const commonLinks = [
   { title: '官方文档', desc: '学习如何使用大纲与实体交互', icon: 'fa-solid fa-book', url: APP_CONFIG.links.docs },
