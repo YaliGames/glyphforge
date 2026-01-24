@@ -9,6 +9,8 @@ export interface Toast {
   duration?: number
 }
 
+export type ModalId = string
+
 export const useUIStore = defineStore('ui', () => {
   // --- 导航与模式 (从 AppStore 合并) ---
   const viewMode = ref<ViewMode>('source')
@@ -16,15 +18,25 @@ export const useUIStore = defineStore('ui', () => {
   const isLoading = ref(false)
   const recentFiles = ref<{ name: string, path?: string, date: number, type: 'txt' | 'project' }[]>([])
 
-  const showRecognitionModal = ref(false)
-  const showFormattingPresetsModal = ref(false)
-  const showSavePresetModal = ref(false)
-  const showAboutModal = ref(false)
-  const showLicenseModal = ref(false)
-  const showBuildInfoModal = ref(false)
-  const showSettingsModal = ref(false)
-  const showExportProjectModal = ref(false)
-  const showAIProfileModal = ref(false)
+  // 弹窗状态中心化管理
+  const activeModals = ref<Record<string, any>>({})
+
+  function openModal(id: ModalId, options: any = true) {
+    activeModals.value[id] = options
+  }
+
+  function closeModal(id: ModalId) {
+    delete activeModals.value[id]
+  }
+
+  function isModalOpen(id: ModalId) {
+    return !!activeModals.value[id]
+  }
+
+  function getModalOptions(id: ModalId) {
+    return activeModals.value[id]
+  }
+
   const exportFormat = ref<'txt' | 'md'>('txt')
   
   // --- 持久化方法 ---
@@ -147,15 +159,11 @@ export const useUIStore = defineStore('ui', () => {
     switchViewMode,
     switchEditMode,
     // 弹窗
-    showRecognitionModal,
-    showFormattingPresetsModal,
-    showSavePresetModal,
-    showAboutModal,
-    showLicenseModal,
-    showBuildInfoModal,
-    showSettingsModal,
-    showExportProjectModal,
-    showAIProfileModal,
+    activeModals,
+    openModal,
+    closeModal,
+    isModalOpen,
+    getModalOptions,
     exportFormat,
     toasts,
     showToast,

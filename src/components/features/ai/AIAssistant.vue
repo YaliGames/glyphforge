@@ -164,7 +164,7 @@
                 {{ activePanel === 'context' ? '参考上下文配置' : '指令模板库' }}
               </span>
               <div class="flex items-center gap-1">
-                <button v-if="activePanel === 'prompts'" @click="showLibraryModal = true" class="w-8 h-8 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded-lg text-purple-500 transition-colors" title="管理库">
+                <button v-if="activePanel === 'prompts'" @click="uiStore.openModal('prompt-library')" class="w-8 h-8 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded-lg text-purple-500 transition-colors" title="管理库">
                   <i class="fa-solid fa-gear text-xs"></i>
                 </button>
                 <button @click="activePanel = null" class="w-8 h-8 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#333] rounded-lg text-gray-400">
@@ -381,8 +381,6 @@
             </div>
           </div>
         </transition>
-
-        <PromptLibraryModal :show="showLibraryModal" @close="showLibraryModal = false" />
       </div>
 
 
@@ -488,7 +486,6 @@ import { useSettingsStore } from '@/store/settings'
 import { PROJECT_REFERENCE_TREE, type ReferenceNode } from '@/types'
 import Modal from '@/components/common/Modal.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import PromptLibraryModal from './PromptLibraryModal.vue'
 import { useRouter } from 'vue-router'
 
 const aiStore = useAIStore()
@@ -502,7 +499,6 @@ const input = ref('')
 const historyBox = ref<HTMLElement | null>(null)
 const rawViewData = ref<any>(null)
 const activePanel = ref<'context' | 'prompts' | null>(null)
-const showLibraryModal = ref(false)
 
 // --- 从 Store 同步状态 ---
 const selectedPromptId = computed({

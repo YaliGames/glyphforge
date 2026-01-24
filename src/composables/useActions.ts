@@ -168,8 +168,7 @@ export function useActions() {
       case 'goto-timeline': router.push('/timeline'); break
       case 'settings': router.push('/settings'); break
       case 'about': router.push('/about'); break
-      case 'build-info': uiStore.showBuildInfoModal = true; break
-      case 'open-settings': uiStore.showSettingsModal = true; break
+      case 'build-info': uiStore.openModal('build-info'); break
       
       case 'license':
         await openExternalLink(APP_CONFIG.links.license)
@@ -217,7 +216,7 @@ export function useActions() {
         }
         break
       case 'open-ai-profiles':
-        uiStore.showAIProfileModal = true
+        uiStore.openModal('ai-profile')
         break
 
       default:

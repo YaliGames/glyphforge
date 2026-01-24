@@ -129,7 +129,9 @@
     </div>
 
     <!-- 弹窗组 -->
-    <Modal :show="showNewCategoryModal" title="添加设定维度" width="max-w-xl" @close="showNewCategoryModal = false">
+        <!-- 模态框：添加分类 -->
+    <Modal :show="uiStore.isModalOpen('new-category')" title="添加设定维度" width="max-w-xl" @close="uiStore.closeModal('new-category')">
+
       <div class="space-y-6">
         <div class="grid grid-cols-2 gap-3">
           <button 
@@ -163,7 +165,7 @@
       </div>
       <template #footer>
         <div class="flex justify-end gap-3">
-          <button @click="showNewCategoryModal = false" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xs font-medium transition-colors">
+          <button @click="uiStore.closeModal('new-category')" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xs font-medium transition-colors">
             取消
           </button>
           <button 
@@ -201,7 +203,6 @@ const aiStore = useAIStore()
 const { startEdit, endEdit } = useFieldHistory()
 
 const searchQuery = ref('')
-const showNewCategoryModal = ref(false)
 
 // 预设分类定义 (规范 4.1)
 const PRESET_CATEGORIES = [
@@ -307,7 +308,7 @@ async function confirmRemoveCategory(cat: any) {
 
 async function createNewCategory() {
   selectedPresetType.value = availablePresets.value[0]?.type || null
-  showNewCategoryModal.value = true
+  uiStore.openModal('new-category')
 }
 
 function confirmCreateCategory() {
@@ -315,7 +316,7 @@ function confirmCreateCategory() {
   if (preset) {
     worldviewStore.addCategory(preset.name, preset.type)
     activeCategoryType.value = preset.type
-    showNewCategoryModal.value = false
+    uiStore.closeModal('new-category')
   }
 }
 </script>

@@ -31,7 +31,6 @@ export type AppAction =
   | 'privacy-policy'
   | 'check-updates'
   | 'report-issue'
-  | 'open-settings'
   | 'open-ai-profiles'
   | 'about'
   | 'build-info'

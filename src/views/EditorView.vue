@@ -1,16 +1,16 @@
 <template>
   <div class="flex-1 flex overflow-hidden bg-[#f9f9f9] dark:bg-[#1a1a1a]">
-    <!-- 左侧：目录树 -->
+    <!-- 目录树顶部操作栏 (规范 6.1) -->
     <SidePanel title="目录结构" width="w-64" side="left">
       <template #actions>
         <div class="flex items-center gap-1">
-          <button v-if="settingsStore.getSettings()['ai.enabled']" @click="showRecognitionModal = true"
+          <button v-if="settingsStore.getSettings()['ai.enabled']" @click="uiStore.openModal('recognition')"
             class="p-1.5 hover:bg-gray-200 dark:hover:bg-[#333] rounded text-gray-500 hover:text-blue-500 transition-colors"
             title="自动识别目录">
             <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
           </button>
                   <button 
-          @click="showHierarchyEditor = true"
+          @click="uiStore.openModal('hierarchy-editor')"
           class="p-1 hover:bg-gray-200 dark:hover:bg-[#333333] rounded text-gray-500"
           title="编辑层级配置"
         >
@@ -155,11 +155,6 @@
         subtitle="在左侧菜单中选择一个标题，或将光标移动到设置的标题处"
       />
     </SidePanel>
-
-    <!-- 模态框组 -->
-    <HierarchyEditorModal :show="showHierarchyEditor" @close="showHierarchyEditor = false" />
-    <!-- <ExportModal :show="showExportModal" @close="showExportModal = false" /> // 不再使用？ -->
-    <RecognitionModal :show="showRecognitionModal" @close="showRecognitionModal = false" />
   </div>
 </template>
 
@@ -176,9 +171,7 @@ import { useSettingsStore } from '@/store/settings'
 import SidePanel from '@/components/common/SidePanel.vue'
 import ChapterTreeItem from '@/components/features/editor/ChapterTreeItem.vue'
 import MonacoEditor from '@/components/features/editor/MonacoEditor.vue'
-import HierarchyEditorModal from '@/components/features/editor/HierarchyEditorModal.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import RecognitionModal from '@/components/editor/RecognitionModal.vue'
 
 const chapterStore = useChapterStore()
 const outlineStore = useOutlineStore()
@@ -188,8 +181,6 @@ const settingsStore = useSettingsStore()
 const { startEdit, endEdit } = useFieldHistory()
 
 const activeChapterId = ref<string | null>(null)
-const showHierarchyEditor = ref(false)
-const showRecognitionModal = ref(false)
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 
 // 用于维护章节 ID 与 Monaco 装饰器 ID 的映射
