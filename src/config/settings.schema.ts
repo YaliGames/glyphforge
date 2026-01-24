@@ -14,15 +14,18 @@ export interface AIProfile {
   responsePath?: string;
 }
 
-export type SettingType = 'boolean' | 'string' | 'number' | 'select' | 'ai-profile-list';
+export type SettingType = 'boolean' | 'string' | 'number' | 'select' | 'action';
 
 export interface SettingItem {
   key: string;
   label: string;
   description: string;
-  type: SettingType;
+  type?: SettingType;
+  action?: AppAction;
+  buttonLabel?: string;
+  icon?: string;
+  options?: Array<{ label: string; value: any }>;
   default: any;
-  options?: SettingOption[]; // For 'select' type
   dependsOn?: {
     key: string;
     value: any;
@@ -179,60 +182,44 @@ export const SETTINGS_SCHEMA: SettingSection[] = [
         label: '当前活动模型',
         description: '选择当前用于生成内容的 AI 配置。',
         type: 'select',
-        default: 'preset-openai',
-        options: [], // 动态同步
+        default: null,
+        options: [],
         dependsOn: { key: 'ai.enabled', value: true }
       },
       {
         key: 'ai.profiles',
         label: '模型配置管理',
         description: '管理多个 AI 模型供应商、API 密钥和自定义端点。',
-        type: 'ai-profile-list',
-        default: [
-          { 
-            id: 'preset-openai', 
-            name: 'OpenAI (New)', 
-            provider: 'openai', 
-            apiKey: '', 
-            endpoint: 'https://api.openai.com/v1/chat/completions', 
-            model: 'gpt-4o' 
-          },
-          { 
-            id: 'preset-gemini', 
-            name: 'Google Gemini', 
-            provider: 'openai', 
-            apiKey: '', 
-            endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 
-            model: 'gemini-1.5-pro' 
-          },
-          { 
-            id: 'preset-claude', 
-            name: 'Anthropic Claude', 
-            provider: 'openai', 
-            apiKey: '', 
-            endpoint: 'https://api.anthropic.com/v1/messages', 
-            model: 'claude-3-5-sonnet-20240620' 
-          },
-          { 
-            id: 'preset-aliyun', 
-            name: 'Aliyun DashScope', 
-            provider: 'openai', 
-            apiKey: '', 
-            endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 
-            model: 'qwen-plus' 
-          },
-          { 
-            id: 'preset-aliyun-native', 
-            name: 'Aliyun (DashScope Native)', 
-            provider: 'custom', 
-            apiKey: '', 
-            endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', 
-            model: 'qwen-plus',
-            template: '{"model": "${model}", "input": {"messages": ${messages}}, "parameters": {"result_format": "message"}}',
-            responsePath: 'output.choices[0].message.content'
-          }
-        ],
+        type: 'action',
+        action: 'open-ai-profiles',
+        buttonLabel: '管理模型配置',
+        default: null,
         dependsOn: { key: 'ai.enabled', value: true }
+      }
+    ]
+  },
+  {
+    id: 'dev',
+    label: '开发人员选项',
+    icon: 'fa-code',
+    items: [
+      {
+        key: 'dev.devTools',
+        label: '开发人员工具',
+        description: '打开开发人员工具面板，仅Electron环境下可用。',
+        type: 'action',
+        action: 'dev-tools',
+        buttonLabel: '开发人员工具',
+        default: null
+      },
+      {
+        key: 'dev.toggleFullscreen',
+        label: 'handleAction测试',
+        description: '调用handleAction: toggle-fullscreen',
+        type: 'action',
+        action: 'toggle-fullscreen',
+        buttonLabel: '调用',
+        default: null
       }
     ]
   }

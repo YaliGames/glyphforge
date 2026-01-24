@@ -32,6 +32,7 @@ export type AppAction =
   | 'check-updates'
   | 'report-issue'
   | 'open-settings'
+  | 'open-ai-profiles'
   | 'about'
   | 'build-info'
   | 'exit';

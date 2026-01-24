@@ -216,6 +216,9 @@ export function useActions() {
           }
         }
         break
+      case 'open-ai-profiles':
+        uiStore.showAIProfileModal = true
+        break
 
       default:
         uiStore.showToast(`handleAction中不存在${id}操作${payload}`, 'warning')

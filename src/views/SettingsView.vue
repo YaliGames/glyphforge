@@ -95,14 +95,15 @@
                     </option>
                   </select>
 
-                  <!-- AI Profile List Manager (Button Only) -->
-                  <div v-else-if="item.type === 'ai-profile-list'" class="flex items-center">
+                  <!-- Action Button -->
+                  <div v-else-if="item.type === 'action'" class="flex items-center">
                     <button 
-                      @click="showProfileModal = true"
+                      v-if="item.action"
+                      @click="handleAction(item.action)"
                       class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
                     >
-                      <i class="fa-solid fa-layer-group mr-2"></i>
-                      管理模型配置...
+                      <i v-if="item.icon" :class="['fa-solid', item.icon, 'mr-2']"></i>
+                      {{ item.buttonLabel || '执行操作' }}
                     </button>
                   </div>
 
@@ -125,7 +126,7 @@
     </main>
 
     <!-- 模型配置管理弹窗 -->
-    <Modal :show="showProfileModal" title="AI 模型配置管理" @close="showProfileModal = false" width="max-w-4xl">
+    <Modal :show="uiStore.showAIProfileModal" title="AI 模型配置管理" @close="uiStore.showAIProfileModal = false" width="max-w-4xl">
       <div class="flex h-[600px]">
         <!-- 左侧配置文件列表 -->
         <div class="w-64 border-r dark:border-[#333] flex flex-col shrink-0 bg-gray-50/50 dark:bg-[#252526]/30">
@@ -297,12 +298,13 @@
             subtitle="选择一个配置进行编辑，或创建一个新配置"
           />
           
-          <div class="p-6 border-t dark:border-[#333] bg-gray-50/50 dark:bg-[#252526]/50 flex justify-end">
+
+          <div class="px-6 py-4 border-t dark:border-[#333] flex justify-end bg-gray-50/50 dark:bg-[#1a1a1a]/50">
             <button 
-              @click="showProfileModal = false"
-              class="px-10 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+              @click="uiStore.showAIProfileModal = false"
+              class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
-              完成并保存
+              关闭
             </button>
           </div>
         </div>
@@ -314,6 +316,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useSettingsStore } from '@/store/settings'
+import { useUIStore } from '@/store/ui'
+import { useActions } from '@/composables/useActions'
 import { SETTINGS_SCHEMA, AI_PROFILE_TEMPLATES, type SettingItem, type SettingSection, type AIProfile } from '@/config/settings.schema'
 import { v4 as uuidv4 } from 'uuid'
 import Modal from '@/components/common/Modal.vue'
@@ -321,12 +325,13 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import { useRoute } from 'vue-router'
 
 const settingsStore = useSettingsStore()
+const uiStore = useUIStore()
+const { handleAction } = useActions()
 const route = useRoute()
 
 const activeSectionId = ref(SETTINGS_SCHEMA[0].id)
 const scrollContainer = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
-const showProfileModal = ref(false)
 const editingProfileId = ref<string | null>(null)
 
 // 模板应用逻辑
@@ -372,7 +377,7 @@ onMounted(() => {
     editingProfileId.value = profiles[0].id
   }
 
-  // 处理从其他页面跳转来的 Section 定位
+  // 处理从其他页面跳转来的 Section 定定位
   const section = route.query.section as string
   if (section) {
     setTimeout(() => {
@@ -446,7 +451,9 @@ function addProfile() {
     provider: 'openai',
     apiKey: '',
     endpoint: '',
-    model: ''
+    model: '',
+    template: '',
+    responsePath: 'choices[0].message.content'
   }
   settingsStore.updateSetting('ai.profiles', [...current, newProfile])
   editingProfileId.value = newId

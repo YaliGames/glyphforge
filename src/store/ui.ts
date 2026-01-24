@@ -24,6 +24,7 @@ export const useUIStore = defineStore('ui', () => {
   const showBuildInfoModal = ref(false)
   const showSettingsModal = ref(false)
   const showExportProjectModal = ref(false)
+  const showAIProfileModal = ref(false)
   const exportFormat = ref<'txt' | 'md'>('txt')
   
   // --- 持久化方法 ---
@@ -154,6 +155,7 @@ export const useUIStore = defineStore('ui', () => {
     showBuildInfoModal,
     showSettingsModal,
     showExportProjectModal,
+    showAIProfileModal,
     exportFormat,
     toasts,
     showToast,
