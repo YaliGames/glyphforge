@@ -89,25 +89,32 @@ export function useActions() {
           router.push('/outline')
         }
         break
-      case 'open-project':
-        if (await ensureSaved()) {
-          let path = payload
-          if (typeof path !== 'string') {
-            const result = await fsProvider.readFile({
+      case 'open-project': {
+        if (!await ensureSaved()) break
+
+        let success = false
+        if (typeof payload === 'string') {
+          success = await projectStore.openProject(payload)
+        } else {
+          try {
+            const result = await fsProvider.readBuffer({
               filters: [{ name: `${APP_CONFIG.name}项目文件`, extensions: [APP_CONFIG.projectExtension.replace('.', '')] }]
             })
-            path = result?.path
-          }
-
-          if (path) {
-            const success = await projectStore.openProject(path)
-            if (success) {
-              router.push('/outline')
-              uiStore.showToast('项目已加载', 'success')
+            
+            if (result?.data) {
+              success = await projectStore.openProjectFromBuffer(result.data, result.path)
             }
+          } catch (e) {
+            console.warn('Open project cancelled', e)
           }
         }
+
+        if (success) {
+          router.push('/outline')
+          uiStore.showToast('项目加载完毕', 'success')
+        }
         break
+      }
       case 'import-txt':
         try {
           const importResult = await fsProvider.readFile({
@@ -135,10 +142,11 @@ export function useActions() {
         }
         break
       case 'save':
-        if (projectStore.currentProject?.path) {
-          await projectStore.saveProject()
-        } else {
+        // Web 环境不支持覆写本地文件，强制执行导出 (另存为)
+        if (!isElectron || !projectStore.currentProject?.path) {
           await projectStore.saveProjectAs()
+        } else {
+          await projectStore.saveProject()
         }
         break
       case 'save-as':

@@ -2,24 +2,23 @@ import { useProjectStore } from '@/store/project'
 
 /**
  * 字段级历史记录追踪辅助
- * 用于处理 input/textarea focus/blur 时刻的差异化快照
+ * 代理到 ProjectStore 的会话管理机制，实现统一的“懒加载快照”体验
  */
 export function useFieldHistory() {
   const projectStore = useProjectStore()
 
   /**
-   * 开始编辑：在真正发生变动前，记录当前状态到历史栈
+   * 开始编辑：开启一个编辑会话，挂起初始快照
    */
   const startEdit = () => {
-    // 立即存入快照，保存的是变动前的状态
-    projectStore.takeSnapshot()
+    projectStore.startEditSession()
   }
 
   /**
-   * 结束编辑：此环节不再产生快照，因为撤销逻辑需要的是“变动前”的状态
+   * 结束编辑：结束会话，如果在会话期间无数据变动，或者挂起的快照未被提交，则丢弃
    */
   const endEdit = () => {
-    // 逻辑已移除，由 startEdit 预存快照
+    projectStore.endEditSession()
   }
 
   return { startEdit, endEdit }

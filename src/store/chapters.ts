@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useProjectStore } from './project'
 import type { Chapter, RecognitionRules } from '@/types'
-import { ChapterParser } from '@/core/chapter-parser'
+import { ChapterParser } from '@/core/chapterParser'
 
 export const DEFAULT_RECOGNITION_RULES: RecognitionRules = {
   patterns: {

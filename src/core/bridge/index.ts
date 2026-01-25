@@ -5,6 +5,7 @@ export interface FileFilter {
 
 export interface IFileSystem {
   readFile(options?: string | { path?: string, filters?: FileFilter[] }): Promise<{ content: string, name: string, path?: string }>;
+  readBuffer(options?: string | { path?: string, filters?: FileFilter[] }): Promise<{ data: Uint8Array, name: string, path?: string }>;
   writeFile(path: string, content: string): Promise<void>;
   saveAs(content: string, defaultName: string): Promise<string | null>;
 }

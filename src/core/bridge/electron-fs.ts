@@ -7,6 +7,12 @@ export class ElectronFileSystem implements IFileSystem {
   }
 
   async readFile(options?: string | { path?: string, filters?: FileFilter[] }): Promise<{ content: string, name: string, path?: string }> {
+    const { data, name, path } = await this.readBuffer(options);
+    const { text } = TxtImporter.decodeBuffer(data);
+    return { content: text, name, path };
+  }
+
+  async readBuffer(options?: string | { path?: string, filters?: FileFilter[] }): Promise<{ data: Uint8Array, name: string, path?: string }> {
     let path: string | undefined;
     let filters: FileFilter[] | undefined;
 
@@ -19,9 +25,8 @@ export class ElectronFileSystem implements IFileSystem {
 
     if (path) {
       const result = await this.api.readFile(path);
-      const { text } = TxtImporter.decodeBuffer(result.data);
       return {
-        content: text,
+        data: result.data,
         name: result.name,
         path: result.path
       };
@@ -35,9 +40,8 @@ export class ElectronFileSystem implements IFileSystem {
       ]
     });
     if (result) {
-      const { text } = TxtImporter.decodeBuffer(result.data);
       return {
-        content: text,
+        data: result.data,
         name: result.name,
         path: result.path
       };

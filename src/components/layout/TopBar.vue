@@ -90,7 +90,7 @@ interface Menu {
   items: MenuItem[]
 }
 
-const menus = <Menu[]>[
+const menus = computed(() => <Menu[]>[
   {
     id: 'file',
     label: '文件',
@@ -99,8 +99,12 @@ const menus = <Menu[]>[
       { id: 'open-project', label: '打开项目...', shortcut: 'Ctrl+O', icon: '<i class="fa-solid fa-folder-open"></i>' },
       { id: 'import-txt', label: '导入文本...', disabled: !projectStore.isLoaded, icon: '<i class="fa-solid fa-file-import"></i>' },
       { type: 'separator' },
-      { id: 'save', label: '保存', shortcut: 'Ctrl+S', disabled: !projectStore.isLoaded, icon: '<i class="fa-solid fa-floppy-disk"></i>' },
-      { id: 'save-as', label: '另存为...', shortcut: 'Ctrl+Shift+S', disabled: !projectStore.isLoaded },
+      ...(isElectron ? [
+        { id: 'save', label: '保存', shortcut: 'Ctrl+S', disabled: !projectStore.isLoaded, icon: '<i class="fa-solid fa-floppy-disk"></i>' },
+        { id: 'save-as', label: '另存为...', shortcut: 'Ctrl+Shift+S', disabled: !projectStore.isLoaded }
+      ] : [
+        { id: 'save', label: '导出...', shortcut: 'Ctrl+S', disabled: !projectStore.isLoaded, icon: '<i class="fa-solid fa-file-export"></i>' }
+      ]),
       { type: 'separator' },
       { id: 'settings', label: '首选项', shortcut: 'Ctrl+,', icon: '<i class="fa-solid fa-gear"></i>' },
       { id: 'exit', label: '退出', shortcut: 'Alt+F4' }
@@ -159,7 +163,7 @@ const menus = <Menu[]>[
       { id: 'about', label: '关于', icon: '<i class="fa-solid fa-circle-info"></i>' }
     ]
   }
-]
+])
 
 async function handleMenuAction(id: string) {
   handleAction(id as AppAction)

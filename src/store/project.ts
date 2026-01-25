@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import type { GlyphForgeBundle } from '@/types'
-import { BundleManager } from '@/core/bundle-manager'
+import { BundleManager } from '@/core/bundleManager'
 import { fsProvider } from '@/core/bridge'
 import { APP_CONFIG } from '@/config'
 import { useUIStore } from './ui'
@@ -11,13 +11,12 @@ export const useProjectStore = defineStore('project', () => {
   const bundle = ref<GlyphForgeBundle | null>(null)
   const isDirty = ref(false)
   const isRestoring = ref(false)
-  
-  // 历史系统的核心状态
-  let lastCheckpointContent = ''
+
+  let pendingSessionSnapshot: string | null = null 
+
   const isSessionActive = ref(false) // 是否处于连续编辑会话中
   const historyDebounceTimer = ref<any>(null)
 
-  const lastSavedBundle = ref<string>('')
   const uiStore = useUIStore()
   const historyStore = useHistoryStore()
 
@@ -26,18 +25,53 @@ export const useProjectStore = defineStore('project', () => {
 
   function createProject(title: string) {
     bundle.value = BundleManager.createNewProject(title)
-    lastSavedBundle.value = BundleManager.serialize(bundle.value)
     isDirty.value = false
     historyStore.clear()
     // 建立初始历史检查点
     takeSnapshot()
   }
 
+  async function parseProjectBuffer(data: Uint8Array): Promise<GlyphForgeBundle> {
+    let worker: Worker | null = null;
+    try {
+      uiStore.updateLoadingProgress(30, '正在解析数据...');
+      
+      return await new Promise<GlyphForgeBundle>((resolve, reject) => {
+        worker = new Worker(new URL('@/worker/jsonParser.worker.ts', import.meta.url), { type: 'module' });
+        
+        worker.onmessage = (e) => {
+          if (e.data.type === 'success') {
+            uiStore.updateLoadingProgress(80, '校验数据完整性...');
+            setTimeout(() => {
+              resolve(e.data.payload);
+            }, 100);
+          } else {
+            reject(new Error(e.data.error));
+          }
+        };
+        
+        worker.onerror = (err) => reject(err);
+        
+        worker.postMessage({ type: 'parse', payload: data }, [data.buffer]);
+      });
+    } finally {
+      if (worker) {
+        (worker as Worker).terminate();
+      }
+    }
+  }
+
   async function openProject(path: string) {
     try {
       isRestoring.value = true
-      const { content } = await fsProvider.readFile(path)
-      const success = await loadProjectContent(content, path)
+      uiStore.startLoading('正在读取项目文件...')
+
+      const { data } = await fsProvider.readBuffer(path)
+      
+      const bundleData = await parseProjectBuffer(data)
+      
+      const success = await loadProjectBundle(bundleData, path);
+      
       if (success && bundle.value) {
         uiStore.addRecentFile(bundle.value.project.title, path, 'project')
       }
@@ -47,31 +81,72 @@ export const useProjectStore = defineStore('project', () => {
       console.error('Failed to open project:', e)
       uiStore.showToast('无法打开项目文件', 'error')
       return false
+    } finally {
+      uiStore.stopLoading();
+    }
+  }
+
+  async function openProjectFromBuffer(data: Uint8Array, path?: string) {
+    try {
+      isRestoring.value = true
+      uiStore.startLoading('正在解析项目数据...')
+      
+      const bundleData = await parseProjectBuffer(data)
+      const success = await loadProjectBundle(bundleData, path)
+      
+      if (success && bundle.value && path) {
+        uiStore.addRecentFile(bundle.value.project.title, path, 'project')
+      }
+      return success
+    } catch (e) {
+      isRestoring.value = false
+      console.error('Failed to open project from buffer:', e)
+      uiStore.showToast('无法打开项目文件', 'error')
+      return false
+    } finally {
+      uiStore.stopLoading()
     }
   }
 
   /**
-   * 直接从字符串内容加载项目（用于 Web 端的拖拽或导入）
+   * Internal: Load from parsed Bundle object
    */
-  async function loadProjectContent(content: string, path?: string) {
+  async function loadProjectBundle(data: GlyphForgeBundle, path?: string) {
     try {
-      isRestoring.value = true
-      bundle.value = BundleManager.deserialize(content)
+      uiStore.updateLoadingProgress(90, '初始化编辑器...')
+      BundleManager.normalize(data)
+      
+      bundle.value = data
       if (path) {
         bundle.value.project.path = path
-        uiStore.addRecentFile(bundle.value.project.title, path, 'project')
       }
       
-      lastSavedBundle.value = BundleManager.serialize(bundle.value)
       isDirty.value = false
       historyStore.clear()
+      await nextTick()
       takeSnapshot()
       
       setTimeout(() => {
         isRestoring.value = false
       }, 500)
       
-      return true
+      return true;
+    } catch (e) {
+      console.error('Failed to load bundle:', e);
+      return false;
+    }
+  }
+
+  async function loadProjectContent(content: string, path?: string) {
+    try {
+      isRestoring.value = true
+      const bundleData = BundleManager.deserialize(content)
+      const success = await loadProjectBundle(bundleData, path)
+      
+      if (success && bundle.value && path) {
+        uiStore.addRecentFile(bundle.value.project.title, path, 'project')
+      }
+      return success
     } catch (e) {
       isRestoring.value = false
       console.error('Failed to parse project content:', e)
@@ -86,7 +161,6 @@ export const useProjectStore = defineStore('project', () => {
     try {
       const content = BundleManager.serialize(bundle.value)
       await fsProvider.writeFile(bundle.value.project.path, content)
-      lastSavedBundle.value = content
       isDirty.value = false
       uiStore.showToast('项目已保存', 'success')
       return true
@@ -107,7 +181,6 @@ export const useProjectStore = defineStore('project', () => {
       
       if (savedPath) {
         bundle.value.project.path = savedPath
-        lastSavedBundle.value = content
         isDirty.value = false
         uiStore.addRecentFile(bundle.value.project.title, savedPath, 'project')
         uiStore.showToast('项目已另存为', 'success')
@@ -123,13 +196,12 @@ export const useProjectStore = defineStore('project', () => {
 
   function markDirty() {
     isDirty.value = true
-  }
 
-  function updateHierarchies(hierarchies: any[]) {
-    if (bundle.value) {
-      takeSnapshot()
-      bundle.value.project.hierarchies = hierarchies
-      markDirty()
+    // 如果处于编辑会话中且有挂起的快照（说明是会话内的第一次变动），立即将其提交到历史栈
+    if (isSessionActive.value && pendingSessionSnapshot) {
+      console.log('[History] 会话内首次变动，提交挂起的初始快照')
+      historyStore.pushRawState(pendingSessionSnapshot)
+      pendingSessionSnapshot = null // 提交后清除，避免重复提交
     }
   }
 
@@ -137,26 +209,29 @@ export const useProjectStore = defineStore('project', () => {
    * 核心：记录当前状态为一个历史检查点
    */
   function takeSnapshot() {
-    if (!bundle.value || isRestoring.value) return
+    // 如果正在恢复，或处于编辑会话中（会话开始时已记录），则不记录中间状态
+    if (!bundle.value || isRestoring.value || isSessionActive.value) return
     
     // 只有在数据真正发生变化时才记录
     const success = historyStore.pushState(bundle.value, uiStore.viewMode)
     if (success) {
       console.log('[History] 记录检查点成功')
-      lastCheckpointContent = JSON.stringify(bundle.value)
     }
   }
 
   /**
    * 开启一个编辑会话（如：开始打字、开始拖拽）
-   * 逻辑：在会话的第一笔变动前，存下之前的状态
+   * 逻辑：暂存当前状态，但不立即推入历史栈（Lazy Snapshot）。只有当数据真正被修改时（触发 markDirty）才推入。
    */
   function startEditSession() {
     // 如果正在恢复历史记录或已锁步，严禁开启新会话
     if (isRestoring.value || isSessionActive.value) return
+    if (!bundle.value) return
     
-    console.log('[History] 开启编辑会话，存入初始快照')
-    takeSnapshot()
+    console.log('[History] 开启编辑会话，挂起初始快照')
+    
+    // 暂存状态，不立即入栈
+    pendingSessionSnapshot = JSON.stringify({ bundle: bundle.value, view: uiStore.viewMode })
     isSessionActive.value = true
   }
 
@@ -169,6 +244,7 @@ export const useProjectStore = defineStore('project', () => {
     
     console.log(`[History] 结束编辑会话`)
     isSessionActive.value = false
+    pendingSessionSnapshot = null // 会话结束，清除未提交的快照（说明此次会话无修改）
     
     if (historyDebounceTimer.value) {
       clearTimeout(historyDebounceTimer.value)
@@ -178,8 +254,9 @@ export const useProjectStore = defineStore('project', () => {
 
   /**
    * 专门用于文字编辑的节流
+   * @param delay 结束会话的延迟毫秒数，默认为 1000ms
    */
-  function triggerTextChange() {
+  function triggerTextChange(delay = 1000) {
     if (isRestoring.value) return
     
     // 如果还没开启会话，开启它（正常情况下 MonacoEditor 会处理，此处作为二层保险）
@@ -191,7 +268,7 @@ export const useProjectStore = defineStore('project', () => {
     if (historyDebounceTimer.value) clearTimeout(historyDebounceTimer.value)
     historyDebounceTimer.value = setTimeout(() => {
       endEditSession()
-    }, 2000) 
+    }, delay) 
   }
 
   const canUndo = computed(() => historyStore.canUndo)
@@ -261,13 +338,12 @@ export const useProjectStore = defineStore('project', () => {
     isSessionActive,
     canUndo,
     canRedo,
-    lastCheckpointContent,
     createProject,
     openProject,
+    openProjectFromBuffer,
     loadProjectContent,
     saveProject,
     saveProjectAs,
-    updateHierarchies,
     markDirty,
     takeSnapshot,
     startEditSession,
