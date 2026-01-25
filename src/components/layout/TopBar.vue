@@ -1,6 +1,6 @@
 <template>
   <header 
-    class="h-10 border-b dark:border-[#333333] bg-white dark:bg-[#252526] flex items-center justify-between shrink-0 z-[200] relative drag-region"
+    class="h-10 border-b dark:border-[#333333] bg-white dark:bg-[#252526] flex items-center justify-between shrink-0 z-[1000] relative drag-region"
   >
     <div class="flex-1 h-full min-w-0 flex items-center pointer-events-none">
       <div class="flex items-center h-full shrink-0 pointer-events-auto no-drag">

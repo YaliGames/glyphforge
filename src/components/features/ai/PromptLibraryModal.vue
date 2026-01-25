@@ -1,6 +1,6 @@
 <template>
-  <Modal :show="show" title="指令模板库管理" @close="$emit('close')" width="max-w-3xl">
-    <div class="flex h-[600px] overflow-hidden">
+  <Modal title="指令模板库管理" @close="$emit('close')" width="max-w-3xl">
+    <div class="flex h-[600px] -m-6">
       <!-- 左侧：列表 -->
       <div class="w-64 border-r dark:border-[#333] flex flex-col bg-gray-50/30 dark:bg-black/10">
         <div class="p-2 border-b dark:border-[#333] flex items-center justify-between">
@@ -84,33 +84,28 @@
           subtitle="选择一个模板进行编辑，或创建一个新模板"
         />
 
-        <div v-if="activePrompt && !activePrompt.id?.startsWith('builtin-')" class="p-4 border-t dark:border-[#333] flex gap-3 bg-gray-50/50 dark:bg-black/10">
-          <button @click="save" 
-            class="flex-1 py-2 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20">
-            保存更改
-          </button>
-          <button @click="remove" 
-            class="p-2 border border-red-200 dark:border-red-900/30 text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-all">
-            <i class="fa-solid fa-trash-can"></i>
-          </button>
-        </div>
       </div>
     </div>
+
+    <template #footer>
+      <div v-if="activePrompt && !activePrompt.id?.startsWith('builtin-')" class="flex justify-end gap-3">
+        <Button outline color="red" icon="fa-solid fa-trash-can" @click="remove">删除</Button>
+        <Button color="purple" @click="save">保存更改</Button>
+      </div>
+      <div v-else class="flex justify-end">
+        <Button text color="gray" @click="$emit('close')">关闭</Button>
+      </div>
+    </template>
   </Modal>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Modal from '@/components/common/Modal.vue'
+import Button from '@/components/common/Button.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useAIStore } from '@/store/ai'
 import { useUIStore } from '@/store/ui'
-
-const props = defineProps<{
-  show: boolean
-}>()
-// 标记已使用
-props.show;
 
 const emit = defineEmits(['close'])
 const aiStore = useAIStore()

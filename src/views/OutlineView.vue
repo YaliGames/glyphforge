@@ -147,7 +147,7 @@ import { useOutlineStore } from '@/store/outline'
 import { useUIStore } from '@/store/ui'
 import { useFieldHistory } from '@/composables/useFieldHistory'
 import OutlineEditor from '@/components/features/editor/OutlineEditor.vue'
-import SidePanel from '@/components/common/SidePanel.vue'
+import SidePanel from '@/components/layout/SidePanel.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { OutlineAct } from '@/types'
 

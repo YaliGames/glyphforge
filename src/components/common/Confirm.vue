@@ -1,6 +1,6 @@
 <template>
   <Modal 
-    :show="uiStore.confirmState.show" 
+    v-if="uiStore.confirmState.show" 
     :title="uiStore.confirmState.title" 
     @close="uiStore.handleConfirm(false)"
     width="max-w-md"
@@ -21,29 +21,27 @@
 
     <template #footer>
       <div class="flex justify-end gap-3">
-        <button 
+        <Button 
+          color="gray"
           @click="uiStore.handleConfirm(false)"
-          class="px-6 py-2 bg-gray-100 dark:bg-[#37373d] hover:bg-gray-200 dark:hover:bg-[#444444] text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-all"
         >
           {{ uiStore.confirmState.cancelText }}
-        </button>
+        </Button>
         
-        <!-- 新增：第三个可选按钮 -->
-        <button 
+        <Button 
           v-if="uiStore.confirmState.extraText"
+          color="blue"
           @click="uiStore.handleConfirm('extra')"
-          class="px-6 py-2 border border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg text-sm font-medium transition-all"
         >
           {{ uiStore.confirmState.extraText }}
-        </button>
+        </Button>
 
-        <button 
+        <Button 
           @click="uiStore.handleConfirm(true)"
-          class="px-6 py-2 text-white rounded-lg text-sm font-medium transition-all shadow-sm"
-          :class="typeClasses.btn"
+          :color="typeClasses.color"
         >
           {{ uiStore.confirmState.confirmText }}
-        </button>
+        </Button>
       </div>
     </template>
   </Modal>
@@ -53,6 +51,7 @@
 import { computed } from 'vue'
 import { useUIStore } from '@/store/ui'
 import Modal from './Modal.vue'
+import Button from './Button.vue'
 
 const uiStore = useUIStore()
 
@@ -62,25 +61,25 @@ const typeClasses = computed(() => {
       return {
         bg: 'bg-amber-50 dark:bg-amber-900/20',
         icon: 'fa-solid fa-triangle-exclamation text-amber-500',
-        btn: 'bg-amber-500 hover:bg-amber-600 shadow-amber-200 dark:shadow-none'
+        color: 'amber'
       }
     case 'danger':
       return {
         bg: 'bg-red-50 dark:bg-red-900/20',
         icon: 'fa-solid fa-circle-exclamation text-red-500',
-        btn: 'bg-red-600 hover:bg-red-700 shadow-red-200 dark:shadow-none'
+        color: 'red'
       }
     case 'success':
       return {
         bg: 'bg-emerald-50 dark:bg-emerald-900/20',
         icon: 'fa-solid fa-circle-check text-emerald-500',
-        btn: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 dark:shadow-none'
+        color: 'green'
       }
     default:
       return {
         bg: 'bg-blue-50 dark:bg-blue-900/20',
         icon: 'fa-solid fa-circle-info text-blue-500',
-        btn: 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 dark:shadow-none'
+        color: 'blue'
       }
   }
 })

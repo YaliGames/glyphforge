@@ -147,8 +147,8 @@ import { ref, computed } from 'vue'
 import { useWorldviewStore } from '@/store/worldview'
 import { useFieldHistory } from '@/composables/useFieldHistory'
 import { useUIStore } from '@/store/ui'
-import SidePanel from '@/components/common/SidePanel.vue'
-import SidebarActionGroup from '@/components/common/SidebarActionGroup.vue'
+import SidePanel from '@/components/layout/SidePanel.vue'
+import SidebarActionGroup from '@/components/layout/SidebarActionGroup.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const worldviewStore = useWorldviewStore()

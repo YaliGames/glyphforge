@@ -1,5 +1,5 @@
 <template>
-  <Modal :show="show" title="目录识别规则管理" @close="$emit('close')" :close-on-backdrop="false">
+  <Modal title="目录识别规则管理" @close="$emit('close')" :close-on-backdrop="false">
     <div class="space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar pr-2">
       <!-- 正则模式 -->
       <section>
@@ -111,24 +111,9 @@
           重新解析将会重置当前项目的目录树结构
         </div>
         <div class="flex gap-3">
-          <button 
-            @click="chapterStore.resetRecognitionRules()"
-            class="px-4 py-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-xs font-medium transition-colors border border-blue-100 dark:border-blue-900/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10"
-          >
-            恢复默认
-          </button>
-          <button 
-            @click="$emit('close')"
-            class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xs font-medium transition-colors"
-          >
-            取消
-          </button>
-          <button 
-            @click="handleReparse"
-            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-          >
-            应用并重新解析
-          </button>
+          <Button outline color="blue" @click="chapterStore.resetRecognitionRules()">恢复默认</Button>
+          <Button text color="gray" @click="$emit('close')">取消</Button>
+          <Button color="blue" @click="handleReparse">应用并重新解析</Button>
         </div>
       </div>
     </template>
@@ -137,15 +122,12 @@
 
 <script setup lang="ts">
 import Modal from '@/components/common/Modal.vue'
+import Button from '@/components/common/Button.vue'
 import { useChapterStore } from '@/store/chapters'
 import { useUIStore } from '@/store/ui'
 
 const chapterStore = useChapterStore()
 const uiStore = useUIStore()
-
-defineProps<{
-  show: boolean
-}>()
 
 const emit = defineEmits(['close'])
 

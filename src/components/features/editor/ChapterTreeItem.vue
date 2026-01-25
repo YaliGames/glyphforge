@@ -69,7 +69,7 @@ import { computed } from 'vue'
 import type { Chapter } from '@/types'
 import { useChapterStore } from '@/store/chapters'
 import { useProjectStore } from '@/store/project'
-import SidebarActionGroup from '@/components/common/SidebarActionGroup.vue'
+import SidebarActionGroup from '@/components/layout/SidebarActionGroup.vue'
 
 const chapterStore = useChapterStore()
 const projectStore = useProjectStore()

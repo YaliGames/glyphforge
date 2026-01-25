@@ -128,56 +128,7 @@
       />
     </div>
 
-    <!-- 弹窗组 -->
-        <!-- 模态框：添加分类 -->
-    <Modal :show="uiStore.isModalOpen('new-category')" title="添加设定维度" width="max-w-xl" @close="uiStore.closeModal('new-category')">
-
-      <div class="space-y-6">
-        <div class="grid grid-cols-2 gap-3">
-          <button 
-            v-for="preset in availablePresets" 
-            :key="preset.type"
-            @click="selectedPresetType = preset.type"
-            :class="[
-              'flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left group',
-              selectedPresetType === preset.type 
-                ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20' 
-                : 'border-gray-100 dark:border-[#333] hover:border-gray-200 dark:hover:border-[#444] bg-white dark:bg-[#1e1e1e]'
-            ]"
-          >
-            <div class="flex items-center gap-3 mb-2">
-              <div :class="[
-                'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
-                selectedPresetType === preset.type ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-[#333] text-gray-500'
-              ]">
-                <i :class="['fa-solid', preset.icon]"></i>
-              </div>
-              <span class="text-xs font-bold dark:text-gray-200">{{ preset.name }}</span>
-            </div>
-            <p class="text-[10px] text-gray-400 leading-relaxed">{{ preset.desc }}</p>
-          </button>
-        </div>
-        
-        <div v-if="availablePresets.length === 0" class="py-12 text-center text-gray-400">
-          <i class="fa-solid fa-check-circle text-2xl mb-3 opacity-20"></i>
-          <p class="text-xs">所有预设维度已全部创建</p>
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <button @click="uiStore.closeModal('new-category')" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xs font-medium transition-colors">
-            取消
-          </button>
-          <button 
-            @click="confirmCreateCategory"
-            :disabled="!selectedPresetType"
-            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-          >
-            确认添加
-          </button>
-        </div>
-      </template>
-    </Modal>
+    <!-- 弹窗组已移至 GlobalModals -->
   </div>
 </template>
 
@@ -189,11 +140,10 @@ import { useSettingsStore } from '@/store/settings'
 import { useProjectStore } from '@/store/project'
 import { useAIStore } from '@/store/ai'
 import { useFieldHistory } from '@/composables/useFieldHistory'
-import SidePanel from '@/components/common/SidePanel.vue'
+import SidePanel from '@/components/layout/SidePanel.vue'
 import AIButton from '@/components/common/AIButton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import SidebarActionGroup from '@/components/common/SidebarActionGroup.vue'
-import Modal from '@/components/common/Modal.vue'
+import SidebarActionGroup from '@/components/layout/SidebarActionGroup.vue'
 
 const worldviewStore = useWorldviewStore()
 const projectStore = useProjectStore()
@@ -216,15 +166,6 @@ const PRESET_CATEGORIES = [
   { type: 'economy', name: '经济贸易', icon: 'fa-coins', desc: '货币体系、商业往来、贫富差距' },
   { type: 'history', name: '历史纪元', icon: 'fa-landmark', desc: '重大事件、文明更迭、传说史诗' }
 ]
-
-// 计算当前尚未创建的预设
-const availablePresets = computed(() => {
-  if (!worldviewStore.worldview) return []
-  const existingTypes = new Set(worldviewStore.worldview.categories.map(c => c.type))
-  return PRESET_CATEGORIES.filter(p => !existingTypes.has(p.type))
-})
-
-const selectedPresetType = ref<string | null>(null)
 
 const activeCategoryType = computed({
   get: () => worldviewStore.activeCategoryType,
@@ -307,17 +248,7 @@ async function confirmRemoveCategory(cat: any) {
 }
 
 async function createNewCategory() {
-  selectedPresetType.value = availablePresets.value[0]?.type || null
   uiStore.openModal('new-category')
-}
-
-function confirmCreateCategory() {
-  const preset = PRESET_CATEGORIES.find(p => p.type === selectedPresetType.value)
-  if (preset) {
-    worldviewStore.addCategory(preset.name, preset.type)
-    activeCategoryType.value = preset.type
-    uiStore.closeModal('new-category')
-  }
 }
 </script>
 

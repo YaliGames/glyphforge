@@ -1,5 +1,5 @@
 <template>
-  <Modal :show="show" title="层级结构配置" @close="$emit('close')">
+  <Modal title="层级结构配置" @close="$emit('close')">
     <div class="space-y-4">
       <p class="text-[11px] text-gray-500 leading-relaxed italic">
         定义项目中章节的层级深度与对应名称。深度越小层级越高（如 0 为顶层）。
@@ -19,9 +19,9 @@
               <td class="px-3 py-2 font-mono text-gray-400">{{ index }}</td>
               <td class="px-3 py-2">
                 <input 
-                  v-model="h.name"
-                  class="w-full bg-transparent border-none focus:ring-0 px-0 py-0 text-sm"
-                  placeholder="输入此层级的统称"
+                  v-model="h.name" 
+                  class="w-full bg-transparent outline-none focus:text-blue-500 transition-colors"
+                  placeholder="层级名称，如：卷、章、节"
                 />
               </td>
               <td class="px-3 py-2 text-center">
@@ -40,71 +40,52 @@
 
       <button 
         @click="addHierarchy"
-        class="w-full py-2 border border-dashed border-gray-300 dark:border-[#333333] text-gray-400 hover:text-blue-500 hover:border-blue-500 transition-all text-xs rounded"
+        class="w-full py-2 border border-dashed dark:border-[#333333] rounded text-[10px] text-gray-400 hover:text-blue-500 hover:border-blue-500/50 transition-all font-bold uppercase tracking-widest"
       >
-        <i class="fa-solid fa-plus mr-1"></i> 添加下一级深度
+        + 添加层级深度
       </button>
-
-      <div class="flex justify-end gap-3 pt-4">
-        <button 
-          @click="$emit('close')"
-          class="px-4 py-2 text-xs text-gray-500 hover:text-gray-700"
-        >
-          取消
-        </button>
-        <button 
-          @click="save"
-          class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded shadow-lg"
-        >
-          保存配置
-        </button>
-      </div>
     </div>
+
+    <template #footer>
+      <div class="flex justify-end gap-3">
+        <Button text color="gray" @click="$emit('close')">取消</Button>
+        <Button color="blue" @click="save">保存配置</Button>
+      </div>
+    </template>
   </Modal>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import Modal from '@/components/common/Modal.vue'
+import { ref } from 'vue'
 import { useProjectStore } from '@/store/project'
-
-const props = defineProps<{
-  show: boolean
-}>()
+import { useUIStore } from '@/store/ui'
+import Modal from '@/components/common/Modal.vue'
+import Button from '@/components/common/Button.vue'
 
 const emit = defineEmits(['close'])
 const projectStore = useProjectStore()
+const uiStore = useUIStore()
 
-const localHierarchies = ref<any[]>([])
-
-watch(() => props.show, (isShowing) => {
-  if (isShowing) {
-    const existing = projectStore.bundle?.project.hierarchies || []
-    localHierarchies.value = existing.map(h => ({ ...h }))
-    if (localHierarchies.value.length === 0) {
-      localHierarchies.value = [
-        { depth: 0, name: '卷' },
-        { depth: 1, name: '章' }
-      ]
-    }
-  }
-})
+const localHierarchies = ref([...(projectStore.bundle?.project.hierarchies || [])])
 
 function addHierarchy() {
-  const nextDepth = localHierarchies.value.length
-  localHierarchies.value.push({ depth: nextDepth, name: '新层级' })
+  localHierarchies.value.push({
+    depth: localHierarchies.value.length,
+    name: `层级 ${localHierarchies.value.length}`
+  })
 }
 
 function removeHierarchy(index: number) {
   localHierarchies.value.splice(index, 1)
-  // 重新对深度排序
-  localHierarchies.value.forEach((h, i) => {
-    h.depth = i
-  })
+  // 重新映射深度
+  localHierarchies.value.forEach((h, i) => h.depth = i)
 }
 
 function save() {
-  projectStore.updateHierarchies(localHierarchies.value)
+  projectStore.updateProjectMetadata({
+    hierarchies: localHierarchies.value
+  })
+  uiStore.showToast('层级配置已更新', 'success')
   emit('close')
 }
 </script>

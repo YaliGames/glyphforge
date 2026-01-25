@@ -439,41 +439,6 @@
       </footer>
     </div>
   </transition>
-
-  <!-- 原始数据查看弹窗 -->
-  <Modal :show="!!rawViewData" title="AI 调用的原始参考数据 (Snapshot)" @close="rawViewData = null" width="max-w-3xl">
-    <div class="space-y-6">
-      <!-- 注入给 AI 的上下文全量说明 -->
-      <div v-if="rawViewData && rawViewData.__prompt_injection__" class="space-y-2">
-        <div class="text-[10px] font-bold text-purple-600 uppercase flex items-center gap-2">
-          <i class="fa-solid fa-wand-magic-sparkles text-[8px]"></i>
-          Context Injection (Metadata Sent to AI)
-        </div>
-        <div class="bg-gray-50 dark:bg-[#111] p-4 rounded-xl border dark:border-white/5 text-[11px] whitespace-pre-wrap font-mono leading-relaxed text-gray-600 dark:text-gray-400">
-          {{ rawViewData.__prompt_injection__ }}
-        </div>
-      </div>
-
-      <!-- 原始 JSON 数据副本 -->
-      <div v-if="rawViewData" class="space-y-2">
-        <div class="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-2">
-          <i class="fa-solid fa-code text-[8px]"></i>
-          Raw Data Snapshot (JSON)
-        </div>
-        <div class="bg-gray-50 dark:bg-[#111] p-4 rounded-xl border dark:border-white/5">
-          <pre class="text-[10px] font-mono leading-tight text-gray-500 overflow-x-auto">{{ 
-            JSON.stringify(Object.fromEntries(Object.entries(rawViewData).filter(([k]) => k !== '__prompt_injection__')), null, 2) 
-          }}</pre>
-        </div>
-      </div>
-
-      <div class="flex justify-end pt-4">
-        <button @click="rawViewData = null" class="px-6 py-2 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20 active:scale-95">
-          我知道了
-        </button>
-      </div>
-    </div>
-  </Modal>
 </template>
 
 <script setup lang="ts">
@@ -484,7 +449,6 @@ import { useCharacterStore } from '@/store/characters'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
 import { PROJECT_REFERENCE_TREE, type ReferenceNode } from '@/types'
-import Modal from '@/components/common/Modal.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useRouter } from 'vue-router'
 
@@ -497,7 +461,6 @@ const router = useRouter()
 
 const input = ref('')
 const historyBox = ref<HTMLElement | null>(null)
-const rawViewData = ref<any>(null)
 const activePanel = ref<'context' | 'prompts' | null>(null)
 
 // --- 从 Store 同步状态 ---
@@ -583,7 +546,7 @@ function toggleSelectAll(key: string) {
 }
 
 function showRawData(refs: any) {
-  rawViewData.value = refs
+  uiStore.openModal('ai-snapshot', refs)
 }
 
 // --- AI 结构化解析辅助 ---

@@ -1,8 +1,7 @@
 <template>
   <Modal 
-    :show="uiStore.isModalOpen('ai-profile')" 
     title="AI 模型配置管理" 
-    @close="uiStore.closeModal('ai-profile')" 
+    @close="$emit('close')" 
     width="max-w-4xl"
   >
     <div class="flex h-[600px] -m-6">
@@ -179,13 +178,8 @@
     </div>
 
     <template #footer>
-      <div class="px-6 py-4 border-t dark:border-[#333] flex justify-end bg-gray-50/50 dark:bg-[#1a1a1a]/50">
-        <button 
-          @click="uiStore.closeModal('ai-profile')"
-          class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-        >
-          关闭
-        </button>
+      <div class="flex justify-end gap-3">
+        <Button text color="gray" @click="$emit('close')">关闭</Button>
       </div>
     </template>
   </Modal>
@@ -198,10 +192,13 @@ import { useUIStore } from '@/store/ui'
 import { AI_PROFILE_TEMPLATES, type AIProfile } from '@/config/settings.schema'
 import { v4 as uuidv4 } from 'uuid'
 import Modal from '@/components/common/Modal.vue'
+import Button from '@/components/common/Button.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const settingsStore = useSettingsStore()
 const uiStore = useUIStore()
+
+defineEmits(['close'])
 
 const editingProfileId = ref<string | null>(null)
 

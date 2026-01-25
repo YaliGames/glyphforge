@@ -412,6 +412,7 @@
       <!-- 空状态 -->
       <EmptyState
         v-else
+        class="h-full"
         icon="fa-user-pen"
         title="选择或创建角色"
         subtitle="选择一个角色，或点击“新建角色”按钮创建一个新角色"
@@ -428,9 +429,9 @@ import { useSettingsStore } from '@/store/settings'
 import { useProjectStore } from '@/store/project'
 import { useAIStore } from '@/store/ai'
 import { useFieldHistory } from '@/composables/useFieldHistory'
-import SidePanel from '@/components/common/SidePanel.vue'
+import SidePanel from '@/components/layout/SidePanel.vue'
 import ChipInput from '@/components/common/ChipInput.vue'
-import SidebarActionGroup from '@/components/common/SidebarActionGroup.vue'
+import SidebarActionGroup from '@/components/layout/SidebarActionGroup.vue'
 import AIButton from '@/components/common/AIButton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { CharacterPhase } from '@/types'

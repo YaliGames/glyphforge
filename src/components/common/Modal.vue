@@ -1,6 +1,6 @@
 <template>
-  <Transition name="modal">
-    <div v-if="show" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+  <Transition name="modal" appear>
+    <div class="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
       <!-- Backdrop -->
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="handleBackdropClick"></div>
       
@@ -39,8 +39,10 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
+import { useScrollLock, useModalStack } from '@/composables/useModalInteraction'
+
 const props = withDefaults(defineProps<{
-  show: boolean
   title: string
   width?: string
   closeOnBackdrop?: boolean
@@ -49,6 +51,29 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits(['close'])
+
+const { lock, unlock } = useScrollLock()
+const { register, unregister, isTop } = useModalStack()
+
+onMounted(() => {
+  lock()
+  register()
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  unlock()
+  unregister()
+  window.removeEventListener('keydown', handleKeydown)
+})
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && isTop()) {
+    if (props.closeOnBackdrop !== false) {
+      emit('close')
+    }
+  }
+}
 
 const handleBackdropClick = () => {
   if (props.closeOnBackdrop !== false) {
