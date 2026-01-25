@@ -90,7 +90,7 @@ interface Menu {
   items: MenuItem[]
 }
 
-const menus = <Menu[]>[
+const menus = computed(() => <Menu[]>[
   {
     id: 'file',
     label: '文件',
@@ -159,7 +159,7 @@ const menus = <Menu[]>[
       { id: 'about', label: '关于', icon: '<i class="fa-solid fa-circle-info"></i>' }
     ]
   }
-]
+])
 
 async function handleMenuAction(id: string) {
   handleAction(id as AppAction)
