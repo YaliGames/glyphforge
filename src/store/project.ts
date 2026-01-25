@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { GlyphForgeBundle } from '@/types'
-import { BundleManager } from '@/core/bundle-manager'
+import { BundleManager } from '@/core/bundleManager'
 import { fsProvider } from '@/core/bridge'
 import { APP_CONFIG } from '@/config'
 import { useUIStore } from './ui'
