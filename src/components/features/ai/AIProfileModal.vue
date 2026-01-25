@@ -6,14 +6,14 @@
   >
     <div class="flex h-[600px] -m-6">
       <!-- 左侧配置文件列表 -->
-      <div class="w-64 border-r dark:border-[#333] flex flex-col shrink-0 bg-gray-50/50 dark:bg-[#252526]/30">
-        <div class="p-4 border-b dark:border-[#333] flex items-center justify-between">
-          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">已保存配置</span>
+      <SidePanel title="已保存配置" width="w-64">
+        <template #actions>
           <button @click="addProfile" class="text-blue-500 hover:text-blue-600">
             <i class="fa-solid fa-plus-circle text-sm"></i>
           </button>
-        </div>
-        <div class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+        </template>
+        
+        <div class="p-2 space-y-1">
           <button 
             v-for="profile in settingsStore.getSettings()['ai.profiles']" 
             :key="profile.id"
@@ -36,7 +36,7 @@
             <i v-if="settingsStore.getSettings()['ai.activeProfileId'] === profile.id" class="fa-solid fa-check text-[10px] opacity-60"></i>
           </button>
         </div>
-      </div>
+      </SidePanel>
 
       <!-- 右侧编辑表单 -->
       <div class="flex-1 flex flex-col bg-white dark:bg-[#1e1e1e]">
@@ -193,6 +193,7 @@ import { AI_PROFILE_TEMPLATES, type AIProfile } from '@/config/settings.schema'
 import { v4 as uuidv4 } from 'uuid'
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
+import SidePanel from '@/components/layout/SidePanel.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const settingsStore = useSettingsStore()
@@ -261,15 +262,29 @@ function updateProfile(id: string, updates: Partial<AIProfile>) {
   }
 }
 
-function removeProfile(id: string) {
+async function removeProfile(id: string) {
   const current = [...settingsStore.getSettings()['ai.profiles'] || []]
-  if (current.length <= 1) return
+  if (current.length <= 1) {
+    uiStore.showToast('无法删除最后一个配置', 'warning')
+    return
+  }
+  
+  const ok = await uiStore.showConfirm({
+    title: '删除配置',
+    message: '确定要删除这个 AI 模型配置吗？此操作不可撤销。',
+    type: 'danger'
+  })
+
+  if (!ok) return
+
   const filtered = current.filter(p => p.id !== id)
   settingsStore.updateSetting('ai.profiles', filtered)
   
   if (settingsStore.getSettings()['ai.activeProfileId'] === id) {
     settingsStore.updateSetting('ai.activeProfileId', filtered[0].id)
   }
+  
+  uiStore.showToast('配置已删除', 'info')
 }
 
 onMounted(() => {

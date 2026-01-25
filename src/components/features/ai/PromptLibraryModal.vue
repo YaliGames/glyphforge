@@ -2,14 +2,14 @@
   <Modal title="指令模板库管理" @close="$emit('close')" width="max-w-3xl">
     <div class="flex h-[600px] -m-6">
       <!-- 左侧：列表 -->
-      <div class="w-64 border-r dark:border-[#333] flex flex-col bg-gray-50/30 dark:bg-black/10">
-        <div class="p-2 border-b dark:border-[#333] flex items-center justify-between">
-          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">模板列表</span>
+      <SidePanel title="模板列表" width="w-64">
+        <template #actions>
           <button @click="createNew" class="text-blue-500 hover:text-blue-600 transition-colors">
             <i class="fa-solid fa-plus-circle text-sm"></i>
           </button>
-        </div>
-        <div class="flex-1 overflow-y-auto p-2 space-y-1">
+        </template>
+        
+        <div class="p-2 space-y-1">
           <div v-for="p in aiStore.allPrompts" :key="p.id" 
             @click="activePrompt = { ...p }"
             class="p-3 rounded-xl cursor-pointer transition-all border border-transparent group"
@@ -27,7 +27,7 @@
             <p class="text-[9px] text-gray-400 line-clamp-1 italic">{{ p.description }}</p>
           </div>
         </div>
-      </div>
+      </SidePanel>
 
       <!-- 右侧：详情编辑器 -->
       <div class="flex-1 flex flex-col bg-white dark:bg-[#1e1e1e]">
@@ -103,6 +103,7 @@
 import { ref, onMounted } from 'vue'
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
+import SidePanel from '@/components/layout/SidePanel.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useAIStore } from '@/store/ai'
 import { useUIStore } from '@/store/ui'
