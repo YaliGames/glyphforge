@@ -2,7 +2,7 @@
   <TransitionGroup 
     name="toast-fade" 
     tag="div" 
-    class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 items-center pointer-events-none"
+    class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] flex flex-col gap-2 items-center pointer-events-none"
   >
     <div 
       v-for="toast in uiStore.toasts" 
