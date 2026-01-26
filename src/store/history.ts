@@ -41,6 +41,20 @@ export const useHistoryStore = defineStore('history', () => {
     return true
   }
 
+  function pushRawState(rawState: string) {
+    if (past.value.length > 0 && past.value[past.value.length - 1] === rawState) {
+      return false
+    }
+
+    if (past.value.length >= MAX_HISTORY) {
+      past.value.shift()
+    }
+    
+    past.value.push(rawState)
+    future.value = []
+    return true
+  }
+
   function undo(currentBundle: GlyphForgeBundle, currentView: string): HistoryState | null {
     if (!canUndo.value) return null
 
@@ -92,6 +106,7 @@ export const useHistoryStore = defineStore('history', () => {
     canUndo,
     canRedo,
     pushState,
+    pushRawState,
     undo,
     redo,
     clear

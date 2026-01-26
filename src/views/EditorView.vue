@@ -48,10 +48,10 @@
       <div class="flex-1 relative">
         <MonacoEditor
           ref="monacoRef"
-          v-model="chapterStore.manuscriptContent"
+          :model-value="chapterStore.manuscriptContent"
+          @update:model-value="debouncedContentUpdate"
           @mounted="onEditorMounted"
           @cursor-change="handleCursorChange"
-          @focus="projectStore.startEditSession()"
           @blur="projectStore.endEditSession()"
         />
       </div>
@@ -197,6 +197,22 @@ const activeChapterAct = computed(() => {
   return outlineStore.acts.find(a => a.id === activeChapter.value?.linkedOutlineActId) || null
 })
 
+let updateTimer: any = null
+function debouncedContentUpdate(val: string) {
+  if (updateTimer) clearTimeout(updateTimer)
+  updateTimer = setTimeout(() => {
+    chapterStore.manuscriptContent = val
+  }, 500)
+}
+
+// 当发生撤销/重做时，立即取消正在排队的文本更新
+watch(() => projectStore.isRestoring, (val) => {
+  if (val && updateTimer) {
+    clearTimeout(updateTimer)
+    updateTimer = null
+  }
+})
+
 /**
  * 核心逻辑：刷新/初始化编辑器中的锚点装饰器 (Tracked Ranges)
  * 包含基础的“模糊匹配”逻辑，以应对非正常编辑导致的偏移 (规范 5.3)
@@ -281,61 +297,91 @@ function syncStoreFromDecorations() {
   if (!model) return
 
   isSyncingFromEditor = true
-  const toRemoveIds: string[] = []
-  let needsForcedRefresh = false
+  const toRemoveIds = new Set<string>()
+  let needsReflow = false
 
-  // 注意：我们需要操作原始数组，因为 computed 可能还未更新
+  // 1. 扫描与分组：收集有效候选并按行分组
+  const candidates: { id: string; line: number; text: string; range: monaco.Range, prevLine: number }[] = []
+  const lineGroups = new Map<number, typeof candidates>()
+
   chapterStore.flattenedChapters.forEach(chapter => {
     const decoId = chapterDecorations.get(chapter.id)
     if (!decoId) return
 
     const range = model.getDecorationRange(decoId)
-    
-    // 如果 Range 消失了（行被完全物理删除）
-    if (!range || range.isEmpty()) {
-      toRemoveIds.push(chapter.id)
+    if (!range || range.startLineNumber > model.getLineCount()) {
+      toRemoveIds.add(chapter.id)
       return
     }
 
-    // 解决换行导致多行高亮的问题：如果 Range 跨行了，说明发生了换行，需要强制重绘装饰器
-    if (range.startLineNumber !== range.endLineNumber) {
-      needsForcedRefresh = true
+    const { startLineNumber: line } = range
+    const text = model.getLineContent(line)
+    
+    // 过滤失效装饰器：
+    // 1. Range 塌陷且非空行内容 -> 锚点已丢失
+    // 2. 漂移检测：位置发生改变 且 内容也完全不同 -> 说明这是一次破坏性编辑导致的错误吸附（如大段删除）
+    //    注：合法的“移动”应保持内容不变；合法的“修改”应保持位置不变（或仅微调）。
+    const isCollapsed = range.isEmpty() && text.length > 0
+    const isDrifted = line !== chapter.anchorLineNumber && text.trim() !== (chapter.anchorText || '').trim()
+
+    if (isCollapsed || isDrifted) {
+      toRemoveIds.add(chapter.id)
+      return
     }
 
-    const currentLine = range.startLineNumber
-    const currentText = model.getLineContent(currentLine).trim()
+    const candidate = { id: chapter.id, line, text, range, prevLine: chapter.anchorLineNumber }
+    candidates.push(candidate)
+    
+    if (!lineGroups.has(line)) lineGroups.set(line, [])
+    lineGroups.get(line)!.push(candidate)
+  })
 
-    // 修改点：如果标题内容为空，不再解除绑定，而是设定占位符 (例如：未命名章)
-    let targetTitle = currentText
-    if (!currentText) {
-      const hierarchies = projectStore.bundle?.project.hierarchies || []
-      const h = hierarchies.find(item => item.depth === chapter.depth)
-      targetTitle = `未命名${h ? h.name : '章节'}`
+  // 2. 冲突解决：同一行多章节时，仅保留原住民
+  // 如果所有候选者都是外来的（发生了移动），说明这是多个章节被挤压到了同一行，应全部废弃
+  lineGroups.forEach((group, line) => {
+    if (group.length <= 1) return
+    const keep = group.find(c => c.prevLine === line) // 移除 || group[0]，不再强行保留
+    group.forEach(c => c !== keep && toRemoveIds.add(c.id))
+  })
+
+  // 3. 应用更新
+  candidates.forEach(c => {
+    if (toRemoveIds.has(c.id)) return
+    
+    const chapter = (chapterStore.flattenedChapters as any[]).find(ch => ch.id === c.id)
+    if (!chapter) return
+
+    // 若 Range 跨行（通常由换行引起），标记需要刷新装饰器
+    if (c.range.startLineNumber !== c.range.endLineNumber) needsReflow = true
+
+    const trimmedText = c.text.trim()
+    let title = trimmedText
+    
+    // 处理空标题占位符
+    if (!title) {
+      const h = projectStore.bundle?.project.hierarchies?.find(h => h.depth === chapter.depth)
+      title = `未命名${h ? h.name : '章节'}`
     }
 
-    // 仅在真实变化时更新 Store
-    if (chapter.anchorLineNumber !== currentLine || chapter.title !== targetTitle) {
+    if (chapter.anchorLineNumber !== c.line || chapter.title !== title) {
       chapterStore.updateChapter(chapter.id, {
-        anchorLineNumber: currentLine,
-        title: targetTitle,
-        anchorText: currentText // 校验文本使用真实内容
+        anchorLineNumber: c.line,
+        title,
+        anchorText: trimmedText
       })
     }
   })
 
-  // 批量删除不再存在的章节 (例如：整行被物理删除导致的装饰器塌陷)
-  if (toRemoveIds.length > 0) {
+  // 4. 执行删除与刷新
+  if (toRemoveIds.size > 0) {
     toRemoveIds.forEach(id => {
       chapterStore.removeChapter(id)
       chapterDecorations.delete(id)
+      if (activeChapterId.value === id) activeChapterId.value = null
     })
-    if (activeChapterId.value && toRemoveIds.includes(activeChapterId.value)) {
-      activeChapterId.value = null
-    }
-    // 已经包含 refreshDecorations()
     refreshDecorations()
-  } else if (needsForcedRefresh) {
-    // 如果没有删除操作但需要纠正多行高亮，也执行刷新
+    projectStore.endEditSession()
+  } else if (needsReflow) {
     refreshDecorations()
   }
 

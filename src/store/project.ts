@@ -11,13 +11,12 @@ export const useProjectStore = defineStore('project', () => {
   const bundle = ref<GlyphForgeBundle | null>(null)
   const isDirty = ref(false)
   const isRestoring = ref(false)
-  
-  // 历史系统的核心状态
-  let lastCheckpointContent = ''
+
+  let pendingSessionSnapshot: string | null = null 
+
   const isSessionActive = ref(false) // 是否处于连续编辑会话中
   const historyDebounceTimer = ref<any>(null)
 
-  const lastSavedBundle = ref<string>('')
   const uiStore = useUIStore()
   const historyStore = useHistoryStore()
 
@@ -26,7 +25,6 @@ export const useProjectStore = defineStore('project', () => {
 
   function createProject(title: string) {
     bundle.value = BundleManager.createNewProject(title)
-    lastSavedBundle.value = BundleManager.serialize(bundle.value)
     isDirty.value = false
     historyStore.clear()
     // 建立初始历史检查点
@@ -62,7 +60,6 @@ export const useProjectStore = defineStore('project', () => {
         uiStore.addRecentFile(bundle.value.project.title, path, 'project')
       }
       
-      lastSavedBundle.value = BundleManager.serialize(bundle.value)
       isDirty.value = false
       historyStore.clear()
       takeSnapshot()
@@ -86,7 +83,6 @@ export const useProjectStore = defineStore('project', () => {
     try {
       const content = BundleManager.serialize(bundle.value)
       await fsProvider.writeFile(bundle.value.project.path, content)
-      lastSavedBundle.value = content
       isDirty.value = false
       uiStore.showToast('项目已保存', 'success')
       return true
@@ -107,7 +103,6 @@ export const useProjectStore = defineStore('project', () => {
       
       if (savedPath) {
         bundle.value.project.path = savedPath
-        lastSavedBundle.value = content
         isDirty.value = false
         uiStore.addRecentFile(bundle.value.project.title, savedPath, 'project')
         uiStore.showToast('项目已另存为', 'success')
@@ -123,13 +118,12 @@ export const useProjectStore = defineStore('project', () => {
 
   function markDirty() {
     isDirty.value = true
-  }
 
-  function updateHierarchies(hierarchies: any[]) {
-    if (bundle.value) {
-      takeSnapshot()
-      bundle.value.project.hierarchies = hierarchies
-      markDirty()
+    // 如果处于编辑会话中且有挂起的快照（说明是会话内的第一次变动），立即将其提交到历史栈
+    if (isSessionActive.value && pendingSessionSnapshot) {
+      console.log('[History] 会话内首次变动，提交挂起的初始快照')
+      historyStore.pushRawState(pendingSessionSnapshot)
+      pendingSessionSnapshot = null // 提交后清除，避免重复提交
     }
   }
 
@@ -137,26 +131,29 @@ export const useProjectStore = defineStore('project', () => {
    * 核心：记录当前状态为一个历史检查点
    */
   function takeSnapshot() {
-    if (!bundle.value || isRestoring.value) return
+    // 如果正在恢复，或处于编辑会话中（会话开始时已记录），则不记录中间状态
+    if (!bundle.value || isRestoring.value || isSessionActive.value) return
     
     // 只有在数据真正发生变化时才记录
     const success = historyStore.pushState(bundle.value, uiStore.viewMode)
     if (success) {
       console.log('[History] 记录检查点成功')
-      lastCheckpointContent = JSON.stringify(bundle.value)
     }
   }
 
   /**
    * 开启一个编辑会话（如：开始打字、开始拖拽）
-   * 逻辑：在会话的第一笔变动前，存下之前的状态
+   * 逻辑：暂存当前状态，但不立即推入历史栈（Lazy Snapshot）。只有当数据真正被修改时（触发 markDirty）才推入。
    */
   function startEditSession() {
     // 如果正在恢复历史记录或已锁步，严禁开启新会话
     if (isRestoring.value || isSessionActive.value) return
+    if (!bundle.value) return
     
-    console.log('[History] 开启编辑会话，存入初始快照')
-    takeSnapshot()
+    console.log('[History] 开启编辑会话，挂起初始快照')
+    
+    // 暂存状态，不立即入栈
+    pendingSessionSnapshot = JSON.stringify({ bundle: bundle.value, view: uiStore.viewMode })
     isSessionActive.value = true
   }
 
@@ -169,6 +166,7 @@ export const useProjectStore = defineStore('project', () => {
     
     console.log(`[History] 结束编辑会话`)
     isSessionActive.value = false
+    pendingSessionSnapshot = null // 会话结束，清除未提交的快照（说明此次会话无修改）
     
     if (historyDebounceTimer.value) {
       clearTimeout(historyDebounceTimer.value)
@@ -178,8 +176,9 @@ export const useProjectStore = defineStore('project', () => {
 
   /**
    * 专门用于文字编辑的节流
+   * @param delay 结束会话的延迟毫秒数，默认为 1000ms
    */
-  function triggerTextChange() {
+  function triggerTextChange(delay = 1000) {
     if (isRestoring.value) return
     
     // 如果还没开启会话，开启它（正常情况下 MonacoEditor 会处理，此处作为二层保险）
@@ -191,7 +190,7 @@ export const useProjectStore = defineStore('project', () => {
     if (historyDebounceTimer.value) clearTimeout(historyDebounceTimer.value)
     historyDebounceTimer.value = setTimeout(() => {
       endEditSession()
-    }, 2000) 
+    }, delay) 
   }
 
   const canUndo = computed(() => historyStore.canUndo)
@@ -261,13 +260,11 @@ export const useProjectStore = defineStore('project', () => {
     isSessionActive,
     canUndo,
     canRedo,
-    lastCheckpointContent,
     createProject,
     openProject,
     loadProjectContent,
     saveProject,
     saveProjectAs,
-    updateHierarchies,
     markDirty,
     takeSnapshot,
     startEditSession,

@@ -15,139 +15,125 @@ const props = defineProps<{
   options?: monaco.editor.IStandaloneEditorConstructionOptions
 }>()
 
-const settingsStore = useSettingsStore()
 const emit = defineEmits(['update:modelValue', 'change', 'cursor-change', 'focus', 'blur', 'mounted'])
 
+const settingsStore = useSettingsStore()
 const editorContainer = ref<HTMLElement | null>(null)
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 
-const handleFind = () => {
-  editor?.getAction('actions.find')?.run()
+// 编辑器默认配置
+const defaultOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
+  language: 'plaintext',
+  fontFamily: 'Georgia, "Times New Roman", serif',
+  wordWrap: 'on',
+  minimap: { enabled: false },
+  links: false,
+  folding: false,
+  automaticLayout: true,
+  colorDecorators: false,
+  suggestOnTriggerCharacters: false,
+  quickSuggestions: false,
+  occurrencesHighlight: "off",
+  unicodeHighlight: {
+    ambiguousCharacters: false,
+    invisibleCharacters: false
+  }
 }
-const handleReplace = () => {
-  editor?.getAction('editor.action.startFindReplaceAction')?.run()
-}
+
+const handleFind = () => editor?.getAction('actions.find')?.run()
+const handleReplace = () => editor?.getAction('editor.action.startFindReplaceAction')?.run()
 
 onMounted(() => {
-  if (editorContainer.value) {
-    editor = monaco.editor.create(editorContainer.value, {
-      value: props.modelValue,
-      language: 'plaintext',
-      theme: settingsStore.isDarkMode ? 'vs-dark' : 'vs',
-      fontSize: settingsStore.getSettings()['editor.fontSize'] || 16,
-      fontFamily: 'Georgia, "Times New Roman", serif',
-      lineHeight: (settingsStore.getSettings()['editor.fontSize'] || 16) * (settingsStore.getSettings()['editor.lineHeight'] || 1.8),
-      wordWrap: 'on',
-      minimap: { enabled: false },
-      links: false,
-      folding: false,
-      // 禁用自动补全
-      suggestOnTriggerCharacters: false,
-      quickSuggestions: false,
-      // 禁用自动高亮相同词
-      occurrencesHighlight: "off",
-      automaticLayout: true,
-      unicodeHighlight: {
-        ambiguousCharacters: false,
-        invisibleCharacters: false
-      },
-      ...props.options
-    })
+  if (!editorContainer.value) return
 
-    editor.onDidFocusEditorWidget(() => {
-      emit('focus')
-    })
+  const { 'editor.fontSize': fs = 16, 'editor.lineHeight': lh = 1.8 } = settingsStore.getSettings()
 
-    editor.onDidBlurEditorWidget(() => {
-      emit('blur')
-    })
+  editor = monaco.editor.create(editorContainer.value, {
+    value: props.modelValue,
+    theme: settingsStore.isDarkMode ? 'vs-dark' : 'vs',
+    fontSize: fs,
+    lineHeight: fs * lh,
+    ...defaultOptions,
+    ...props.options
+  })
 
-    editor.onDidChangeModelContent(() => {
-      const projectStore = useProjectStore()
-      // 关键：如果正在恢复中，忽略由 setValue 产生的变更事件
-      if (projectStore.isRestoring) return
-
-      // 关键：在同步数据回 Store 之前，确保开启会话并存入“变动前”的快照
-      // 这样能解决“逻辑位移还没算，文字先变了”导致的撤销不同步问题
-      if (!projectStore.isSessionActive) {
-        projectStore.startEditSession()
-      }
-
-      const value = editor?.getValue() || ''
-      emit('update:modelValue', value)
-      emit('change', value)
-
-      // 更新会话倒计时
-      projectStore.triggerTextChange()
-    })
-
-    editor.onDidChangeCursorPosition((e) => {
-      emit('cursor-change', e.position)
-    })
-
-    // 禁用 Monaco 原生撤销重做，交由全局 History 系统处理
-    const projectStore = useProjectStore()
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ, () => {
-      projectStore.undo()
-    })
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY, () => {
-      projectStore.redo()
-    })
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, () => {
-      projectStore.redo()
-    })
-
-    emit('mounted', editor)
-
-    window.addEventListener('monaco-find', handleFind)
-    window.addEventListener('monaco-replace', handleReplace)
-  }
+  bindEditorEvents()
+  bindKeyBindings()
+  
+  emit('mounted', editor)
+  window.addEventListener('monaco-find', handleFind)
+  window.addEventListener('monaco-replace', handleReplace)
 })
 
 onUnmounted(() => {
   window.removeEventListener('monaco-find', handleFind)
   window.removeEventListener('monaco-replace', handleReplace)
-  if (editor) {
-    editor.dispose()
-  }
+  editor?.dispose()
 })
 
+function bindEditorEvents() {
+  if (!editor) return
+
+  editor.onDidFocusEditorWidget(() => emit('focus'))
+  editor.onDidBlurEditorWidget(() => emit('blur'))
+
+  // 内容变更处理：核心历史记录逻辑
+  editor.onDidChangeModelContent((e) => {
+    const projectStore = useProjectStore()
+    if (projectStore.isRestoring) return
+
+    // 变更前开启会话，确保状态被捕获
+    if (!projectStore.isSessionActive) {
+      projectStore.startEditSession()
+    }
+
+    const value = editor?.getValue() || ''
+    emit('update:modelValue', value)
+    emit('change', value)
+
+    // 动态调整提交延迟：换行或长文本粘贴视为意群结束，加速提交
+    const hasIntentBreak = e.changes.some(c => c.text.includes('\n') || c.text.length > 10)
+    const delay = hasIntentBreak ? 200 : 1000
+
+    projectStore.triggerTextChange(delay)
+  })
+
+  // 光标移动处理
+  editor.onDidChangeCursorPosition((e) => {
+    emit('cursor-change', e.position)
+    
+    // 显式移动光标（非打字引起）视为当前编辑意图中断，立即提交会话
+    if (e.reason === monaco.editor.CursorChangeReason.Explicit) {
+      useProjectStore().endEditSession()
+    }
+  })
+}
+
+function bindKeyBindings() {
+  if (!editor) return
+  const projectStore = useProjectStore()
+  
+  // 接管系统撤销/重做
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ, () => projectStore.undo())
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY, () => projectStore.redo())
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, () => projectStore.redo())
+}
+
 watch(() => settingsStore.isDarkMode, (isDark) => {
-  if (editor) {
-    monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs')
-  }
+  monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs')
 })
 
 watch(() => [settingsStore.getSettings()['editor.fontSize'], settingsStore.getSettings()['editor.lineHeight']], ([fontSize, lineHeight]) => {
-  if (editor) {
-    const fs = fontSize || 18
-    const lh = fs * (lineHeight || 1.8)
-    editor.updateOptions({
-      fontSize: fs,
-      lineHeight: lh
-    })
-  }
+  if (!editor) return
+  const fs = fontSize || 16
+  const lh = fs * (lineHeight || 1.8)
+  editor.updateOptions({ fontSize: fs, lineHeight: lh })
 })
 
 watch(() => props.modelValue, (newValue) => {
-  if (editor) {
-    const currentVal = editor.getValue()
-    const projectStore = useProjectStore()
-
-    if (newValue !== currentVal) {
-      if (projectStore.isRestoring) {
-        editor.setValue(newValue)
-        // 确保在 setValue 后的微任务流结束后释放
-        requestAnimationFrame(() => {
-          projectStore.finishRestoring()
-        })
-      } else {
-        editor.setValue(newValue)
-      }
-    } else if (projectStore.isRestoring) {
-      // 文本没变，但处于恢复模式（可能是撤销了结构修改），也需要释放锁
-      projectStore.finishRestoring()
-    }
+  if (editor && newValue !== editor.getValue()) {
+    editor.setValue(newValue)
+    // 此时处于 ProjectStore 恢复期，无需手动干预历史状态
   }
 })
 
