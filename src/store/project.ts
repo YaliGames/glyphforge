@@ -31,17 +31,12 @@ export const useProjectStore = defineStore('project', () => {
     takeSnapshot()
   }
 
-  async function openProject(path: string) {
+  async function parseProjectBuffer(data: Uint8Array): Promise<GlyphForgeBundle> {
     let worker: Worker | null = null;
     try {
-      isRestoring.value = true
-      uiStore.startLoading('正在读取项目文件...')
-
-      const { data } = await fsProvider.readBuffer(path)
-      
       uiStore.updateLoadingProgress(30, '正在解析数据...');
       
-      const bundleData = await new Promise<GlyphForgeBundle>((resolve, reject) => {
+      return await new Promise<GlyphForgeBundle>((resolve, reject) => {
         worker = new Worker(new URL('@/worker/jsonParser.worker.ts', import.meta.url), { type: 'module' });
         
         worker.onmessage = (e) => {
@@ -59,6 +54,21 @@ export const useProjectStore = defineStore('project', () => {
         
         worker.postMessage({ type: 'parse', payload: data }, [data.buffer]);
       });
+    } finally {
+      if (worker) {
+        (worker as Worker).terminate();
+      }
+    }
+  }
+
+  async function openProject(path: string) {
+    try {
+      isRestoring.value = true
+      uiStore.startLoading('正在读取项目文件...')
+
+      const { data } = await fsProvider.readBuffer(path)
+      
+      const bundleData = await parseProjectBuffer(data)
       
       const success = await loadProjectBundle(bundleData, path);
       
@@ -72,10 +82,29 @@ export const useProjectStore = defineStore('project', () => {
       uiStore.showToast('无法打开项目文件', 'error')
       return false
     } finally {
-      if (worker) {
-        (worker as Worker).terminate();
-      }
       uiStore.stopLoading();
+    }
+  }
+
+  async function openProjectFromBuffer(data: Uint8Array, path?: string) {
+    try {
+      isRestoring.value = true
+      uiStore.startLoading('正在解析项目数据...')
+      
+      const bundleData = await parseProjectBuffer(data)
+      const success = await loadProjectBundle(bundleData, path)
+      
+      if (success && bundle.value && path) {
+        uiStore.addRecentFile(bundle.value.project.title, path, 'project')
+      }
+      return success
+    } catch (e) {
+      isRestoring.value = false
+      console.error('Failed to open project from buffer:', e)
+      uiStore.showToast('无法打开项目文件', 'error')
+      return false
+    } finally {
+      uiStore.stopLoading()
     }
   }
 
@@ -311,6 +340,7 @@ export const useProjectStore = defineStore('project', () => {
     canRedo,
     createProject,
     openProject,
+    openProjectFromBuffer,
     loadProjectContent,
     saveProject,
     saveProjectAs,
