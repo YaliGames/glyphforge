@@ -3,6 +3,8 @@
     <!-- 顶部标题栏 -->
     <TopBar />
 
+    <LoadingOverlay />
+
     <!-- 主体区域 -->
     <main class="flex-1 overflow-hidden flex relative">
       <!-- 侧边导航活动栏 -->
@@ -49,6 +51,7 @@ import GlobalModals from '@/components/features/modals/GlobalModals.vue'
 import AIAssistant from '@/components/features/ai/AIAssistant.vue'
 import Toast from '@/components/common/Toast.vue'
 import Confirm from '@/components/common/Confirm.vue'
+import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()

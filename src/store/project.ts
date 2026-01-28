@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import type { GlyphForgeBundle } from '@/types'
 import { BundleManager } from '@/core/bundleManager'
 import { fsProvider } from '@/core/bridge'
@@ -32,10 +32,36 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   async function openProject(path: string) {
+    let worker: Worker | null = null;
     try {
       isRestoring.value = true
-      const { content } = await fsProvider.readFile(path)
-      const success = await loadProjectContent(content, path)
+      uiStore.startLoading('正在读取项目文件...')
+
+      const { data } = await fsProvider.readBuffer(path)
+      
+      uiStore.updateLoadingProgress(30, '正在解析数据...');
+      
+      const bundleData = await new Promise<GlyphForgeBundle>((resolve, reject) => {
+        worker = new Worker(new URL('@/worker/jsonParser.worker.ts', import.meta.url), { type: 'module' });
+        
+        worker.onmessage = (e) => {
+          if (e.data.type === 'success') {
+            uiStore.updateLoadingProgress(80, '校验数据完整性...');
+            setTimeout(() => {
+              resolve(e.data.payload);
+            }, 100);
+          } else {
+            reject(new Error(e.data.error));
+          }
+        };
+        
+        worker.onerror = (err) => reject(err);
+        
+        worker.postMessage({ type: 'parse', payload: data }, [data.buffer]);
+      });
+      
+      const success = await loadProjectBundle(bundleData, path);
+      
       if (success && bundle.value) {
         uiStore.addRecentFile(bundle.value.project.title, path, 'project')
       }
@@ -45,30 +71,53 @@ export const useProjectStore = defineStore('project', () => {
       console.error('Failed to open project:', e)
       uiStore.showToast('无法打开项目文件', 'error')
       return false
+    } finally {
+      if (worker) {
+        (worker as Worker).terminate();
+      }
+      uiStore.stopLoading();
     }
   }
 
   /**
-   * 直接从字符串内容加载项目（用于 Web 端的拖拽或导入）
+   * Internal: Load from parsed Bundle object
    */
-  async function loadProjectContent(content: string, path?: string) {
+  async function loadProjectBundle(data: GlyphForgeBundle, path?: string) {
     try {
-      isRestoring.value = true
-      bundle.value = BundleManager.deserialize(content)
+      uiStore.updateLoadingProgress(90, '初始化编辑器...')
+      BundleManager.normalize(data)
+      
+      bundle.value = data
       if (path) {
         bundle.value.project.path = path
-        uiStore.addRecentFile(bundle.value.project.title, path, 'project')
       }
       
       isDirty.value = false
       historyStore.clear()
+      await nextTick()
       takeSnapshot()
       
       setTimeout(() => {
         isRestoring.value = false
       }, 500)
       
-      return true
+      return true;
+    } catch (e) {
+      console.error('Failed to load bundle:', e);
+      return false;
+    }
+  }
+
+  async function loadProjectContent(content: string, path?: string) {
+    try {
+      isRestoring.value = true
+      const bundleData = BundleManager.deserialize(content)
+      const success = await loadProjectBundle(bundleData, path)
+      
+      if (success && bundle.value && path) {
+        uiStore.addRecentFile(bundle.value.project.title, path, 'project')
+      }
+      return success
     } catch (e) {
       isRestoring.value = false
       console.error('Failed to parse project content:', e)

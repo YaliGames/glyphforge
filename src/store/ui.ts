@@ -16,7 +16,27 @@ export const useUIStore = defineStore('ui', () => {
   const viewMode = ref<ViewMode>('source')
   const editMode = ref<EditMode>('edit')
   const isLoading = ref(false)
+  const loadingMessage = ref('正在加载...')
+  const loadingProgress = ref(0)
+
   const recentFiles = ref<{ name: string, path?: string, date: number, type: 'txt' | 'project' }[]>([])
+
+  function startLoading(message = '正在加载...') {
+    isLoading.value = true
+    loadingMessage.value = message
+    loadingProgress.value = 0
+  }
+
+  function updateLoadingProgress(progress: number, message?: string) {
+    loadingProgress.value = progress
+    if (message) loadingMessage.value = message
+  }
+
+  function stopLoading() {
+    isLoading.value = false
+    loadingMessage.value = ''
+    loadingProgress.value = 0
+  }
 
   // 弹窗状态中心化管理
   const activeModals = ref<Record<string, any>>({})
@@ -152,6 +172,11 @@ export const useUIStore = defineStore('ui', () => {
     viewMode,
     editMode,
     isLoading,
+    loadingMessage,
+    loadingProgress,
+    startLoading,
+    updateLoadingProgress,
+    stopLoading,
     recentFiles,
     loadRecentFiles,
     addRecentFile,

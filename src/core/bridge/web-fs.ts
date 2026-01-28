@@ -3,6 +3,12 @@ import { TxtImporter } from './txt-importer';
 
 export class WebFileSystem implements IFileSystem {
   async readFile(options?: string | { path?: string, filters?: FileFilter[] }): Promise<{ content: string, name: string, path?: string }> {
+    const { data, name } = await this.readBuffer(options);
+    const { text } = TxtImporter.decodeBuffer(data);
+    return { content: text, name };
+  }
+
+  async readBuffer(options?: string | { path?: string, filters?: FileFilter[] }): Promise<{ data: Uint8Array, name: string, path?: string }> {
     const filters = typeof options === 'object' ? options.filters : undefined;
 
     return new Promise((resolve, reject) => {
@@ -24,9 +30,9 @@ export class WebFileSystem implements IFileSystem {
         }
         
         try {
-          const { text } = await TxtImporter.readFile(file);
+          const buffer = await file.arrayBuffer();
           resolve({
-            content: text,
+            data: new Uint8Array(buffer),
             name: file.name
           });
         } catch (err) {
