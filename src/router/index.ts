@@ -33,6 +33,11 @@ const routes = [
     component: () => import('@/views/TimelineView.vue'),
   },
   {
+    path: '/relations',
+    name: 'Relations',
+    component: () => import('@/views/RelationsView.vue'),
+  },
+  {
     path: '/about',
     name: 'About',
     component: () => import('@/views/AboutView.vue'),

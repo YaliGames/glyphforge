@@ -1,6 +1,6 @@
 <template>
   <div class="flex-1 flex overflow-hidden bg-white dark:bg-[#1e1e1e]">
-    <!-- 左侧：角色列表 (规范 2.1) -->
+    <!-- 角色列表 -->
     <SidePanel title="角色库" width="w-64" side="left">
       <template #actions>
         <button @click="addCharacter"
@@ -17,49 +17,54 @@
             class="w-full bg-white dark:bg-[#2d2d2d] border dark:border-[#333333] rounded-md pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-blue-500" />
         </div>
 
-        <div class="space-y-1">
+        <div class="space-y-1 mt-2">
           <div v-for="char in filteredCharacters" :key="char.id" @click="activeCharacterId = char.id" :class="[
             'group p-2 rounded-lg cursor-pointer transition-all duration-200 relative hover:translate-x-0.5 border border-transparent',
             activeCharacterId === char.id
-              ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 shadow-sm border-gray-100 dark:border-transparent'
+              ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 shadow-sm border-gray-200 dark:border-transparent'
               : 'hover:bg-gray-100 dark:hover:bg-[#2d2d2d] text-gray-600 dark:text-gray-400'
           ]">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <i class="fa-solid fa-user-circle text-[10px] opacity-50"></i>
                 <span class="text-xs font-bold truncate pr-1">
-                  {{ char.base.name || '未命名角色' }}
+                  {{ char.name || '未命名角色' }}
                 </span>
+                <i v-if="currentPhaseId && hasOverride(char, currentPhaseId)"
+                  class="fa-solid fa-pen-nib text-[10px] text-orange-400" title="此阶段有特定变更"></i>
               </div>
               <div class="flex items-center w-[60px] shrink-0">
-                <SidebarActionGroup 
-                  :can-move-up="characterStore.characters.indexOf(char) !== 0"
-                  :can-move-down="characterStore.characters.indexOf(char) !== characterStore.characters.length - 1"
+                <SidebarActionGroup :can-move-up="characterStore.rawCharacters.indexOf(char._original) !== 0"
+                  :can-move-down="characterStore.rawCharacters.indexOf(char._original) !== characterStore.rawCharacters.length - 1"
                   @move-up="characterStore.moveCharacter(char.id, 'up')"
-                  @move-down="characterStore.moveCharacter(char.id, 'down')"
-                  @delete="removeCharacter(char.id)"
-                />
+                  @move-down="characterStore.moveCharacter(char.id, 'down')" @delete="removeCharacter(char.id)" />
               </div>
             </div>
             <div class="flex flex-wrap gap-1 ml-5">
-              <span v-for="alias in char.base.aliases.slice(0, 2)" :key="alias"
+              <span v-for="alias in char.aliases.slice(0, 2)" :key="alias"
                 class="px-1 py-0.5 bg-white/50 dark:bg-black/20 text-gray-400 rounded text-[8px] font-mono leading-none">
                 {{ alias }}
               </span>
-              <span v-if="char.base.aliases.length > 2" class="text-[8px] text-gray-400">...</span>
+              <span v-if="char.aliases.length > 2" class="text-[8px] text-gray-400">...</span>
             </div>
           </div>
         </div>
       </div>
     </SidePanel>
 
-    <!-- 右侧：详情编辑区 (规范 2.2) -->
+    <!-- 详情编辑区 -->
     <main class="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e] animate-fade-in custom-scrollbar view-transition">
       <div v-if="activeCharacter" class="max-w-4xl mx-auto p-8 space-y-12 pb-24">
         <!-- 头部 -->
         <header class="flex items-center justify-between">
           <div class="flex items-baseline gap-4">
-            <h1 class="text-2xl font-bold dark:text-gray-100">{{ activeCharacter.base.name }}</h1>
+            <h1 class="text-2xl font-bold dark:text-gray-100">
+              {{ activeCharacter.name }}
+              <span v-if="currentPhaseId"
+                class="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 ml-2 font-normal">
+                @{{phases.find(p => p.id === currentPhaseId)?.label}}
+              </span>
+            </h1>
             <span class="text-xs text-gray-400 font-mono opacity-50">{{ activeCharacter.id }}</span>
           </div>
           <div v-if="settingsStore.getSettings()['ai.enabled']" class="flex items-center gap-2">
@@ -69,7 +74,17 @@
           </div>
         </header>
 
-        <!-- 角色基本信息 (规范 2.3) -->
+        <div v-if="currentPhaseId"
+          class="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg p-3 text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
+          <i class="fa-solid fa-clock-rotate-left mt-0.5"></i>
+          <div>
+            <div class="font-bold">正在编辑历史阶段数据</div>
+            <p class="opacity-80">当前处于“{{phases.find(p => p.id === currentPhaseId)?.label
+            }}”阶段。您在此处的修改将仅应用于该阶段（Override），未修改的字段将继承自基础设定。</p>
+          </div>
+        </div>
+
+        <!-- 角色基本信息 -->
         <section class="space-y-4">
           <div class="flex items-center justify-between border-b dark:border-[#333333] pb-2">
             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
@@ -79,313 +94,128 @@
           </div>
 
           <div
-            class="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 rounded-xl border border-gray-100 dark:border-[#333] bg-gray-50/30 dark:bg-[#252525]/30">
+            class="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50/30 dark:bg-[#252525]/30">
             <div class="space-y-4">
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-500 uppercase">角色姓名</label>
-                <input v-model="activeCharacter.base.name"
+                <CharacterFieldLabel label="角色姓名" :is-overridden="isOverridden('name')" />
+                <input :value="activeCharacter.name"
                   class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   placeholder="输入角色全名或核心称谓" @focus="startEdit()"
-                  @blur="endEdit()" />
+                  @input="(e) => updateField('name', (e.target as HTMLInputElement).value)" @blur="endEdit()" />
               </div>
 
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-500 uppercase">角色昵称 / 别名</label>
-                <ChipInput v-model="activeCharacter.base.aliases" placeholder="输入昵称并回车..."
-                  @focusin="startEdit()"
+                <CharacterFieldLabel label="角色昵称 / 别名" :is-overridden="isOverridden('aliases')" />
+                <ChipInput :model-value="activeCharacter.aliases" placeholder="输入昵称并回车..."
+                  @update:model-value="(val) => updateField('aliases', val)" @focusin="startEdit()"
                   @focusout="endEdit()" />
               </div>
 
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-500 uppercase">角色阵营</label>
-                <ChipInput v-model="activeCharacter.base.factions" placeholder="输入角色所属的组织、流派或社会地位"
-                  @focusin="startEdit()"
+                <CharacterFieldLabel label="角色阵营" :is-overridden="isOverridden('factions')" />
+                <ChipInput :model-value="activeCharacter.factions" placeholder="输入角色所属的组织、流派或社会地位"
+                  @update:model-value="(val) => updateField('factions', val)" @focusin="startEdit()"
                   @focusout="endEdit()" />
               </div>
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-500 uppercase">角色身份</label>
-                <ChipInput v-model="activeCharacter.base.identities" placeholder="输入角色的具体职位、封号或社会标签"
-                  @focusin="startEdit()"
+                <CharacterFieldLabel label="角色身份" :is-overridden="isOverridden('identities')" />
+                <ChipInput :model-value="activeCharacter.identities" placeholder="输入角色的具体职位、封号或社会标签"
+                  @update:model-value="(val) => updateField('identities', val)" @focusin="startEdit()"
                   @focusout="endEdit()" />
               </div>
             </div>
 
             <div class="space-y-4">
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-500 uppercase">外貌着装</label>
-                <textarea v-model="activeCharacter.base.appearance" rows="3"
+                <CharacterFieldLabel label="外貌着装" :is-overridden="isOverridden('appearance')" />
+                <textarea :value="activeCharacter.appearance" rows="3"
                   class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-all"
                   placeholder="描述角色的体貌特征、惯常穿着..." @focus="startEdit()"
+                  @input="(e) => updateField('appearance', (e.target as HTMLTextAreaElement).value)"
                   @blur="endEdit()"></textarea>
               </div>
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-500 uppercase">性格特征</label>
-                <textarea v-model="activeCharacter.base.personality" rows="3"
+                <CharacterFieldLabel label="性格特征" :is-overridden="isOverridden('personality')" />
+                <textarea :value="activeCharacter.personality" rows="3"
                   class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-all"
                   placeholder="角色的核心性格、行事逻辑..." @focus="startEdit()"
+                  @input="(e) => updateField('personality', (e.target as HTMLTextAreaElement).value)"
                   @blur="endEdit()"></textarea>
               </div>
 
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-500 uppercase">身份背景</label>
-                <textarea v-model="activeCharacter.base.background" rows="8"
+                <CharacterFieldLabel label="身份背景" :is-overridden="isOverridden('background')" />
+                <textarea :value="activeCharacter.background" rows="8"
                   class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-all"
                   placeholder="角色的出身、过往经历、关键转折点..." @focus="startEdit()"
+                  @input="(e) => updateField('background', (e.target as HTMLTextAreaElement).value)"
                   @blur="endEdit()"></textarea>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- 角色间关系 (基本信息下方，内联编辑) -->
+        <!-- 角色间关系 -->
         <section class="space-y-4">
           <div class="flex items-center justify-between border-b dark:border-[#333333] pb-2">
             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <i class="fa-solid fa-users-between-lines text-[10px]"></i>
+              <i class="fa-solid fa-users text-[10px]"></i>
               角色间关系
             </h3>
-            <button 
-              @click="addRelation" 
-              class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-all flex items-center gap-1.5 shadow-lg shadow-blue-500/20"
-            >
-              <i class="fa-solid fa-plus text-[8px]"></i> 建立新关系
+            <button @click="addRel"
+              class="text-[10px] text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 px-2 py-1 rounded transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-plus"></i>
+              添加关系
             </button>
           </div>
 
-          <div class="grid grid-cols-1 gap-3">
-            <div v-for="rel in activeCharacter.relations" :key="rel.id"
-              class="group flex items-center gap-4 p-4 bg-white dark:bg-[#1e1e1e] rounded-xl border dark:border-[#33] hover:border-blue-200 dark:hover:border-blue-900/40 transition-all shadow-sm">
-              <div class="flex items-center gap-3 flex-1 min-w-0">
-                <div class="flex items-center gap-2 shrink-0">
-                  <span class="text-xs font-bold dark:text-gray-300">{{ activeCharacter.base.name }}</span>
-                  <span class="text-[10px] text-gray-400">是</span>
-                </div>
+          <div class="space-y-2">
+            <RelationshipItem v-for="rel in activeCharacterRelationships" :key="rel.id" :rel="rel"
+              :active-character="activeCharacter" :other-characters="otherCharacters" :current-phase-id="currentPhaseId"
+              @update="(updates) => updateRel(rel.id, updates)" @swap="swapDirection(rel.id)"
+              @remove="removeRelation(rel.id)" />
 
-                <div class="flex gap-2 items-center flex-1">
-                  <select v-model="rel.targetId"
-                    class="bg-gray-50 dark:bg-[#252525] border dark:border-[#333] rounded px-2 py-1 text-xs outline-none focus:border-blue-500 min-w-[100px]"
-                    @focus="projectStore.takeSnapshot()">
-                    <option value="" disabled>选择角色</option>
-                    <option v-for="c in otherCharacters" :key="c.id" :value="c.id">{{ c.base.name }}</option>
-                  </select>
-                  <span class="text-[10px] text-gray-400">的</span>
-                  <input v-model="rel.type" placeholder="关系"
-                    class="bg-gray-50 dark:bg-[#252525] border dark:border-[#333] rounded px-2 py-1 text-xs outline-none focus:border-blue-500 w-24"
-                    @focus="startEdit()" @blur="endEdit()" />
-                  <input v-model="rel.notes" placeholder="备注..."
-                    class="bg-gray-50 dark:bg-[#252525] border dark:border-[#333] rounded px-2 py-1 text-xs outline-none focus:border-blue-500 flex-1"
-                    @focus="startEdit()" @blur="endEdit()" />
-                </div>
-              </div>
-              <button @click="removeRelation(rel.id)"
-                class="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 transition-colors">
-                <i class="fa-solid fa-trash-can text-[10px]"></i>
-              </button>
+            <div v-if="activeCharacterRelationships.length === 0"
+              class="py-8 text-center border-2 border-dashed border-gray-200 dark:border-[#333] rounded-xl text-xs text-gray-400">
+              <p>暂无关系</p>
+              <button @click="addRel" class="mt-2 text-blue-500 hover:underline">点击添加</button>
             </div>
-            <div v-if="activeCharacter.relations.length === 0"
-              class="py-10 text-center border-2 border-dashed dark:border-[#333] rounded-xl text-xs text-gray-400 italic">
-              尚未定义任何社交关系
-            </div>
-          </div>
-        </section>
 
-        <!-- Phases：叙事阶段 (规范 3) -->
-        <section class="space-y-6">
-          <div class="flex items-center justify-between border-b dark:border-[#333333] pb-2">
-            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <i class="fa-solid fa-timeline text-[10px]"></i>
-              叙事阶段
-            </h3>
-            <button 
-              @click="addPhase"
-              class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-all flex items-center gap-1.5 shadow-lg shadow-blue-500/20"
-            >
-              <i class="fa-solid fa-plus text-[9px]"></i> 新建阶段
-            </button>
-          </div>
-
-          <div v-if="activeCharacter.phases.length === 0"
-            class="py-12 text-center border-2 border-dashed dark:border-[#33] rounded-xl flex flex-col items-center gap-4 text-gray-400">
-            <i class="fa-solid fa-layer-group text-3xl opacity-20"></i>
-            <p class="text-[11px]">目前没有叙事阶段，角色在整个故事中保持初始状态</p>
-          </div>
-
-          <div v-else class="space-y-4">
-            <div v-for="phase in activeCharacter.phases" :key="phase.id"
-              class="border dark:border-[#333] rounded-xl overflow-hidden bg-white dark:bg-[#1e1e1e] shadow-sm transition-all duration-200"
-              :class="{ 'ring-1 ring-blue-500/30': editingPhaseIds.has(phase.id) }">
-              
-              <!-- Header Bar -->
-              <div
-                class="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors"
-                @click.stop="expandedPhaseIds.has(phase.id) ? expandedPhaseIds.delete(phase.id) : expandedPhaseIds.add(phase.id)">
-                
-                <div class="flex items-center gap-4 flex-1">
-                  <!-- Expand Icon -->
-                  <i class="fa-solid fa-chevron-right text-[10px] transition-transform duration-200"
-                    :class="{ 'rotate-90': expandedPhaseIds.has(phase.id) }"></i>
-                  
-                  <div class="flex items-center gap-3">
-                    <span v-if="!editingPhaseIds.has(phase.id)" class="text-sm font-bold dark:text-gray-200">{{ phase.label || '未命名阶段' }}</span>
-                    <input v-else v-model="phase.label" 
-                      @click.stop 
-                      class="bg-transparent border-b border-blue-500/50 outline-none text-sm font-bold dark:text-gray-200 w-32"
-                      placeholder="阶段名称" />
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-2">
-                  <button @click.stop="editingPhaseIds.has(phase.id) ? editingPhaseIds.delete(phase.id) : editingPhaseIds.add(phase.id); expandedPhaseIds.add(phase.id)"
-                    class="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                    :class="editingPhaseIds.has(phase.id) ? 'text-blue-500' : 'text-gray-400'"
-                    :title="editingPhaseIds.has(phase.id) ? '保存并退出编辑' : '编辑阶段'">
-                    <i class="fa-solid" :class="editingPhaseIds.has(phase.id) ? 'fa-check' : 'fa-pen-to-square'"></i>
-                  </button>
-                  <button @click.stop="removePhase(phase.id)" 
-                    class="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors">
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
-                </div>
+            <div v-if="hiddenRelationships.length > 0" class="pt-4">
+              <div @click="showHiddenRelations = !showHiddenRelations"
+                class="flex items-center justify-center gap-2 py-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer rounded hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors select-none">
+                <i class="fa-solid" :class="showHiddenRelations ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                <span>存在 {{ hiddenRelationships.length }} 个当前阶段不生效（已断绝/隐藏）的关系</span>
               </div>
 
-              <!-- Content Area (Expandable) -->
-              <div v-if="expandedPhaseIds.has(phase.id)" 
-                class="border-t dark:border-[#333] animate-in slide-in-from-top-2 duration-200">
-                
-                <!-- Edit Mode View -->
-                <div v-if="editingPhaseIds.has(phase.id)" class="p-6 space-y-8">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div class="space-y-6">
-                      <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-gray-500 uppercase">阶段叙事总结</label>
-                        <textarea v-model="phase.summary" rows="4"
-                          class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-500 resize-none transition-all"
-                          placeholder="描述此阶段角色的核心命题..." v-auto-resize @focus="startEdit()"
-                          @blur="endEdit()"></textarea>
-                      </div>
-                      
-                      <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                          <label class="text-[10px] font-bold text-gray-500 uppercase">阶段性关系变更</label>
-                          <button @click="addPhaseRelation(phase)" 
-                            class="text-[10px] text-blue-500 hover:underline">+ 增加关系覆盖</button>
-                        </div>
-                        <div class="grid grid-cols-1 gap-3">
-                          <div v-for="rel in phase.overrides.relations || []" :key="rel.id"
-                            class="group flex items-center gap-4 p-3 bg-blue-50/20 dark:bg-blue-900/5 rounded-xl border border-blue-100 dark:border-blue-900/20 transition-all">
-                            <!-- 左侧两行布局 -->
-                            <div class="flex-1 space-y-2.5">
-                              <div class="flex items-center gap-2">
-                                <!-- <span class="text-xs font-bold dark:text-gray-300 shrink-0">{{ activeCharacter.base.name }}</span> -->
-                                <span class="text-[10px] text-gray-400 shrink-0">是</span>
-                                <select v-model="rel.targetId"
-                                  class="bg-white dark:bg-[#1e1e1e] border dark:border-[#33] rounded px-2 py-1 text-xs outline-none focus:ring-1 ring-blue-500/30"
-                                  @focus="projectStore.takeSnapshot()">
-                                  <option value="" disabled>选择角色</option>
-                                  <option v-for="c in otherCharacters" :key="c.id" :value="c.id">{{ c.base.name }}</option>
-                                </select>
-                                <span class="text-[10px] text-gray-400 shrink-0">的</span>
-                                <input v-model="rel.type" placeholder="关系 (如：生死之交)"
-                                  class="bg-white dark:bg-[#1e1e1e] border dark:border-[#33] rounded px-2 py-1 text-xs w-32 outline-none focus:ring-1 ring-blue-500/30" />
-                              </div>
-                              <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-comment-dots text-[10px] text-blue-400/50"></i>
-                                <input v-model="rel.notes" placeholder="阶段性备注：描述此阶段该关系的演变细节..."
-                                  class="w-full bg-transparent border-b border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-blue-500/30 outline-none text-[10px] text-gray-500 py-0.5 transition-colors" />
-                              </div>
-                            </div>
-                            
-                            <!-- 最右侧删除 -->
-                            <button @click="removePhaseRelation(phase, rel.id)" 
-                              class="p-2 text-gray-300 hover:text-red-500 transition-colors shrink-0">
-                              <i class="fa-solid fa-trash-can text-[10px]"></i>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+              <div v-if="showHiddenRelations"
+                class="space-y-2 mt-2 pl-4 border-l-2 border-dashed border-gray-200 dark:border-[#333]">
+                <div v-for="rel in hiddenRelationships" :key="rel.id"
+                  class="flex items-center gap-2 p-2 rounded-lg border border-dashed border-gray-200 dark:border-[#444] bg-gray-50 dark:bg-[#252525] opacity-75">
+                  <span class="text-xs text-gray-500">
+                    {{rel.sourceId === activeCharacterId ? '本角色' : otherCharacters.find(c => c.id ===
+                      rel.sourceId)?.name
+                      || '未知'}}
+                    <i class="fa-solid fa-arrow-right text-[10px] mx-1"></i>
+                    {{rel.targetId === activeCharacterId ? '本角色' : otherCharacters.find(c => c.id ===
+                      rel.targetId)?.name
+                      || '未知'}}
+                  </span>
+                  <span class="text-xs text-gray-400 mx-1">的</span>
+                  <span class="text-xs font-bold text-gray-500">{{ rel.label }}</span>
 
-                    <div class="space-y-4">
-                      <label class="text-[10px] font-bold text-gray-500 uppercase">属性覆盖</label>
-                      <div class="flex flex-wrap gap-2">
-                        <button v-for="field in baseFields" :key="field.key" @click="toggleOverride(phase, field.key)"
-                          :class="['px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-all', (phase.overrides as any)[field.key] !== undefined ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-[#252525] border-gray-200 dark:border-[#33] text-gray-500 hover:border-blue-400']">
-                          {{ field.label }}
-                        </button>
-                      </div>
-                      <div class="space-y-4 pt-4 border-t dark:border-[#33]">
-                        <template v-for="field in baseFields" :key="'ov-' + field.key">
-                          <div v-if="(phase.overrides as any)[field.key] !== undefined"
-                            class="space-y-2 animate-in slide-in-from-top-2 duration-200">
-                            <label class="text-[10px] font-bold text-blue-500">重写 {{ field.label }}:</label>
-                            <ChipInput
-                              v-if="Array.isArray((activeCharacter.base as any)[field.key])"
-                              v-model="(phase.overrides as any)[field.key]" />
-                            <textarea v-else
-                              v-model="(phase.overrides as any)[field.key]" rows="2"
-                              class="w-full bg-blue-50/30 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30 rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-500"
-                              v-auto-resize></textarea>
-                          </div>
-                        </template>
-                        <div v-if="Object.keys(phase.overrides).filter(k => k !== 'relations').length === 0"
-                          class="py-4 text-center text-[10px] text-gray-400 italic">
-                          未开启属性覆盖
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  <div class="flex-1"></div>
 
-                <!-- Browse Mode View -->
-                <div v-else class="bg-gray-50/50 dark:bg-[#1a1a1a] p-6 space-y-6">
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Summary Col -->
-                    <div class="md:col-span-1 space-y-4">
-                      <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">阶段叙事</div>
-                      <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-400 italic">
-                        {{ phase.summary || '暂无叙事总结' }}
-                      </p>
-                    </div>
-
-                    <!-- Effective Stats Col -->
-                    <div class="md:col-span-2 space-y-4">
-                      <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">当前生效状态回顾</div>
-                      <div v-if="getPhaseEffectiveCharacter(activeCharacter.id, phase.id)" class="grid grid-cols-2 gap-x-12 gap-y-4">
-                        <div v-for="field in baseFields" :key="'preview-' + field.key" class="space-y-1">
-                          <div class="text-[9px] text-gray-400">{{ field.label }}</div>
-                          <div v-if="Array.isArray(getPhaseEffectiveCharacter(activeCharacter.id, phase.id)?.[field.key])" class="flex flex-wrap gap-1">
-                            <span v-for="tag in (getPhaseEffectiveCharacter(activeCharacter.id, phase.id)?.[field.key] as string[])" :key="tag"
-                              class="px-1.5 py-0.5 bg-gray-200 dark:bg-[#333] rounded text-[9px]">
-                              {{ tag }}
-                            </span>
-                          </div>
-                          <div v-else class="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">
-                             {{ getPhaseEffectiveCharacter(activeCharacter.id, phase.id)?.[field.key] || '-' }}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Phase Relations Preview -->
-                  <div class="pt-4 border-t dark:border-gray-800">
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">活跃关系网</div>
-                    <div class="flex flex-wrap gap-3">
-                      <div v-for="rel in (getPhaseEffectiveCharacter(activeCharacter.id, phase.id)?.relations || [])" :key="'pre-rel-'+rel.id"
-                        class="px-3 py-1.5 bg-white dark:bg-[#252525] rounded-full border dark:border-[#333] text-[10px] flex items-center gap-2">
-                        <span class="text-gray-400">是</span>
-                        <span class="font-bold text-blue-500">{{ characterStore.characters.find(c => c.id === rel.targetId)?.base.name }}</span>
-                        <span class="text-gray-400">的</span>
-                        <span class="text-gray-600 dark:text-gray-300">{{ rel.type }}</span>
-                        <span v-if="rel.notes" class="text-gray-400 italic">({{ rel.notes }})</span>
-                      </div>
-                    </div>
-                  </div>
+                  <button @click="updateRel(rel.id, { isActive: true })" title="在此阶段恢复/重连"
+                    class="text-[10px] text-blue-500 hover:underline px-2">
+                    <i class="fa-solid fa-rotate-left mr-1"></i>恢复
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </section>
+
 
         <!-- 创作备注 (规范 2.5) -->
         <section class="space-y-6 pt-12 border-t dark:border-[#333]">
@@ -395,29 +225,70 @@
               <label class="text-[10px] font-bold text-gray-500 uppercase">作者私语</label>
               <textarea v-model="activeCharacter.notes.authorNotes" rows="4"
                 class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-500 resize-none transition-all"
-                placeholder="灵感或计划..." @focus="startEdit()"
-                @blur="endEdit()"></textarea>
+                placeholder="灵感或计划..." @focus="startEdit()" @blur="endEdit()"></textarea>
             </div>
             <div class="space-y-2">
               <label class="text-[10px] font-bold text-gray-500 uppercase">待解悬念</label>
               <textarea v-model="activeCharacter.notes.openQuestions" rows="4"
                 class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-500 resize-none transition-all"
-                placeholder="未解之谜..." @focus="startEdit()"
-                @blur="endEdit()"></textarea>
+                placeholder="未解之谜..." @focus="startEdit()" @blur="endEdit()"></textarea>
             </div>
           </div>
         </section>
       </div>
 
       <!-- 空状态 -->
-      <EmptyState
-        v-else
-        class="h-full"
-        icon="fa-user-pen"
-        title="选择或创建角色"
-        subtitle="选择一个角色，或点击“新建角色”按钮创建一个新角色"
-      />
+      <EmptyState v-else class="h-full" icon="fa-user-pen" title="选择或创建角色" subtitle="选择一个角色，或点击“新建角色”按钮创建一个新角色" />
     </main>
+
+    <!-- 右侧：阶段管理 -->
+    <SidePanel title="剧情阶段" width="w-64" side="right">
+      <template #actions>
+        <button @click="characterStore.addPhase()"
+          class="p-1.5 hover:bg-gray-200 dark:hover:bg-[#333333] rounded text-blue-600 dark:text-blue-400 transition-colors"
+          title="添加阶段">
+          <i class="fa-solid fa-plus text-xs"></i>
+        </button>
+      </template>
+
+      <div class="p-2 space-y-1">
+        <div @click="characterStore.setCurrentPhase(null)"
+          class="p-2 rounded-lg cursor-pointer flex items-center gap-2 border border-transparent transition-colors"
+          :class="!currentPhaseId ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 border-gray-200 dark:border-transparent' : 'hover:bg-gray-100 dark:hover:bg-[#2d2d2d] text-gray-600 dark:text-gray-400'">
+          <i class="fa-solid fa-earth-americas text-[10px] opacity-70"></i>
+          <span class="text-xs font-bold">全局 / 基础设定</span>
+        </div>
+
+        <div v-for="(phase, index) in phases" :key="phase.id"
+          class="group relative p-2 rounded-lg cursor-pointer flex items-center justify-between border border-transparent transition-all"
+          :class="currentPhaseId === phase.id ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 border-gray-200 dark:border-transparent' : 'hover:bg-gray-100 dark:hover:bg-[#2d2d2d] text-gray-600 dark:text-gray-400'"
+          @click="characterStore.setCurrentPhase(phase.id)">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <i class="fa-solid fa-flag text-[10px] opacity-70"></i>
+
+            <div v-if="editingPhaseId === phase.id" class="flex-1 mr-2">
+              <input v-model="editingPhaseLabel" @blur="savePhaseEdit" @keydown.enter="savePhaseEdit" v-focus
+                class="w-full text-xs bg-white dark:bg-black border dark:border-[#555] rounded px-1 py-0.5 outline-none focus:border-blue-500"
+                @click.stop />
+            </div>
+            <span v-else class="text-xs font-bold truncate" @dblclick="startEditPhase(phase)">{{ phase.label }}</span>
+          </div>
+
+          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            v-if="editingPhaseId !== phase.id">
+            <button @click.stop="startEditPhase(phase)"
+              class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-blue-500 rounded hover:bg-black/5 dark:hover:bg-white/10"
+              title="重命名">
+              <i class="fa-solid fa-pen text-[10px]"></i>
+            </button>
+
+            <SidebarActionGroup :can-move-up="index > 0" :can-move-down="index < phases.length - 1"
+              @move-up="characterStore.movePhase(phase.id, 'up')"
+              @move-down="characterStore.movePhase(phase.id, 'down')" @delete="characterStore.deletePhase(phase.id)" />
+          </div>
+        </div>
+      </div>
+    </SidePanel>
   </div>
 </template>
 
@@ -434,8 +305,29 @@ import ChipInput from '@/components/common/ChipInput.vue'
 import SidebarActionGroup from '@/components/layout/SidebarActionGroup.vue'
 import AIButton from '@/components/common/AIButton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import type { CharacterPhase } from '@/types'
+import CharacterFieldLabel from '@/components/features/relations/CharacterFieldLabel.vue'
+import RelationshipItem from '@/components/features/relations/RelationshipItem.vue'
+import type { Relationship, RelationshipData, StoryPhase } from '@/types'
+
+// Local state for phase editing
+const editingPhaseId = ref<string | null>(null)
+const editingPhaseLabel = ref('')
+
+function startEditPhase(phase: StoryPhase) {
+  editingPhaseId.value = phase.id
+  editingPhaseLabel.value = phase.label
+}
+
+function savePhaseEdit() {
+  if (editingPhaseId.value && editingPhaseLabel.value.trim()) {
+    characterStore.updatePhase(editingPhaseId.value, { label: editingPhaseLabel.value.trim() })
+  }
+  editingPhaseId.value = null
+  editingPhaseLabel.value = ''
+}
+
 import { v4 as uuidv4 } from 'uuid'
+import { storeToRefs } from 'pinia'
 
 const characterStore = useCharacterStore()
 const projectStore = useProjectStore()
@@ -444,48 +336,53 @@ const settingsStore = useSettingsStore()
 const aiStore = useAIStore()
 const { startEdit, endEdit } = useFieldHistory()
 
-const searchQuery = ref('')
-const activeCharacterId = computed({
-  get: () => characterStore.activeCharacterId,
-  set: (val) => characterStore.activeCharacterId = val
-})
+const { activeCharacterId, currentPhaseId, phases } = storeToRefs(characterStore)
 
-// UI 状态：记录哪些阶段处于展开状态，哪些处于编辑模式
+const searchQuery = ref('')
 const expandedPhaseIds = ref<Set<string>>(new Set())
 const editingPhaseIds = ref<Set<string>>(new Set())
 
-// 自动调整高度指令
-const vAutoResize = {
-  mounted: (el: HTMLTextAreaElement) => {
-    el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
-    el.addEventListener('input', () => {
-      el.style.height = 'auto'
-      el.style.height = el.scrollHeight + 'px'
-    })
-  }
+const vFocus = {
+  mounted: (el: HTMLElement) => el.focus()
 }
 
 const filteredCharacters = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return characterStore.characters
-  return characterStore.characters.filter(c =>
-    c.base.name.toLowerCase().includes(query) ||
-    c.base.aliases.some(t => t.toLowerCase().includes(query)) ||
-    c.base.factions.some(t => t.toLowerCase().includes(query)) ||
-    c.base.identities.some(t => t.toLowerCase().includes(query))
+  if (!query) return characterStore.charactersInPhase
+  return characterStore.charactersInPhase.filter(c =>
+    c.name.toLowerCase().includes(query) ||
+    c.aliases.some(t => t.toLowerCase().includes(query)) ||
+    c.factions.some(t => t.toLowerCase().includes(query)) ||
+    c.identities.some(t => t.toLowerCase().includes(query))
   )
 })
 
 const activeCharacter = computed(() => {
-  return characterStore.characters.find(c => c.id === activeCharacterId.value) || null
+  return characterStore.charactersInPhase.find(c => c.id === activeCharacterId.value) || null
 })
 
 const otherCharacters = computed(() => {
-  return characterStore.characters.filter(c => c.id !== activeCharacterId.value)
+  return characterStore.charactersInPhase.filter(c => c.id !== activeCharacterId.value)
 })
 
+function updateField(key: string, value: any) {
+  if (!activeCharacter.value) return
+  characterStore.smartUpdateCharacter(activeCharacter.value.id, { [key]: value })
+}
+
+function isOverridden(key: string) {
+  if (!currentPhaseId.value || !activeCharacter.value) return false
+  const originalC = characterStore.rawCharacters.find(c => c.id === activeCharacter.value!.id)
+  return originalC?.overrides?.[currentPhaseId.value]?.[key] !== undefined
+}
+
+function hasOverride(char: any, phaseId: string) {
+  const originalC = characterStore.rawCharacters.find(c => c.id === char.id)
+  return originalC?.overrides?.[phaseId] && Object.keys(originalC.overrides[phaseId]).length > 0
+}
+
 const addCharacter = () => {
+  // Always add character uses Base mode, so we might want to prompt user or just add to base
   const newChar = characterStore.addCharacter('新角色')
   if (newChar) {
     activeCharacterId.value = newChar.id
@@ -508,8 +405,8 @@ function openAIAssistant(promptId = 'builtin-character-design') {
 }
 
 const removeCharacter = async (id: string) => {
-  const char = characterStore.characters.find(c => c.id === id)
-  const name = char?.base.name || '未命名角色'
+  const char = characterStore.charactersInPhase.find(c => c.id === id)
+  const name = char?.name || '未命名角色'
 
   const confirmed = await uiStore.showConfirm({
     title: '删除角色',
@@ -522,46 +419,104 @@ const removeCharacter = async (id: string) => {
   if (confirmed) {
     characterStore.removeCharacter(id)
     if (activeCharacterId.value === id) {
-      activeCharacterId.value = characterStore.characters[0]?.id || null
+      activeCharacterId.value = characterStore.charactersInPhase[0]?.id || null
     }
   }
 }
 
-const addPhase = () => {
-  if (!activeCharacterId.value) return
-  const newPhase = characterStore.addPhase(activeCharacterId.value, '新阶段')
-  if (newPhase) {
-    // 新建阶段默认开启编辑模式且展开
-    expandedPhaseIds.value.add(newPhase.id)
-    editingPhaseIds.value.add(newPhase.id)
+const showHiddenRelations = ref(false)
+
+const hiddenRelationships = computed(() => {
+  if (!activeCharacterId.value || !currentPhaseId.value) return []
+  return characterStore.allRelationshipsInPhase
+    .filter(r =>
+      (r.sourceId === activeCharacterId.value || r.targetId === activeCharacterId.value) &&
+      r.isActive === false
+    )
+})
+
+const activeCharacterRelationships = computed(() => {
+  if (!activeCharacterId.value) return []
+  // 使用 relationshipsInPhase 获取当前阶段下的有效关系（包含 override）
+  return characterStore.relationshipsInPhase.filter(r =>
+    r.sourceId === activeCharacterId.value || r.targetId === activeCharacterId.value
+  )
+})
+
+const swapDirection = (relId: string) => {
+  const rel = activeCharacterRelationships.value.find(r => r.id === relId)
+  if (rel) {
+    characterStore.smartUpdateRelationship(relId, {
+      sourceId: rel.targetId,
+      targetId: rel.sourceId
+    })
   }
 }
 
-const removePhase = async (phaseId: string) => {
-  const confirmed = await uiStore.showConfirm({
-    title: '删除阶段',
-    message: '确定要删除这个阶段吗？',
-    confirmText: '确定删除',
-    cancelText: '取消',
-    type: 'danger'
-  })
+const addRel = async () => {
+  if (!activeCharacterId.value) return
 
-  if (confirmed && activeCharacterId.value) {
-    characterStore.removePhase(activeCharacterId.value, phaseId)
+  // 如果处于阶段视图，询问用户意图
+  if (currentPhaseId.value) {
+    // 简单起见，这里演示两个选项（实际UI可优化为 SplitButton 或 Menu）
+    const choice = await uiStore.showConfirm({
+      title: '添加关系',
+      message: '您希望这个关系仅在当前阶段存在（临时），还是贯穿所有阶段（全局）？',
+      confirmText: '仅当前阶段',
+      cancelText: '全局通用',
+      type: 'info' // Use info type
+    })
+
+    if (choice) {
+      // 1. 创建全局隐藏的关系
+      const newRel = characterStore.addRelationship(activeCharacterId.value, '', 'custom', false)
+      if (newRel) {
+        // 2. 仅在当前阶段激活
+        characterStore.updateRelationshipOverride(newRel.id, currentPhaseId.value, { isActive: true })
+      }
+      return
+    }
+  }
+
+  // 默认：全局添加
+  characterStore.addRelationship(activeCharacterId.value, '', 'custom')
+}
+
+const removeRelation = async (relId: string) => {
+  const mode = characterStore.getRelationshipDeleteMode(relId)
+
+  if (mode === 'logical') {
+    const confirmed = await uiStore.showConfirm({
+      title: '断绝关系',
+      message: '确定要在当前阶段断绝此关系吗？(关系将在此阶段隐藏)',
+      confirmText: '断绝',
+      cancelText: '取消',
+      type: 'warning'
+    })
+
+    if (confirmed) {
+      characterStore.smartUpdateRelationship(relId, { isActive: false })
+    }
+  } else {
+    // Physical delete
+    const confirmed = await uiStore.showConfirm({
+      title: '删除关系',
+      message: '确定要永久删除这条关系吗？',
+      confirmText: '删除',
+      cancelText: '取消',
+      type: 'danger'
+    })
+
+    if (confirmed) {
+      characterStore.removeRelationship(relId)
+    }
   }
 }
 
-const addRelation = () => {
-  if (!activeCharacterId.value) return
-  characterStore.addRelation(activeCharacterId.value)
+const updateRel = (relId: string, parsed: Partial<RelationshipData>) => {
+  characterStore.smartUpdateRelationship(relId, parsed)
 }
 
-const removeRelation = (relId: string) => {
-  if (!activeCharacterId.value) return
-  characterStore.removeRelation(activeCharacterId.value, relId)
-}
-
-// 阶段覆盖字段管理
 const baseFields = [
   { key: 'name', label: '角色姓名' },
   { key: 'aliases', label: '角色昵称' },
@@ -572,82 +527,9 @@ const baseFields = [
   { key: 'background', label: '身份背景' }
 ] as const
 
-const toggleOverride = (phase: CharacterPhase, fieldKey: string) => {
-  projectStore.takeSnapshot() // 修改前快照
-  if (phase.overrides[fieldKey as keyof typeof phase.overrides] !== undefined) {
-    delete (phase.overrides as any)[fieldKey]
-  } else {
-    const baseValue = (activeCharacter.value?.base as any)[fieldKey]
-    if (Array.isArray(baseValue)) {
-      (phase.overrides as any)[fieldKey] = [...baseValue]
-    } else {
-      (phase.overrides as any)[fieldKey] = baseValue
-    }
-  }
-}
-
-const addPhaseRelation = (phase: CharacterPhase) => {
-  projectStore.takeSnapshot() // 修改前快照
-  if (!phase.overrides.relations) {
-    phase.overrides.relations = []
-  }
-  phase.overrides.relations.push({
-    id: uuidv4(),
-    targetId: '',
-    type: '',
-    notes: ''
-  })
-}
-
-const removePhaseRelation = (phase: CharacterPhase, relId: string) => {
-  if (phase.overrides.relations) {
-    const idx = phase.overrides.relations.findIndex((r: any) => r.id === relId)
-    if (idx !== -1) {
-      projectStore.takeSnapshot() // 修改前快照
-      phase.overrides.relations.splice(idx, 1)
-    }
-  }
-}
-
-// 获取特定阶段的有效角色数据
-const getPhaseEffectiveCharacter = (charId: string, phaseId: string) => {
-  const char = characterStore.characters.find(c => c.id === charId)
-  if (!char) return null
-  const phase = char.phases.find(p => p.id === phaseId)
-  if (!phase) return null
-
-  // 模拟 getEffectiveCharacter 的逻辑，但强制对准这个 Phase
-  const baseCopy = JSON.parse(JSON.stringify(char.base))
-  const effectiveRelations = JSON.parse(JSON.stringify(char.relations))
-
-  if (phase.overrides) {
-    Object.keys(phase.overrides).forEach(key => {
-      if (key !== 'relations' && (phase.overrides as any)[key] !== undefined) {
-        (baseCopy as any)[key] = (phase.overrides as any)[key]
-      }
-    })
-
-    if (phase.overrides.relations) {
-      phase.overrides.relations.forEach((overRel: any) => {
-        const idx = effectiveRelations.findIndex((r: any) => r.targetId === overRel.targetId)
-        if (idx !== -1) {
-          effectiveRelations[idx] = { ...effectiveRelations[idx], ...overRel }
-        } else {
-          effectiveRelations.push(overRel)
-        }
-      })
-    }
-  }
-
-  return { ...baseCopy, relations: effectiveRelations }
-}
 watch(() => activeCharacter.value, (newVal, oldVal) => {
   if (newVal && oldVal && newVal.id === oldVal.id) {
     projectStore.markDirty()
   }
 }, { deep: true })
 </script>
-
-<style scoped>
-/* 角色面板特有样式 */
-</style>

@@ -29,6 +29,15 @@ export interface Worldview {
   timeline: WorldTimelineEvent[]
 }
 
+// --- Global Story Phase (全局剧情阶段) ---
+export interface StoryPhase {
+  id: string;
+  label: string;
+  order: number;
+  description?: string;
+  color?: string; // 可选：用于UI区分不同阶段的色调
+}
+
 // --- Character (角色) ---
 export interface CharacterBase {
   name: string          // 角色姓名
@@ -41,29 +50,38 @@ export interface CharacterBase {
   tags: string[]        // 角色标签
 }
 
-export interface CharacterPhase {
-  id: string
-  label: string
-  overrides: Partial<CharacterBase> & {
-    relations?: CharacterRelation[]
-  }
-  summary: string
+export type RelationDirection = 'directed' | 'undirected' | 'bidirectional';
+
+// 关系的可覆盖属性
+export interface RelationshipData {
+  type: string;         // 关系类型 Key
+  label: string;        // 显示文本
+  strength: number;     // 关系强度 (-100 ~ 100)
+  direction: RelationDirection; 
+  notes?: string;
+  isActive?: boolean;   // 是否在该阶段有效/存在
 }
 
-export interface CharacterRelation {
-  id: string
-  targetId: string      // 目标角色 ID
-  type: string          // 关系类型 (如：宿敌)
-  notes: string         // 备注 / 详情
+export interface Relationship extends RelationshipData {
+  id: string;
+  sourceId: string;     // 源角色 ID
+  targetId: string;     // 目标角色 ID
+  
+  // 阶段覆盖: Key 是 StoryPhase.id
+  overrides?: Record<string, Partial<RelationshipData>>; 
 }
 
 export interface Character {
   id: string
   projectId: string
   type: 'character'
+  
   base: CharacterBase
-  phases: CharacterPhase[]
-  relations: CharacterRelation[] // 基础关系 (全局生效，除非被阶段覆盖)
+  
+  // 阶段覆盖: Key 是 StoryPhase.id
+  // 存储该角色在特定阶段的属性变化 (增量覆盖)
+  overrides: Record<string, Partial<CharacterBase>>
+  
   notes: {
     authorNotes: string
     openQuestions: string

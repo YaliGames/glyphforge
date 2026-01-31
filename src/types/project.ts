@@ -1,4 +1,4 @@
-import { Worldview, Character } from './entities'
+import { Worldview, Character, Relationship, StoryPhase } from './entities'
 import { Outline, Chapter, AuthorNote } from './content'
 
 /**
@@ -66,6 +66,12 @@ export interface Manuscript {
   lastUpdated: string
 }
 
+export interface GraphNodeLayout {
+  x: number
+  y: number
+  [key: string]: any
+}
+
 // --- Project File Structure (单文件数据结构) ---
 export interface GlyphForgeBundle {
   version: string        // Schema 版本号，如 "1.0"
@@ -73,7 +79,10 @@ export interface GlyphForgeBundle {
   manuscript: Manuscript // 正文手稿 (V1 统一大文件模式)
   worldview: Worldview
   outline: Outline
+  phases: StoryPhase[]   // 全局剧情阶段定义
   characters: Character[]
+  relationships: Relationship[]
+  graphLayout?: Record<string, GraphNodeLayout>
   chapters: Chapter[]    // 章节树 (V1 标题映射模式)
   authorNotes: AuthorNote[]
   settings: {

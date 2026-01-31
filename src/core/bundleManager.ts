@@ -50,6 +50,7 @@ export class BundleManager {
         structure: { acts: [], dependencies: [] }
       },
       characters: [],
+      relationships: [],
       chapters: [],
       authorNotes: [],
       settings: {}
@@ -69,7 +70,7 @@ export class BundleManager {
    * 标准化数据结构（排序、清理无效引用等）
    */
   static normalize(bundle: GlyphForgeBundle) {
-    // 1. 大纲结构排序：有 range 的按 startLine 排序，没有 range 的置后
+    // 大纲结构排序：有 range 的按 startLine 排序，没有 range 的置后
     if (bundle.outline?.structure?.acts) {
       bundle.outline.structure.acts.sort((a, b) => {
         const hasA = a.range && typeof a.range.startLine === 'number';
@@ -86,17 +87,9 @@ export class BundleManager {
       });
     }
 
-    // 2. 目录结构递归排序：按 anchorLineNumber 物理行号从小到大排序
-    if (bundle.chapters) {
-      const sortChapters = (list: any[]) => {
-        list.sort((a, b) => (a.anchorLineNumber || 0) - (b.anchorLineNumber || 0));
-        list.forEach(c => {
-          if (c.children && c.children.length > 0) {
-            sortChapters(c.children);
-          }
-        });
-      };
-      sortChapters(bundle.chapters);
+    // 数据完整性检查
+    if (!bundle.relationships) {
+      bundle.relationships = [];
     }
   }
 
@@ -110,14 +103,10 @@ export class BundleManager {
       throw new Error('无效的项目文件格式');
     }
 
-    // 数据升级与兼容性处理 (Migration)
-    
-    // ...existing code...
     if (!data.outline?.content) {
       data.outline = { ...data.outline, content: [] };
     }
 
-    // 处理完毕后执行一次标准化
     this.normalize(data as GlyphForgeBundle);
 
     return data as GlyphForgeBundle;
