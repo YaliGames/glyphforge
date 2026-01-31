@@ -222,7 +222,24 @@ export const useCharacterStore = defineStore('characters', () => {
       if (!char.overrides) char.overrides = {}
       if (!char.overrides[phaseId]) char.overrides[phaseId] = {}
       
-      Object.assign(char.overrides[phaseId], updates)
+      const override = char.overrides[phaseId]
+      Object.assign(override, updates)
+
+      // 清理冗余覆盖
+      const keys = Object.keys(override) as (keyof CharacterBase)[]
+      keys.forEach(key => {
+        const baseValue = char.base[key]
+        const overrideValue = override[key]
+
+        if (JSON.stringify(baseValue) === JSON.stringify(overrideValue)) {
+          delete override[key]
+        }
+      })
+      
+      if (Object.keys(override).length === 0) {
+        delete char.overrides[phaseId]
+      }
+
       projectStore.markDirty()
     }
   }

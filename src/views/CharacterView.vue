@@ -97,7 +97,7 @@
             class="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50/30 dark:bg-[#252525]/30">
             <div class="space-y-4">
               <div class="space-y-2">
-                <CharacterFieldLabel label="角色姓名" :is-overridden="isOverridden('name')" />
+                <CharacterFieldLabel label="角色姓名" :is-overridden="isOverridden('name')" @restore="restoreField('name')" />
                 <input :value="activeCharacter.name"
                   class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   placeholder="输入角色全名或核心称谓" @focus="startEdit()"
@@ -105,20 +105,20 @@
               </div>
 
               <div class="space-y-2">
-                <CharacterFieldLabel label="角色昵称 / 别名" :is-overridden="isOverridden('aliases')" />
+                <CharacterFieldLabel label="角色昵称 / 别名" :is-overridden="isOverridden('aliases')" @restore="restoreField('aliases')" />
                 <ChipInput :model-value="activeCharacter.aliases" placeholder="输入昵称并回车..."
                   @update:model-value="(val) => updateField('aliases', val)" @focusin="startEdit()"
                   @focusout="endEdit()" />
               </div>
 
               <div class="space-y-2">
-                <CharacterFieldLabel label="角色阵营" :is-overridden="isOverridden('factions')" />
+                <CharacterFieldLabel label="角色阵营" :is-overridden="isOverridden('factions')" @restore="restoreField('factions')" />
                 <ChipInput :model-value="activeCharacter.factions" placeholder="输入角色所属的组织、流派或社会地位"
                   @update:model-value="(val) => updateField('factions', val)" @focusin="startEdit()"
                   @focusout="endEdit()" />
               </div>
               <div class="space-y-2">
-                <CharacterFieldLabel label="角色身份" :is-overridden="isOverridden('identities')" />
+                <CharacterFieldLabel label="角色身份" :is-overridden="isOverridden('identities')" @restore="restoreField('identities')" />
                 <ChipInput :model-value="activeCharacter.identities" placeholder="输入角色的具体职位、封号或社会标签"
                   @update:model-value="(val) => updateField('identities', val)" @focusin="startEdit()"
                   @focusout="endEdit()" />
@@ -127,7 +127,7 @@
 
             <div class="space-y-4">
               <div class="space-y-2">
-                <CharacterFieldLabel label="外貌着装" :is-overridden="isOverridden('appearance')" />
+                <CharacterFieldLabel label="外貌着装" :is-overridden="isOverridden('appearance')" @restore="restoreField('appearance')" />
                 <textarea :value="activeCharacter.appearance" rows="3"
                   class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-all"
                   placeholder="描述角色的体貌特征、惯常穿着..." @focus="startEdit()"
@@ -135,7 +135,7 @@
                   @blur="endEdit()"></textarea>
               </div>
               <div class="space-y-2">
-                <CharacterFieldLabel label="性格特征" :is-overridden="isOverridden('personality')" />
+                <CharacterFieldLabel label="性格特征" :is-overridden="isOverridden('personality')" @restore="restoreField('personality')" />
                 <textarea :value="activeCharacter.personality" rows="3"
                   class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-all"
                   placeholder="角色的核心性格、行事逻辑..." @focus="startEdit()"
@@ -144,7 +144,7 @@
               </div>
 
               <div class="space-y-2">
-                <CharacterFieldLabel label="身份背景" :is-overridden="isOverridden('background')" />
+                <CharacterFieldLabel label="身份背景" :is-overridden="isOverridden('background')" @restore="restoreField('background')" />
                 <textarea :value="activeCharacter.background" rows="8"
                   class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-all"
                   placeholder="角色的出身、过往经历、关键转折点..." @focus="startEdit()"
@@ -368,6 +368,19 @@ const otherCharacters = computed(() => {
 function updateField(key: string, value: any) {
   if (!activeCharacter.value) return
   characterStore.smartUpdateCharacter(activeCharacter.value.id, { [key]: value })
+}
+
+function restoreField(key: string) {
+  if (!activeCharacter.value || !currentPhaseId.value) return
+  const rawChar = activeCharacter.value._original
+  if (rawChar && rawChar.base) {
+    const baseValue = (rawChar.base as any)[key]
+    const valueToRestore = (typeof baseValue === 'object' && baseValue !== null) 
+       ? JSON.parse(JSON.stringify(baseValue)) 
+       : baseValue
+    
+    characterStore.updateCharacterOverride(activeCharacter.value.id, currentPhaseId.value, { [key]: valueToRestore })
+  }
 }
 
 function isOverridden(key: string) {
