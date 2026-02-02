@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useProjectStore } from './project'
 import type { Character, Relationship, StoryPhase, CharacterBase, RelationshipData } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
@@ -9,6 +9,12 @@ export const useCharacterStore = defineStore('characters', () => {
 
   const activeCharacterId = ref<string | null>(null)
   const currentPhaseId = ref<string | null>(null) // 当前阶段ID (null为全局)
+
+  // 监听项目切换，重置选中状态
+  watch(() => projectStore.bundle?.project.id, () => {
+    activeCharacterId.value = null
+    currentPhaseId.value = null
+  })
 
   const rawCharacters = computed(() => projectStore.bundle?.characters || [])
   const rawRelationships = computed(() => projectStore.bundle?.relationships || [])

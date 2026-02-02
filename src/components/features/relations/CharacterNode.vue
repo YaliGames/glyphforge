@@ -1,9 +1,9 @@
 <template>
   <div class="character-node-wrapper relative group flex flex-col items-center">
     <div
-      class="w-16 h-16 rounded-full flex items-center justify-center text-xl shadow-lg border-2 transition-transform duration-200"
+      class="w-16 h-16 rounded-full flex items-center justify-center text-xl shadow-lg border-2 transition-transform duration-200 bg-gray-100 dark:bg-gray-800"
       :class="[
-        selected ? 'border-blue-500 scale-105' : 'border-white dark:border-gray-700 bg-gray-100 dark:bg-gray-800',
+        selected ? 'border-blue-500 scale-105' : 'border-white dark:border-gray-700',
         connectable ? 'cursor-crosshair hover:!border-blue-400' : 'cursor-grab active:cursor-grabbing'
       ]">
       <span class="font-bold text-gray-700 dark:text-gray-200 select-none">

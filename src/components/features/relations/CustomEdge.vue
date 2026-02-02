@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { EdgeProps, getBezierPath, EdgeLabelRenderer } from '@vue-flow/core'
+import { computed, inject } from 'vue'
+import { EdgeProps, getBezierPath, EdgeLabelRenderer, useVueFlow } from '@vue-flow/core'
 import { BaseEdge } from '@vue-flow/core'
 
 const props = defineProps<EdgeProps>()
+
+const triggerEdgeAction = inject<(event: MouseEvent, id: string) => void>('triggerEdgeAction')
+
+const onLabelClick = (event: MouseEvent) => {
+  event.stopPropagation()
+  if (triggerEdgeAction) {
+    triggerEdgeAction(event, props.id)
+  }
+}
 
 const pathData = computed(() => {
   const { sourceX, sourceY, targetX, targetY, data } = props
@@ -27,9 +36,9 @@ const pathData = computed(() => {
     const ux = dx / len
     const uy = dy / len
     sx = sourceX + ux * r
-    sy = sourceY + uy * r
+    sy = sourceY + uy * r - 12
     tx = targetX - ux * r
-    ty = targetY - uy * r
+    ty = targetY - uy * r - 12
   }
 
   // 中点计算
@@ -69,9 +78,9 @@ const pathData = computed(() => {
       position: 'absolute',
       transform: `translate(-50%, -50%) translate(${pathData.labelX}px,${pathData.labelY}px)`,
       pointerEvents: 'all',
-    }" class="nodrag nopan">
+    }" class="nodrag nopan" @click="onLabelClick">
       <div
-        class="px-2 py-1 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-700 rounded-md shadow-sm text-[10px] text-gray-500 dark:text-gray-300 whitespace-nowrap">
+        class="px-3 py-1 bg-white/80 dark:bg-[#252525]/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/50 rounded-full shadow-sm text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap cursor-pointer transition-all duration-200 hover:scale-110 hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-md active:scale-95">
         {{ label }}
       </div>
     </div>
