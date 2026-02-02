@@ -7,12 +7,12 @@
         <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded p-1">
           <button @click="isConnectMode = false"
             class="px-3 py-1 text-xs rounded transition-all flex items-center gap-1.5"
-            :class="!isConnectMode ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'">
+            :class="!isConnectMode ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700/50'">
             <i class="fa-solid fa-arrows-up-down-left-right"></i>移动模式
           </button>
           <button @click="isConnectMode = true"
             class="px-3 py-1 text-xs rounded transition-all flex items-center gap-1.5"
-            :class="isConnectMode ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'">
+            :class="isConnectMode ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700/50'">
             <i class="fa-solid fa-link"></i>连线模式
           </button>
         </div>
@@ -123,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted, provide } from 'vue'
 import { VueFlow, Panel, useVueFlow, Connection, EdgeMouseHandler, NodeDragHandler, NodeMouseHandler } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -144,7 +144,7 @@ const characterStore = useCharacterStore()
 const uiStore = useUIStore()
 const router = useRouter()
 const { charactersInPhase: characters, relationshipsInPhase: relationships } = storeToRefs(characterStore)
-const { addEdges, removeEdges, zoomIn, zoomOut, fitView } = useVueFlow()
+const { addEdges, removeEdges, zoomIn, zoomOut, fitView, findEdge } = useVueFlow()
 
 const elements = ref<any[]>([])
 const isConnectMode = ref(false)
@@ -195,6 +195,14 @@ const onEdgeClick: EdgeMouseHandler = (event) => {
     data: event.edge.data
   }
 }
+
+// 提供给子组件使用
+provide('triggerEdgeAction', (event: MouseEvent, edgeId: string) => {
+  const edge = findEdge(edgeId)
+  if (edge) {
+    onEdgeClick({ event, edge } as any)
+  }
+})
 
 // Menu Actions
 const handleEdit = () => {
@@ -383,6 +391,12 @@ const onConnect = (params: Connection) => {
   characterStore.addRelationship(params.source, params.target, 'custom')
 }
 
+// 处理来自 CustomEdge 标签的自定义点击事件
+const handleCustomEdgeClick = (e: any) => {
+  const { event, edge } = e.detail
+  onEdgeClick({ event, edge } as any)
+}
+
 // 自动布局 (D3 Force)
 const runForceLayout = () => {
   const nodes = characters.value.map(c => {
@@ -418,6 +432,11 @@ const runForceLayout = () => {
 
 onMounted(() => {
   refreshGraph()
+  window.addEventListener('gf-edge-click', handleCustomEdgeClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('gf-edge-click', handleCustomEdgeClick)
 })
 
 </script>
