@@ -1,53 +1,95 @@
 <template>
-  <div class="h-full w-full bg-gray-50 dark:bg-[#1e1e1e] relative group">
-    <VueFlow v-model="elements" :fit-view-on-init="true" class="h-full w-full" :default-zoom="1.0" :min-zoom="0.2"
-      :max-zoom="4" :nodes-draggable="!isConnectMode" :nodes-connectable="isConnectMode" :pan-on-drag="!isConnectMode"
-      :zoom-on-scroll="!isConnectMode" :zoom-on-double-click="!isConnectMode" @connect="onConnect"
-      @edge-click="onEdgeClick" @node-click="onNodeClick" @node-drag-start="menu.visible = false"
-      @node-drag-stop="onNodeDragStop" @pane-click="onPaneClickHandle">
-      <Background pattern-color="#aaa" gap="8" />
-      <Controls />
-
-      <!-- 注册自定义节点 -->
-      <template #node-character="props">
-        <CharacterNode v-bind="props" />
-      </template>
-
-      <!-- 注册自定义连线 -->
-      <template #edge-custom="props">
-        <CustomEdge v-bind="props" />
-      </template>
-
-      <Panel position="top-right"
-        class="bg-white dark:bg-gray-800 p-2 rounded shadow text-xs border dark:border-gray-700 flex flex-col gap-2">
-        <div class="font-medium mb-1 dark:text-gray-200">图谱信息</div>
-        <div class="dark:text-gray-400">角色: {{ nodesCount }}</div>
-        <div class="dark:text-gray-400">关系: {{ edgesCount }}</div>
-
-        <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-1 rounded">
-          <span class="text-[10px] text-gray-500 dark:text-gray-400">模式:</span>
-          <button @click="isConnectMode = !isConnectMode" class="text-[10px] px-2 py-0.5 rounded transition-colors"
-            :class="isConnectMode ? 'bg-blue-500 text-white shadow' : 'text-gray-500 hover:text-blue-500'"
-            :title="isConnectMode ? '点击切换回移动模式' : '点击切换到连线模式'">
-            {{ isConnectMode ? '连线中' : '移动' }}
+  <div class="h-full w-full flex flex-col bg-gray-50 dark:bg-[#1e1e1e] relative group">
+    <!-- 顶部菜单栏 -->
+    <div class="h-12 border-b bg-white dark:bg-[#252525] dark:border-[#333] flex items-center px-4 justify-between z-10 shrink-0 shadow-sm">
+      <div class="flex items-center gap-4">
+        <!-- 模式切换 -->
+        <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded p-1">
+          <button @click="isConnectMode = false"
+            class="px-3 py-1 text-xs rounded transition-all flex items-center gap-1.5"
+            :class="!isConnectMode ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'">
+            <i class="fa-solid fa-arrows-up-down-left-right"></i>移动模式
+          </button>
+          <button @click="isConnectMode = true"
+            class="px-3 py-1 text-xs rounded transition-all flex items-center gap-1.5"
+            :class="isConnectMode ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'">
+            <i class="fa-solid fa-link"></i>连线模式
           </button>
         </div>
 
-        <button @click="runForceLayout"
-          class="w-full px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-200 transition-colors text-[10px]">
-          <i class="fa-solid fa-arrows-to-circle mr-1"></i>自动布局
-        </button>
+        <div class="h-4 w-[1px] bg-gray-200 dark:bg-gray-700"></div>
 
-        <div class="text-[10px] text-gray-400 mt-1">
-          <template v-if="isConnectMode">
-            拖拽节点即可建立关系<br>再次点击模式按钮返回
-          </template>
-          <template v-else>
-            拖拽节点移动位置<br>双击查看详情
-          </template>
+        <!-- 自动布局按钮 -->
+        <button @click="runForceLayout"
+          class="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-xs border border-blue-200 dark:border-blue-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-arrows-to-circle"></i>自动布局
+        </button>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- 视图控制 -->
+        <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded p-1">
+          <button @click="zoomIn" 
+            class="w-7 h-7 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded transition-all text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:shadow-sm" 
+            title="放大">
+            <i class="fa-solid fa-plus text-[11px] leading-none"></i>
+          </button>
+          <button @click="zoomOut" 
+            class="w-7 h-7 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded transition-all text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:shadow-sm" 
+            title="缩小">
+            <i class="fa-solid fa-minus text-[11px] leading-none"></i>
+          </button>
+          <div class="w-[1px] h-3 bg-gray-300 dark:bg-gray-700/50 mx-0.5"></div>
+          <button @click="fitView" 
+            class="w-7 h-7 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded transition-all text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:shadow-sm" 
+            title="自适应显示">
+            <i class="fa-solid fa-expand text-[11px] leading-none"></i>
+          </button>
+          <button @click="isLocked = !isLocked" 
+            class="w-7 h-7 flex items-center justify-center rounded transition-all shadow-sm"
+            :class="isLocked ? 'text-blue-600 bg-white dark:bg-gray-700 font-medium' : 'text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700'"
+            title="锁定视图">
+            <i class="fa-solid text-[11px] leading-none" :class="isLocked ? 'fa-lock' : 'fa-lock-open'"></i>
+          </button>
         </div>
-      </Panel>
-    </VueFlow>
+        
+        <div class="h-6 w-[1px] bg-gray-200 dark:bg-gray-700 mx-1"></div>
+        
+        <div class="text-[11px] text-gray-500 flex gap-4 mr-2">
+          <span class="flex items-center gap-1">角色 <b class="text-gray-700 dark:text-gray-300">{{ nodesCount }}</b></span>
+          <span class="flex items-center gap-1">关系 <b class="text-gray-700 dark:text-gray-300">{{ edgesCount }}</b></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图谱区域 -->
+    <div class="flex-1 relative overflow-hidden">
+      <VueFlow v-model="elements" :fit-view-on-init="true" class="h-full w-full" :default-zoom="1.0" :min-zoom="0.2"
+        :max-zoom="4" :nodes-draggable="!isConnectMode && !isLocked" :nodes-connectable="isConnectMode && !isLocked"
+        :pan-on-drag="!isConnectMode && !isLocked" :zoom-on-scroll="!isConnectMode && !isLocked"
+        :zoom-on-double-click="!isConnectMode && !isLocked" @connect="onConnect" @edge-click="onEdgeClick"
+        @node-click="onNodeClick" @node-drag-start="menu.visible = false" @node-drag-stop="onNodeDragStop"
+        @pane-click="onPaneClickHandle">
+        <Background pattern-color="#aaa" gap="8" />
+
+        <!-- 注册自定义节点 -->
+        <template #node-character="props">
+          <CharacterNode v-bind="props" />
+        </template>
+
+        <!-- 注册自定义连线 -->
+        <template #edge-custom="props">
+          <CustomEdge v-bind="props" />
+        </template>
+
+        <!-- 右侧浮动提示 -->
+        <Panel position="top-right" v-if="isConnectMode"
+          class="bg-blue-600 text-white px-3 py-1.5 rounded-full shadow-lg text-[11px] font-medium flex items-center gap-2 m-4 animate-bounce">
+          <i class="fa-solid fa-circle-info"></i>
+          连线模式已开启：按住一个节点拖向另一个节点以建立关系
+        </Panel>
+      </VueFlow>
+    </div>
 
     <!-- Context Menu -->
     <div v-if="menu.visible"
@@ -97,16 +139,16 @@ import { forceSimulation, forceLink, forceManyBody, forceX, forceY, forceCollide
 // Import Vue Flow styles
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
-import '@vue-flow/controls/dist/style.css'
 
 const characterStore = useCharacterStore()
 const uiStore = useUIStore()
 const router = useRouter()
 const { charactersInPhase: characters, relationshipsInPhase: relationships } = storeToRefs(characterStore)
-const { addEdges, removeEdges } = useVueFlow()
+const { addEdges, removeEdges, zoomIn, zoomOut, fitView } = useVueFlow()
 
 const elements = ref<any[]>([])
 const isConnectMode = ref(false)
+const isLocked = ref(false)
 
 // 右键菜单状态
 const menu = ref({
