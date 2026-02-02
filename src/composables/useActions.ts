@@ -172,6 +172,7 @@ export function useActions() {
       case 'goto-outline': router.push('/outline'); break
       case 'goto-editor': router.push('/editor'); break
       case 'goto-characters': router.push('/characters'); break
+      case 'goto-relations': router.push('/relations'); break
       case 'goto-worldview': router.push('/worldview'); break
       case 'goto-timeline': router.push('/timeline'); break
       case 'settings': router.push('/settings'); break
