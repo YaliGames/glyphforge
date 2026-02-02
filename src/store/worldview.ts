@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useProjectStore } from './project'
 import type { WorldCategory, WorldTimelineEvent } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
@@ -9,6 +9,11 @@ export const useWorldviewStore = defineStore('worldview', () => {
 
   const worldview = computed(() => projectStore.bundle?.worldview || null)
   const activeCategoryType = ref<string | null>(null)
+
+  // 监听项目切换，重置选中状态
+  watch(() => projectStore.bundle?.project.id, () => {
+    activeCategoryType.value = null
+  })
 
   function updateCategory(type: string, data: Partial<WorldCategory>) {
     if (projectStore.bundle) {
