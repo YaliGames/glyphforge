@@ -206,20 +206,9 @@ export const useProjectStore = defineStore('project', () => {
 
   function markDirty() {
     isDirty.value = true
-
-    // 如果处于编辑会话中且有挂起的快照（说明是会话内的第一次变动），立即将其提交到历史栈
-    if (isSessionActive.value && pendingSessionSnapshot) {
-      console.log('[History] 会话内首次变动，提交挂起的初始快照')
-      historyStore.pushRawState(pendingSessionSnapshot)
-      pendingSessionSnapshot = null // 提交后清除，避免重复提交
-    }
   }
 
-  /**
-   * 核心：记录当前状态为一个历史检查点
-   */
   function takeSnapshot() {
-    // 如果正在恢复，或处于编辑会话中（会话开始时已记录），则不记录中间状态
     if (!bundle.value || isRestoring.value || isSessionActive.value) return
     
     // 只有在数据真正发生变化时才记录
@@ -229,32 +218,30 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  /**
-   * 开启一个编辑会话（如：开始打字、开始拖拽）
-   * 逻辑：暂存当前状态，但不立即推入历史栈（Lazy Snapshot）。只有当数据真正被修改时（触发 markDirty）才推入。
-   */
   function startEditSession() {
-    // 如果正在恢复历史记录或已锁步，严禁开启新会话
-    if (isRestoring.value || isSessionActive.value) return
-    if (!bundle.value) return
+    if (isRestoring.value || isSessionActive.value || !bundle.value) return
     
     console.log('[History] 开启编辑会话，挂起初始快照')
-    
-    // 暂存状态，不立即入栈
     pendingSessionSnapshot = JSON.stringify({ bundle: bundle.value, view: uiStore.viewMode })
     isSessionActive.value = true
   }
 
-  /**
-   * 结束一个编辑会话（如：停止打字 2 秒、失去焦点）
-   * @param saveCheckpoint 是否在结束时自动存入一个检查点 (移除此处的主动快照逻辑)
-   */
   function endEditSession() {
     if (!isSessionActive.value) return
     
     console.log(`[History] 结束编辑会话`)
     isSessionActive.value = false
-    pendingSessionSnapshot = null // 会话结束，清除未提交的快照（说明此次会话无修改）
+    
+    if (pendingSessionSnapshot && !isRestoring.value) {
+      const currentState = JSON.stringify({ bundle: bundle.value, view: uiStore.viewMode })
+      
+      // 只有实质性内容改变了，才推入撤销栈（此时会清理重做栈）
+      if (currentState !== pendingSessionSnapshot) {
+        historyStore.pushRawState(pendingSessionSnapshot)
+      }
+    }
+    
+    pendingSessionSnapshot = null
     
     if (historyDebounceTimer.value) {
       clearTimeout(historyDebounceTimer.value)
