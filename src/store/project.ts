@@ -20,6 +20,12 @@ export const useProjectStore = defineStore('project', () => {
   const uiStore = useUIStore()
   const historyStore = useHistoryStore()
 
+  const getTitleFromPath = (path: string) => {
+    const parts = path.split(/[/\\]/);
+    const fileName = parts[parts.length - 1];
+    return fileName.replace(/\.[^/.]+$/, "");
+  };
+
   const currentProject = computed(() => bundle.value?.project || null)
   const isLoaded = computed(() => bundle.value !== null)
 
@@ -73,7 +79,8 @@ export const useProjectStore = defineStore('project', () => {
       const success = await loadProjectBundle(bundleData, path);
       
       if (success && bundle.value) {
-        uiStore.addRecentFile(bundle.value.project.title, path, 'project')
+        const fileTitle = getTitleFromPath(path);
+        uiStore.addRecentFile(fileTitle, path, 'project')
       }
       return success
     } catch (e) {
@@ -95,7 +102,8 @@ export const useProjectStore = defineStore('project', () => {
       const success = await loadProjectBundle(bundleData, path)
       
       if (success && bundle.value && path) {
-        uiStore.addRecentFile(bundle.value.project.title, path, 'project')
+        const fileTitle = getTitleFromPath(path);
+        uiStore.addRecentFile(fileTitle, path, 'project')
       }
       return success
     } catch (e) {
@@ -181,8 +189,10 @@ export const useProjectStore = defineStore('project', () => {
       
       if (savedPath) {
         bundle.value.project.path = savedPath
+        const fileTitle = getTitleFromPath(savedPath);
+        
         isDirty.value = false
-        uiStore.addRecentFile(bundle.value.project.title, savedPath, 'project')
+        uiStore.addRecentFile(fileTitle, savedPath, 'project')
         uiStore.showToast('项目已另存为', 'success')
         return true
       }
