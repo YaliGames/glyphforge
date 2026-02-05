@@ -96,6 +96,15 @@ export const AI_PROFILE_TEMPLATES = [
     responsePath: ''
   },
   {
+    id: 'nvidia',
+    name: 'NVIDIA NIM (build.nvidia.com)',
+    provider: 'openai',
+    endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    model: 'meta/llama-3.1-405b-instruct',
+    template: '',
+    responsePath: ''
+  },
+  {
     id: 'custom',
     name: 'Custom (自定义)',
     provider: 'custom',

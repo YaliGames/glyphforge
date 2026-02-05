@@ -1,142 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref, watch, computed } from 'vue'
-import type { AIPrompt, AIHistoryItem } from '@/types'
+import { ref, watch, computed, reactive } from 'vue'
+import type { AIPrompt, AIHistoryItem, AIToolCall, AIToolResult } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 import { useProjectStore } from './project'
 import { useSettingsStore } from './settings'
+import { BUILTIN_PROMPTS } from '@/core/ai/constants'
+import { AI_TOOLS } from '@/core/ai/tool-definitions'
 
 const STORAGE_KEY = 'glyphforge-custom-prompts'
-
-const BUILTIN_PROMPTS: AIPrompt[] = [
-  {
-    id: 'builtin-expand',
-    label: '文笔润色与扩写',
-    description: '深度扩写片段，并提供文学性的修辞建议与逻辑分析',
-    category: 'writing',
-    content: `你是一位擅长氛围描写的文学导师。请基于下方提供的上下文（JSON格式）和我的指令，对目标片段进行扩写。
-
-必须仅返回 JSON 对象，格式如下：
-{
-  "creative": {
-    "type": "manuscript",
-    "text": "扩写后的正文内容（保持风格一致）"
-  },
-  "analytical": {
-    "rationale": "解释修辞的选择，以及如何对齐世界观基调",
-    "suggestions": ["情节后续发展的可能性", "可以进一步深挖的意象"]
-  }
-}
-
-[ 项目上下文 ]
-[JSON]
-
-[ 创作指令 ]
-[USER_INPUT]`
-  },
-  {
-    id: 'builtin-character-design',
-    label: '角色深度构建',
-    description: '补全角色档案，并分析其性格冲突与动机',
-    category: 'character',
-    content: `你正在协助我设计角色细节。请基于世界观背景（JSON格式），补全正在设计的角色属性。
-
-必须仅返回 JSON 对象，格式如下：
-{
-  "creative": {
-    "type": "character",
-    "data": {
-      "base": { "appearance": "外貌描述", "personality": "性格深度", "background": "关联设定" }
-    }
-  },
-  "analytical": {
-    "rationale": "分析该角色在当前世界观下的生存逻辑",
-    "suggestions": ["该角色的潜在成长弧线", "可能与其产生冲突的其他角色类型"]
-  }
-}
-
-[ 世界观上下文 ]
-[JSON]
-
-[ 基础设计信息 ]
-[USER_INPUT]`
-  },
-  {
-    id: 'builtin-worldview-design',
-    label: '设定系统推演',
-    description: '深化世界观条目，并推演可能产生的矛盾点',
-    category: 'world',
-    content: `你正在协助我进行世界观深度推演。请基于已有的设定，拓展我指定的维度。
-
-必须仅返回 JSON 对象，格式如下：
-{
-  "creative": {
-    "type": "worldview",
-    "data": { "name": "条目名称", "content": "详细的条目叙述，包含历史、逻辑等" }
-  },
-  "analytical": {
-    "rationale": "分析此设定如何填补现有逻辑链条",
-    "suggestions": ["此设定可能引发的社会冲突", "在实际剧情中可以展现该设定的场景建议"]
-  }
-}
-
-[ 现有设定基础 ]
-[JSON]
-
-[ 拓展目标与初步想法 ]
-[USER_INPUT]`
-  },
-  {
-    id: 'builtin-check',
-    label: '设定一致性检查',
-    description: '识别情节是否与已定义的世界观百科或人物档案存在冲突',
-    category: 'general',
-    content: `请扮演严谨的文学编辑。我将为你提供项目的百科数据（JSON格式）以及我正在创作的情节段落。
-
-必须仅返回 JSON 对象，格式如下：
-{
-  "creative": {
-    "type": "analysis",
-    "summary": "一致性检查报告摘要"
-  },
-  "analytical": {
-    "rationale": "基于逻辑和背景设定对该段落进行的深度审查分析",
-    "suggestions": ["逻辑漏洞修正建议 1", "建议 2"],
-    "warnings": ["具体的设定冲突点 1", "冲突点 2"]
-  }
-}
-
-[ 项目百科数据 ]
-[JSON]
-
-[ 待审阅的情节或关注点 ]
-[USER_INPUT]`
-  },
-  {
-    id: 'builtin-transition',
-    label: '章节衔接分析',
-    description: '分析两个章节之间的叙事节奏与逻辑过渡',
-    category: 'outline',
-    content: `请作为叙事结构专家，审阅章节间的衔接。
-
-必须仅返回 JSON 对象，格式如下：
-{
-  "creative": {
-    "type": "outline",
-    "text": "建议的过渡桥段或润色建议"
-  },
-  "analytical": {
-    "rationale": "分析当前衔接的情感曲率与节奏断层情况",
-    "suggestions": ["如何加强前后的悬念挂钩", "转场技巧建议"]
-  }
-}
-
-[ 章节大纲与叙事状态 ]
-[JSON]
-
-[ 具体的衔接困惑 ]
-[USER_INPUT]`
-  }
-]
 
 export const useAIStore = defineStore('ai', () => {
   const isVisible = ref(false)
@@ -146,6 +17,7 @@ export const useAIStore = defineStore('ai', () => {
   const selectedPromptId = ref<string>('')
   const granularSelections = ref<Record<string, string[]>>({})
   const pendingInput = ref<string>('')
+  const executedToolCallIds = reactive(new Set<string>()) // 记录已执行过的工具调用 ID
 
   // 用户自定义提示词，从 localStorage 加载
   const customPrompts = ref<AIPrompt[]>(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'))
@@ -225,6 +97,17 @@ export const useAIStore = defineStore('ai', () => {
   }
 
   /**
+   * 中止 AI 生成
+   */
+  function stopGeneration() {
+    const electronAPI = (window as any).electronAPI
+    if (electronAPI?.aiAbort) {
+      electronAPI.aiAbort()
+    }
+    isProcessing.value = false
+  }
+
+  /**
    * 展示 AI 助手
    * @param options.granular 配置上下文。支持 Record<key, ID数组 | 'all' | boolean>
    *        - 'all': 自动填入该分类下所有项
@@ -261,13 +144,24 @@ export const useAIStore = defineStore('ai', () => {
     isVisible.value = true
   }
 
-  function addHistory(role: 'user' | 'assistant', content: string, type: 'text' | 'json' = 'text', references?: Record<string, any>) {
+  function addHistory(
+    role: 'user' | 'assistant' | 'tool' | 'system', 
+    content: string, 
+    type: 'text' | 'json' = 'text', 
+    options?: { 
+      references?: Record<string, any>, 
+      toolCalls?: AIToolCall[],
+      toolResults?: AIToolResult[]
+    }
+  ) {
     history.value.push({
       id: uuidv4(),
       role,
       content,
       type,
-      references,
+      references: options?.references,
+      toolCalls: options?.toolCalls,
+      toolResults: options?.toolResults,
       timestamp: Date.now()
     })
   }
@@ -289,11 +183,22 @@ export const useAIStore = defineStore('ai', () => {
     }
 
     isProcessing.value = true
-    // 对话历史中仅保存用户可见的简洁内容
-    addHistory('user', displayContent, 'text', references)
+    
+    // 如果是对话的第一条（或者包含完整 prompt），我们需要特殊处理
+    // 历史中保存 displayContent 供 UI 显示
+    addHistory('user', displayContent, 'text', { references })
+
+    // 创建一个占位的助理回复 ID，用于流式更新
+    const assistantMsgId = uuidv4()
+    history.value.push({
+      id: assistantMsgId,
+      role: 'assistant',
+      content: '',
+      type: 'text',
+      timestamp: Date.now()
+    })
 
     try {
-      let body: any
       let headers: Record<string, string> = {
         'Content-Type': 'application/json'
       }
@@ -302,37 +207,70 @@ export const useAIStore = defineStore('ai', () => {
         headers['Authorization'] = `Bearer ${activeProfile.apiKey}`
       }
 
+      // 构建消息列表
+      const messages: any[] = []
+      
+      // 1. 系统角色与工具使用规范
+      let systemPrompt = `你是一位极具专业素养的写作助手。
+
+### 行为准则 ###
+- **对话优先**：默认以文本回复。仅在涉及底层数据（如修改正文、更新角色设定）时调用工具。
+- **参数规范**：严禁占位符。\`upsert_entities\` 的 \`entities\` 必须是标准的 JSON 对象数组。
+- **环境**：始终以中文回复，直接输出中文字符。`
+
+      messages.push({ role: 'system', content: systemPrompt })
+
+      // 处理历史记录
+      history.value.forEach((item, index) => {
+        if (item.role === 'user') {
+          // 区分当前发送的完整 prompt 还是历史简洁内容
+          const content = (index === history.value.length - 2) ? fullPrompt : item.content;
+          messages.push({ role: 'user', content });
+        } else if (item.role === 'assistant') {
+          if (item.id === assistantMsgId) return;
+          messages.push({ role: 'assistant', content: item.content, tool_calls: item.toolCalls });
+        } else if (item.role === 'tool') {
+          item.toolResults?.forEach(result => {
+            messages.push({ role: 'tool', tool_call_id: result.toolCallId, content: result.content });
+          });
+        }
+      });
+
+      let body: any
+
       if (activeProfile.provider === 'openai') {
         body = {
           model: activeProfile.model,
-          messages: [
-            { role: 'system', content: '你是一位专业的写作助手，请根据上下文内容和指令为用户提供高质量的创作支持。' },
-            { role: 'user', content: fullPrompt }
-          ]
+          messages,
+          tools: AI_TOOLS.map(t => ({
+            type: 'function',
+            function: t
+          })),
+          tool_choice: 'auto',
+          stream: true
         }
       } else if (activeProfile.provider === 'anthropic') {
-        // Claude 格式略有不同
+        // Claude 格式处理
         headers['x-api-key'] = activeProfile.apiKey
         headers['anthropic-version'] = '2023-06-01'
         delete headers['Authorization']
         body = {
           model: activeProfile.model,
           max_tokens: 4096,
-          messages: [
-            { role: 'user', content: fullPrompt }
-          ]
+          messages: messages.filter(m => m.role !== 'system'),
+          system: messages.find(m => m.role === 'system')?.content,
+          tools: AI_TOOLS.map(t => ({
+            name: t.name,
+            description: t.description,
+            input_schema: t.parameters
+          }))
         }
       } else if (activeProfile.provider === 'custom') {
-        // 自定义引擎：使用模板
+        // 自定义引擎：不支持工具调用，仅支持基础消息
         if (!activeProfile.template) {
           throw new Error('自定义提供商必须配置请求模板')
         }
         
-        const messages = [
-          { role: 'system', content: '你是一位专业的写作助手' },
-          { role: 'user', content: fullPrompt }
-        ]
-
         const payloadStr = activeProfile.template
           .replace(/\$\{model\}/g, activeProfile.model)
           .replace(/\$\{messages\}/g, JSON.stringify(messages))
@@ -341,37 +279,182 @@ export const useAIStore = defineStore('ai', () => {
         body = JSON.parse(payloadStr)
       }
 
-      const response = await fetch(activeProfile.endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body)
-      })
+      let toolCalls: AIToolCall[] | undefined = undefined
+      let fullContent = ''
+      const electronAPI = (window as any).electronAPI
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.error?.message || errData.message || `请求失败: ${response.status}`)
+      if (electronAPI?.aiRequest && electronAPI?.onAIChunk) {
+        // --- Electron 流式模式 ---
+        let removeListener: (() => void) | null = null;
+        let lineBuffer = ''; // 用于处理跨 chunk 的行
+        let watchdog: any = null;
+        
+        const promise = new Promise<void>((resolve, reject) => {
+          // 设置看门狗：如果 30 秒没有任何数据返回，强制超时
+          watchdog = setTimeout(() => {
+            reject(new Error('AI 服务器响应超时 (30秒未收到数据)'));
+          }, 30000);
+
+          removeListener = electronAPI.onAIChunk((data: any) => {
+            // 只要有任何数据（哪怕是 chunk），就刷新看门狗
+            if (watchdog) {
+              clearTimeout(watchdog);
+              watchdog = setTimeout(() => {
+                reject(new Error('流式传输中断 (15秒无后续数据)'));
+              }, 15000);
+            }
+
+            if (data.type === 'chunk') {
+              // ... 原有逻辑 ...
+              lineBuffer += data.content;
+              const lines = lineBuffer.split('\n');
+              lineBuffer = lines.pop() || '';
+
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || !trimmed.startsWith('data: ')) continue;
+                
+                const jsonStr = trimmed.slice(6).trim();
+                if (jsonStr === '[DONE]') continue;
+
+                try {
+                  const chunk = JSON.parse(jsonStr);
+                  const delta = chunk.choices?.[0]?.delta;
+                  
+                  if (delta?.content) {
+                    fullContent += delta.content;
+                    const msg = history.value.find(m => m.id === assistantMsgId);
+                    if (msg) msg.content = fullContent;
+                  }
+                  
+                  if (delta?.tool_calls) {
+                    if (!toolCalls) toolCalls = [];
+                    delta.tool_calls.forEach((tc: any) => {
+                      const existing = toolCalls!.find(e => e.index === tc.index);
+                      if (existing) {
+                        if (tc.function?.arguments) {
+                          existing.function.arguments += tc.function.arguments;
+                        }
+                      } else {
+                        toolCalls!.push({
+                          id: tc.id || '',
+                          type: 'function',
+                          index: tc.index,
+                          function: {
+                            name: tc.function?.name || '',
+                            arguments: tc.function?.arguments || ''
+                          }
+                        });
+                        if (tc.function?.arguments) {
+                          toolCalls![toolCalls!.length - 1].function.arguments += tc.function.arguments;
+                        }
+                      }
+                    });
+                    const msg = history.value.find(m => m.id === assistantMsgId);
+                    if (msg) msg.toolCalls = JSON.parse(JSON.stringify(toolCalls));
+                  }
+                } catch (e) {
+                  // 忽略不完整的 JSON 片段，等待后续补充
+                }
+              }
+            } else if (data.type === 'done') {
+              if (watchdog) clearTimeout(watchdog);
+              resolve();
+            }
+          });
+        });
+
+        try {
+          const result = await electronAPI.aiRequest(activeProfile.endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+          });
+
+          if (!result.ok) {
+            throw new Error(result.error?.message || result.error || '请求发送失败');
+          }
+
+          await promise;
+        } finally {
+          if (watchdog) clearTimeout(watchdog);
+          if (removeListener) removeListener();
+        }
+        
+      } else {
+        // --- 非流式/Web 模式 (降级处理) ---
+        const response = await fetch(activeProfile.endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body)
+        })
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}))
+          throw new Error(errData.error?.message || errData.message || `请求失败: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        if (activeProfile.provider === 'openai') {
+          const message = data.choices?.[0]?.message
+          fullContent = message?.content || ''
+          toolCalls = message?.tool_calls
+        }
+        
+        const msg = history.value.find(m => m.id === assistantMsgId);
+        if (msg) {
+          msg.content = fullContent;
+          msg.toolCalls = toolCalls as any;
+        }
       }
 
-      const data = await response.json()
-      let content = ''
-
-      // 提取回复内容
-      if (activeProfile.provider === 'openai') {
-        content = data.choices?.[0]?.message?.content || ''
-      } else if (activeProfile.provider === 'anthropic') {
-        content = data.content?.[0]?.text || ''
-      } else if (activeProfile.provider === 'custom') {
-        // 根据 responsePath 提取
-        const path = activeProfile.responsePath || 'choices[0].message.content'
-        content = getValueByPath(data, path)
+      // 修正工具调用的 JSON 类型或其他状态
+      const finalMsg = history.value.find(m => m.id === assistantMsgId);
+if (finalMsg && fullContent.trim().startsWith('{') && fullContent.trim().endsWith('}')) {
+        finalMsg.type = 'json';
       }
+      
+      // --- 工具调用参数清洗逻辑 ---
+      if (finalMsg && finalMsg.toolCalls) {
+        finalMsg.toolCalls.forEach(tc => {
+          try {
+            // 尝试通过正则或简单的字符串替换来修复常见的 AI 参数错误
+            let rawArgs = tc.function.arguments || '{}';
+            
+            // 错误 1: ["item"] 被输出为 "['item']" (字符串包围的 Python 列表)
+            if (/"ids":\s*"\[.*\]"/.test(rawArgs)) {
+               rawArgs = rawArgs.replace(/"ids":\s*"(\[.*\])"/, (match, group) => {
+                 const fixedArr = group.replace(/'/g, '"');
+                 return ` "ids": ${fixedArr}`;
+               });
+            }
 
-      if (!content) {
-        console.warn('Extracted empty content from:', data)
-        throw new Error('未能从模型响应中提取到内容')
+            // 错误 2: Unicode 转义序列在非必要情况下被双重转义或以原始形式保留
+            if (rawArgs.includes('\\\\u')) {
+              rawArgs = rawArgs.replace(/\\\\u([0-9a-fA-F]{4})/g, (match, grp) => {
+                return String.fromCharCode(parseInt(grp, 16));
+              });
+            } else if (rawArgs.includes('\\u')) {
+              // 尝试直接解析
+              try {
+                const temp = JSON.parse(`{"t":"${rawArgs.replace(/"/g, '\\"')}"}`).t;
+                if (temp) rawArgs = temp;
+              } catch(e) {}
+            }
+
+            // 更新修复后的参数
+            tc.function.arguments = rawArgs;
+          } catch (e) {
+            console.warn('Failed to pre-clean tool arguments:', e);
+          }
+        });
       }
-
-      addHistory('assistant', content, content.trim().startsWith('{') && content.trim().endsWith('}') ? 'json' : 'text')
+      
+      // 如果有工具调用，触发 UI 逻辑
+      if (toolCalls && toolCalls.length > 0) {
+        // TODO: 可选自动触发或显示建议卡片
+      }
+      
     } catch (error: any) {
       console.error('[AI Error]', error)
       addHistory('assistant', `抱歉，请求模型时出错：${error.message}`)
@@ -397,6 +480,7 @@ export const useAIStore = defineStore('ai', () => {
     selectedPromptId,
     granularSelections,
     pendingInput,
+    executedToolCallIds,
     customPrompts,
     allPrompts,
     updatePrompt,
@@ -407,6 +491,7 @@ export const useAIStore = defineStore('ai', () => {
     getContextOptions,
     addHistory,
     clearHistory,
-    sendMessage
+    sendMessage,
+    stopGeneration
   }
 })

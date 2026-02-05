@@ -12,11 +12,49 @@ export interface AIPrompt {
 
 export interface AIHistoryItem {
   id: string
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'tool' | 'system'
   content: string
-  type: 'text' | 'json'
+  type: 'text' | 'json' | 'tool_call'
   references?: Record<string, any> // 对话时引用的具体原始数据副本
+  toolCalls?: AIToolCall[] // assistant 发出的工具调用指令
+  toolCallId?: string      // role='tool' 时关联的调用 ID
+  toolResults?: AIToolResult[] // 批量操作时的工具执行结果
   timestamp: number
+}
+
+/**
+ * AI 工具 (Function Calling) 定义
+ */
+export interface AITool {
+  name: string
+  description: string
+  parameters: {
+    type: 'object'
+    properties: Record<string, any>
+    required?: string[]
+  }
+}
+
+/**
+ * 工具调用指令内容
+ */
+export interface AIToolCall {
+  id: string
+  type: 'function'
+  index?: number // 用于流式处理中的 chunk 合并
+  function: {
+    name: string
+    arguments: string // JSON 字符串
+  }
+  status?: 'pending' | 'applied' | 'rejected' // 本地 UI 状态
+}
+
+/**
+ * 工具执行结果
+ */
+export interface AIToolResult {
+  toolCallId: string
+  content: string // 通常是 JSON 字符串，表示成功或错误信息
 }
 
 /**

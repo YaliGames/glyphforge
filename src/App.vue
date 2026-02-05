@@ -31,6 +31,9 @@
     <!-- AI 创作助手 (右侧抽屉) -->
     <AIAssistant v-if="settingsStore.getSettings()['ai.enabled']" />
 
+    <!-- AI 请求调试工具 (左下角) -->
+    <AIDebugger v-if="showAIDebugger" />
+
     <!-- 全局交互反馈 -->
     <Toast />
     <Confirm />
@@ -38,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue'
+import { onMounted, onUnmounted, watch, computed } from 'vue'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
 import { getActionFromKey } from '@/utils/shortcuts'
@@ -53,9 +56,16 @@ import Toast from '@/components/common/Toast.vue'
 import Confirm from '@/components/common/Confirm.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 
+// 调试工具
+import AIDebugger from '@/components/features/ai/AIDebugger.vue'
+
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
 const { handleAction, ensureSaved } = useActions()
+
+const showAIDebugger = computed(() => {
+  return import.meta.env.VITE_ENABLE_AI_DEBUGGER === 'true'
+})
 
 // 监听深色模式变化
 watch(() => settingsStore.isDarkMode, (isDark) => {

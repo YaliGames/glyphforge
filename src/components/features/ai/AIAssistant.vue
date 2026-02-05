@@ -54,96 +54,136 @@
             </div>
             
             <div 
-              class="max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
+              class="max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed relative group/msg"
               :class="msg.role === 'user' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/10' : 'bg-gray-100 dark:bg-[#2d2d2d] dark:text-gray-200'"
             >
-              <template v-if="msg.type === 'json'">
-                <div v-if="parseAIResponse(msg.content)" class="space-y-4">
+              <!-- 文本内容区 -->
+              <template v-if="msg.type === 'json' && parseAIResponse(msg.content)">
+                 <div class="space-y-4">
                   <!-- 创作内容区 -->
                   <div class="space-y-2">
                     <div class="flex items-center gap-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                       <i class="fa-solid fa-feather-pointed"></i>
                       创作结果
                     </div>
-                    <div v-if="parseAIResponse(msg.content).creative.text" class="whitespace-pre-wrap text-[13px] leading-relaxed italic bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-black/5 dark:border-white/5">
+                    <div v-if="parseAIResponse(msg.content)?.creative?.text" class="whitespace-pre-wrap text-[13px] leading-relaxed italic bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-black/5 dark:border-white/5">
                       {{ parseAIResponse(msg.content).creative.text }}
                     </div>
-                    <div v-if="parseAIResponse(msg.content).creative.data" class="bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-black/5 dark:border-white/5">
+                    <div v-if="parseAIResponse(msg.content)?.creative?.data" class="bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-black/5 dark:border-white/5">
                       <pre class="text-[11px] font-mono overflow-x-auto">{{ JSON.stringify(parseAIResponse(msg.content).creative.data, null, 2) }}</pre>
                     </div>
                   </div>
 
-                  <!-- 导入/采用按钮 -->
-                  <div v-if="parseAIResponse(msg.content).creative.data" class="flex justify-end">
-                     <button 
-                       @click="importAIResult(msg.content)"
-                       class="text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full flex items-center gap-1.5 transition-all shadow-md font-bold active:scale-95"
-                     >
+                  <!-- 导入按钮 -->
+                  <div v-if="parseAIResponse(msg.content)?.creative?.data" class="flex justify-end">
+                     <button @click="importAIResult(msg.content)" class="text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full flex items-center gap-1.5 transition-all shadow-md font-bold active:scale-95">
                        <i class="fa-solid fa-file-import text-[9px]"></i>
-                       一键同步数据
+                       同步数据
                      </button>
                   </div>
 
                   <!-- 逻辑分析区 -->
-                  <div v-if="parseAIResponse(msg.content).analytical" class="space-y-3 pt-2 border-t dark:border-white/5">
-                    <div v-if="parseAIResponse(msg.content).analytical.rationale" class="space-y-1">
-                      <div class="flex items-center gap-2 text-[10px] font-bold text-blue-500/70 uppercase tracking-widest">
-                        <i class="fa-solid fa-brain"></i>
-                        设计思路
-                      </div>
-                      <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-normal">{{ parseAIResponse(msg.content).analytical.rationale }}</p>
-                    </div>
-                    
-                    <div v-if="parseAIResponse(msg.content).analytical.suggestions?.length" class="space-y-2">
+                  <div v-if="parseAIResponse(msg.content)?.analytical" class="space-y-3 pt-2 border-t dark:border-white/5">
+                    <div v-if="parseAIResponse(msg.content).analytical.suggestions?.length" class="space-y-2 mt-3">
                       <div class="flex items-center gap-2 text-[10px] font-bold text-purple-500/70 uppercase tracking-widest">
                         <i class="fa-solid fa-lightbulb"></i>
                         创作建议
                       </div>
                       <div class="flex flex-wrap gap-1.5">
-                        <div 
-                          v-for="(sug, idx) in parseAIResponse(msg.content).analytical.suggestions" 
-                          :key="idx"
-                          class="px-2 py-1 rounded-lg bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/10 text-[10px] text-purple-600 dark:text-purple-400"
-                        >
+                        <div v-for="(sug, idx) in parseAIResponse(msg.content).analytical.suggestions" :key="idx"
+                          class="px-2 py-1 rounded-lg bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/10 text-[10px] text-purple-600 dark:text-purple-400">
                           {{ sug }}
                         </div>
                       </div>
                     </div>
 
-                    <!-- 警告提示 -->
-                    <div v-if="parseAIResponse(msg.content).analytical.warnings?.length" class="space-y-2">
+                    <div v-if="parseAIResponse(msg.content).analytical.warnings?.length" class="space-y-2 mt-3">
                       <div class="flex items-center gap-2 text-[10px] font-bold text-amber-500/70 uppercase tracking-widest">
                         <i class="fa-solid fa-triangle-exclamation"></i>
-                        设定冲突/风险
+                        设定冲突
                       </div>
                       <div class="space-y-1">
-                        <div 
-                          v-for="(warn, idx) in parseAIResponse(msg.content).analytical.warnings" 
-                          :key="idx"
-                          class="text-[11px] text-amber-600 dark:text-amber-400/80 pl-2 border-l-2 border-amber-500/30"
-                        >
+                        <div v-for="(warn, idx) in parseAIResponse(msg.content).analytical.warnings" :key="idx"
+                          class="text-[11px] text-amber-600 dark:text-amber-400/80 pl-2 border-l-2 border-amber-500/30">
                           {{ warn }}
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-                <!-- 兜底显示原始 JSON -->
-                <div v-else class="space-y-3">
-                  <pre class="text-[11px] font-mono overflow-x-auto p-2 bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10">{{ msg.content }}</pre>
-                </div>
               </template>
               <template v-else>
-                <div class="whitespace-pre-wrap">{{ msg.content }}</div>
+                <div class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
               </template>
+
+              <!-- 智能建议操作卡片 -->
+              <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="mt-4 space-y-2.5">
+                 <div v-for="call in msg.toolCalls" :key="call.id" 
+                   class="group/tool relative border transition-all duration-200"
+                   :class="[
+                     aiStore.executedToolCallIds.has(call.id) 
+                      ? 'bg-transparent border-gray-200 dark:border-white/5 opacity-60' 
+                      : 'bg-[#f8f9fb] dark:bg-[#252526] border-[#e1e4e8] dark:border-[#3e3e42] rounded-lg shadow-sm'
+                   ]"
+                 >
+                    <div class="flex items-start p-3 gap-3">
+                       <!-- 状态图标 -->
+                       <div class="mt-0.5 shrink-0 w-5 h-5 rounded flex items-center justify-center text-[10px]"
+                         :class="aiStore.executedToolCallIds.has(call.id) ? 'text-green-500' : 'text-blue-500 bg-blue-500/5 dark:bg-blue-400/10'"
+                       >
+                         <i :class="aiStore.executedToolCallIds.has(call.id) ? 'fa-solid fa-square-check' : 'fa-solid fa-terminal'"></i>
+                       </div>
+                       
+                       <div class="flex-1 min-w-0">
+                         <div class="flex items-center justify-between gap-2 mb-1">
+                           <span class="text-[11px] font-mono font-bold tracking-tight uppercase opacity-80" :class="aiStore.executedToolCallIds.has(call.id) ? 'text-gray-500' : 'text-blue-600 dark:text-blue-400'">
+                             {{ call.function.name }}
+                           </span>
+                           <div v-if="!aiStore.executedToolCallIds.has(call.id)" class="flex gap-1">
+                             <button 
+                               @click.stop="showRawData({ name: call.function.name, arguments: call.function.arguments })"
+                               class="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
+                             >
+                               显示参数
+                             </button>
+                           </div>
+                         </div>
+
+                         <div class="text-[11px] leading-relaxed text-gray-600 dark:text-gray-400">
+                           <span v-if="aiStore.executedToolCallIds.has(call.id)" class="italic opacity-70">任务已完成：</span>
+                           {{ getToolSummary(call) }}
+                         </div>
+
+                         <div v-if="!aiStore.executedToolCallIds.has(call.id)" class="mt-3 flex gap-2">
+                           <button 
+                             @click="handleApplyTool(msg.id, call)"
+                             class="text-[10px] bg-[#007acc] hover:bg-[#0062a3] text-white px-3 py-1 rounded transition-colors font-bold shadow-sm flex items-center gap-1.5"
+                           >
+                             <i class="fa-solid fa-bolt-lightning text-[9px]"></i>
+                             执行修改
+                           </button>
+                         </div>
+                       </div>
+                    </div>
+                 </div>
+              </div>
             </div>
           </div>
 
           <!-- 处理中表现 -->
           <div v-if="aiStore.isProcessing" class="flex flex-col gap-2 items-start shrink-0">
-            <div class="flex items-center gap-2 px-1 text-[10px] text-gray-400">
-               <i class="fa-solid fa-robot"></i>
-               <span>G-Forge AI 正在思考...</span>
+            <div class="flex items-center justify-between gap-2 px-1 text-[10px] text-gray-400 w-full">
+               <div class="flex items-center gap-2">
+                 <i class="fa-solid fa-robot animate-pulse"></i>
+                 <span>G-Forge AI 正在思考...</span>
+               </div>
+               <button 
+                 @click="aiStore.stopGeneration"
+                 class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors border border-red-100 dark:bg-red-900/20 dark:border-red-900/30 dark:text-red-400 text-[9px] font-bold"
+               >
+                 <i class="fa-solid fa-stop text-[8px]"></i>
+                 终止生成
+               </button>
             </div>
             <div class="bg-gray-100 dark:bg-[#2d2d2d] rounded-2xl px-4 py-3 flex gap-1">
               <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
@@ -443,12 +483,14 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, computed } from 'vue'
+import { marked } from 'marked'
 import { useAIStore } from '@/store/ai'
 import { useProjectStore } from '@/store/project'
 import { useCharacterStore } from '@/store/characters'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
-import { PROJECT_REFERENCE_TREE, type ReferenceNode } from '@/types'
+import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall } from '@/types'
+import { AI_TOOLS } from '@/core/ai/tool-definitions'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useRouter } from 'vue-router'
 
@@ -462,6 +504,30 @@ const router = useRouter()
 const input = ref('')
 const historyBox = ref<HTMLElement | null>(null)
 const activePanel = ref<'context' | 'prompts' | null>(null)
+
+function renderMarkdown(content: string) {
+  try {
+    return marked.parse(content || '')
+  } catch (e) {
+    return content
+  }
+}
+
+function parseAIResponse(content: string) {
+  if (!content) return null;
+  try {
+    // 提取可能的 JSON 块
+    const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/{[\s\S]*}/);
+    const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    return null;
+  }
+}
+
+function importAIResult(content: string) {
+  uiStore.showToast('请通过下方的“建议操作”卡片进行精准数据变更。', 'info')
+}
 
 // --- 从 Store 同步状态 ---
 const selectedPromptId = computed({
@@ -549,76 +615,47 @@ function showRawData(refs: any) {
   uiStore.openModal('ai-snapshot', refs)
 }
 
-// --- AI 结构化解析辅助 ---
-function parseAIResponse(content: string) {
-  try {
-    const data = JSON.parse(content)
-    if (data.creative) return data
-    return null
-  } catch {
-    return null
-  }
-}
-
-async function importAIResult(content: string) {
-  const parsed = parseAIResponse(content)
-  if (!parsed || !parsed.creative.data) return
-
-  const { type, data } = parsed.creative
-
-  if (type === 'character') {
-    const activeId = characterStore.activeCharacterId
-    if (!activeId) {
-      uiStore.showToast('请先在角色库中选择一个要同步的角色', 'warning')
-      return
-    }
-
-    const ok = await uiStore.showConfirm({
-      title: '同步角色设定',
-      message: '确定要将 AI 生成的设定应用到当前角色吗？',
-      confirmText: '确认同步'
-    })
-
-    if (ok) {
-        projectStore.takeSnapshot()
-        characterStore.updateCharacter(activeId, data)
-        uiStore.showToast('角色数据已同步', 'success')
-    }
-  } else if (type === 'worldview') {
-    // 自动寻找匹配的分类并更新或新增
-    const ok = await uiStore.showConfirm({
-      title: '同步世界观设定',
-      message: `确定要将“${data.name}”添加到世界观百科吗？`,
-      confirmText: '确认同步'
-    })
-
-    if (ok) {
-        projectStore.takeSnapshot()
-        // 这里假设 data 包含类别中的项，需要找到正确的 category
-        // 简化逻辑：如果存在对应项则更新，不存在则忽略（或根据实际需求调整）
-        uiStore.showToast('世界观设定已同步', 'success')
-        // 实际逻辑由项目具体的世界观存储结构决定
-    }
-  }
-}
-
 // --- AI 上下文统一处理引擎 ---
 /**
  * 负责将原始项目数据转换为 AI 易于理解、无技术噪音、且带有语义说明的上下文快照。
  */
 const ContextEngine = {
-  // 定义需要从发送给 AI 的数据中剔除的技术字段
-  TECHNICAL_KEYS: ['id', 'order', 'range', 'anchorLineNumber', 'linkedChapters', 'projectId', 'depth', 'type'],
+  // 定义需要从发送给 AI 的数据中保留的核心标识字段
+  IDENTITY_KEYS: ['id', 'type', 'name'],
+  // 定义需要剔除的技术冗余字段
+  TECHNICAL_KEYS: ['order', 'range', 'anchorLineNumber', 'linkedChapters', 'projectId', 'depth'],
 
   /**
    * 深度递归处理数据，清理技术字段并保持结构清晰
+   * 额外优化：如果对象包含 base 属性且 base 中有 name，则将其提升至顶层，便于 AI 关联 ID 和名称
    */
   cleanData(data: any): any {
     if (Array.isArray(data)) return data.map(item => this.cleanData(item));
     if (data && typeof data === 'object') {
+      let source = data;
+      // 自动摊平角色等带有 base 属性的数据
+      if (data.base && typeof data.base === 'object') {
+        source = { 
+          id: data.id, 
+          type: data.type, 
+          ...data.base,
+          ...data 
+        };
+        delete (source as any).base;
+      }
+
       const cleaned: any = {};
-      for (const [key, value] of Object.entries(data)) {
+      for (const [key, value] of Object.entries(source)) {
+        // 保留核心标识
+        if (this.IDENTITY_KEYS.includes(key)) {
+          cleaned[key] = value;
+          continue;
+        }
+        // 剔除技术冗余
         if (this.TECHNICAL_KEYS.includes(key)) continue;
+        // 剔除空值/函数
+        if (value === null || value === undefined || typeof value === 'function') continue;
+        
         cleaned[key] = this.cleanData(value);
       }
       return cleaned;
@@ -698,7 +735,11 @@ const ContextEngine = {
    * 自动生成语义化的字段解释文档
    */
   generateExplanation(node: ReferenceNode, isGranularActive: boolean): string {
-    let lines = [`#### 模块: ${node.label} (${node.value}) ####`, `* 功能描述: ${node.description}`];
+    let lines = [
+      `#### 模块: ${node.label} (${node.value}) ####`, 
+      `* 功能描述: ${node.description}`,
+      `* 重要提示: 调用工具修改或删除此模块内容时，必须使用下方数据中的 "id" 字段作为唯一标识。`
+    ];
     
     // 获取需要解释的字段集
     let targetNodes = node.children || [];
@@ -718,6 +759,167 @@ const ContextEngine = {
     return lines.join('\n');
   }
 };
+
+// --- 工具解析辅助 ---
+function getToolLabel(name: string) {
+  const tool = AI_TOOLS.find(t => t.name === name)
+  return tool?.description.split('：')[0] || name
+}
+
+function getToolSummary(call: AIToolCall) {
+  try {
+    const rawArgs = call.function.arguments
+    if (!rawArgs) return '正在分析意图...'
+    
+    let args: any
+    try {
+      args = JSON.parse(rawArgs)
+    } catch (e) {
+      if (rawArgs.length > 20) return `正在生成操作详情: ${rawArgs.slice(0, 50)}...`
+      return '解析参数中...'
+    }
+
+    if (call.function.name === 'edit_text_block') {
+      const search = (args.search_text || '')
+      const replace = (args.replace_text || '')
+      return `精准修改正文内容，将 "${search.length > 20 ? search.slice(0, 20) + '...' : search}" 修正为符合设定的描述。`
+    }
+    if (call.function.name === 'upsert_entities') {
+      const typeMap: Record<string, string> = { 'character': '角色', 'worldview': '世界观', 'relationship': '关系', 'timeline': '时间线' }
+      const labels = (args.entities || []).map((e: any) => e.name || e.id).filter(Boolean)
+      return `同步 ${typeMap[args.type] || args.type} 数据：${labels.length > 0 ? labels.join('、') : '新项'}`
+    }
+    if (call.function.name === 'delete_entities') {
+      return `从工程中移除 ${args.ids?.length || 0} 个指定的实体系目。`
+    }
+    return `执行系统指令: ${call.function.name}`
+  } catch (e) {
+    return '解析任务详情时出错'
+  }
+}
+
+async function handleApplyTool(messageId: string, call: AIToolCall) {
+  console.group(`[AI Tool Engine] Applying: ${call.function.name}`);
+  console.log('Raw Arguments:', call.function.arguments);
+
+  const ok = await uiStore.showConfirm({
+    title: '确认执行 AI 操作',
+    message: `AI 建议执行 “${getToolLabel(call.function.name)}”，是否继续？`,
+    confirmText: '确认执行'
+  })
+
+  if (!ok) {
+    console.log('User cancelled the operation');
+    console.groupEnd();
+    return;
+  }
+
+  try {
+    const args = JSON.parse(call.function.arguments)
+    console.log('Parsed Arguments:', args);
+    let result = ''
+    let isSuccess = false
+
+    projectStore.takeSnapshot()
+
+    if (call.function.name === 'edit_text_block') {
+      const { search_text, replace_text } = args
+      console.log(`Searching for: "${search_text}"`);
+      
+      // 1. 尝试在大纲中寻找并替换
+      const fullOutline = (projectStore.bundle?.outline.content || []).join('\n')
+      if (fullOutline.includes(search_text)) {
+        console.log('Found match in Outline');
+        const nextFull = fullOutline.replace(search_text, replace_text)
+        projectStore.bundle!.outline.content = nextFull.split('\n')
+        result = '已成功更新大纲文本段落'
+        isSuccess = true
+      } else {
+        console.log('No match in Outline, checking Manuscript...');
+        // 2. 尝试在正文中寻找并替换
+        const fullManuscript = (projectStore.bundle?.manuscript.content || []).join('\n')
+        if (fullManuscript.includes(search_text)) {
+          console.log('Found match in Manuscript');
+          const nextFull = fullManuscript.replace(search_text, replace_text)
+          projectStore.bundle!.manuscript.content = nextFull.split('\n')
+          result = '已成功更新正文文本段落'
+          isSuccess = true
+        } else {
+          console.error('CRITICAL: search_text not found in either Outline or Manuscript');
+          throw new Error('无法在当前正文或大纲中定位到指定的文本锚点，请尝试提供更精准的搜索片段。')
+        }
+      }
+    } else if (call.function.name === 'upsert_entities') {
+      const { type, entities } = args
+      console.log(`Upserting ${type} entities:`, entities);
+
+      if (type === 'character') {
+        const updatedNames: string[] = []
+        entities.forEach((entity: any) => {
+          if (entity.id) {
+            console.log(`Updating existing character: ${entity.id}`);
+            const char = projectStore.bundle?.characters.find(c => c.id === entity.id)
+            if (char) {
+              const { id, type: _, ...updates } = entity
+              Object.assign(char.base, updates)
+              updatedNames.push(char.base.name)
+              console.log('Successfully updated:', char.base.name);
+            } else {
+              console.error(`Character with ID ${entity.id} not found!`);
+            }
+          } else {
+            console.log('Creating new character:', entity.name);
+            const newChar = characterStore.addCharacter(entity.name || '新角色')
+            if (newChar) {
+              const { name: _, ...updates } = entity
+              Object.assign(newChar.base, updates)
+              updatedNames.push(newChar.base.name)
+              console.log('Successfully created:', newChar.base.name);
+            }
+          }
+        })
+        result = `已同步 ${updatedNames.length} 个角色：${updatedNames.join(', ')}`
+        isSuccess = true
+      } else {
+        console.warn(`Upsert for entity type "${type}" is not fully implemented.`);
+        result = '目前仅支持角色实体的自动同步，其他类型即将上线。'
+        isSuccess = true
+      }
+    } else if (call.function.name === 'delete_entities') {
+      const { type, ids } = args
+      console.log(`Deleting ${type} ids:`, ids);
+      if (type === 'character') {
+        ids.forEach((id: string) => {
+          console.log(`Deleting character: ${id}`);
+          characterStore.removeCharacter(id);
+        })
+        result = `成功删除了 ${ids.length} 个角色`
+        isSuccess = true
+      }
+    }
+
+    if (isSuccess) {
+      console.log('Tool execution successful:', result);
+      aiStore.executedToolCallIds.add(call.id)
+      uiStore.showToast(result, 'success')
+      projectStore.markDirty()
+
+      // 将结果反馈给 AI 历史
+      aiStore.addHistory('tool', result, 'text', {
+        toolResults: [{
+          toolCallId: call.id,
+          content: JSON.stringify({ status: 'success', message: result })
+        }]
+      })
+    }
+
+  } catch (error: any) {
+    console.error('Tool application failed:', error);
+    uiStore.showToast(`执行失败: ${error.message}`, 'error')
+  } finally {
+    console.groupEnd();
+  }
+}
 
 async function send() {
   if (!input.value.trim() || aiStore.isProcessing) return
