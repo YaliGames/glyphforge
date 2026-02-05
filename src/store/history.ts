@@ -21,23 +21,18 @@ export const useHistoryStore = defineStore('history', () => {
 
   /**
    * 记录一个检查点
-   * 逻辑：只有当新状态与当前头状态不同时才入栈
    */
   function pushState(bundle: GlyphForgeBundle, view: string) {
     const newState = JSON.stringify({ bundle, view })
     
-    // 检查是否与过去栈顶状态一致，防止重复推入导致撤销空转
     if (past.value.length > 0 && past.value[past.value.length - 1] === newState) {
       return false
     }
 
-    if (past.value.length >= MAX_HISTORY) {
-      past.value.shift()
-    }
+    if (past.value.length >= MAX_HISTORY) past.value.shift()
     
     past.value.push(newState)
-    future.value = [] 
-    // console.log(`[History] 快照已入栈. 栈深: ${past.value.length}`)
+    future.value = []
     return true
   }
 
@@ -46,9 +41,7 @@ export const useHistoryStore = defineStore('history', () => {
       return false
     }
 
-    if (past.value.length >= MAX_HISTORY) {
-      past.value.shift()
-    }
+    if (past.value.length >= MAX_HISTORY) past.value.shift()
     
     past.value.push(rawState)
     future.value = []

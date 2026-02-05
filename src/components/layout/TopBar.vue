@@ -56,7 +56,16 @@ const projectStore = useProjectStore()
 const { handleAction } = useActions()
 
 const displayFileName = computed(() => {
-  return projectStore.currentProject?.title || '未命名项目'
+  const project = projectStore.currentProject
+  if (!project) return '未命名项目'
+  
+  if (project.path) {
+    const parts = project.path.split(/[/\\]/);
+    const fileName = parts[parts.length - 1];
+    return fileName.replace(/\.[^/.]+$/, "");
+  }
+  
+  return project.title || '新故事'
 })
 
 const canSearch = computed(() => {

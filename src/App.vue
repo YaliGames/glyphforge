@@ -70,6 +70,15 @@ watch(() => settingsStore.isDarkMode, (isDark) => {
 const handleGlobalKeyDown = (e: KeyboardEvent) => {
   const action = getActionFromKey(e)
   if (action) {
+    // 检查当前焦点是否在输入控件中
+    const target = e.target as HTMLElement
+    const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+
+    // 如果用户正在输入框中编辑，让撤销/重做走原生逻辑，不进行拦截
+    if (isEditing && (action === 'undo' || action === 'redo')) {
+      return
+    }
+
     e.preventDefault()
     handleAction(action)
   }
