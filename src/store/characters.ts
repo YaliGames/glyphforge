@@ -219,6 +219,27 @@ export const useCharacterStore = defineStore('characters', () => {
     }
   }
 
+  function moveCharacter(id: string, direction: 'up' | 'down') {
+    if (!projectStore.bundle) return
+    const characters = projectStore.bundle.characters
+    const index = characters.findIndex(c => c.id === id)
+    if (index === -1) return
+
+    if (direction === 'up' && index > 0) {
+      projectStore.takeSnapshot()
+      const temp = characters[index]
+      characters[index] = characters[index - 1]
+      characters[index - 1] = temp
+      projectStore.markDirty()
+    } else if (direction === 'down' && index < characters.length - 1) {
+      projectStore.takeSnapshot()
+      const temp = characters[index]
+      characters[index] = characters[index + 1]
+      characters[index + 1] = temp
+      projectStore.markDirty()
+    }
+  }
+
   // 更新角色阶段覆盖
   function updateCharacterOverride(charId: string, phaseId: string, updates: Partial<CharacterBase>) {
     if (!projectStore.bundle) return
@@ -253,23 +274,24 @@ export const useCharacterStore = defineStore('characters', () => {
   // 删除角色及相关关系
   function removeCharacter(id: string) {
     if (!projectStore.bundle) return
-    const index = projectStore.bundle.characters.findIndex(c => c.id === id)
+    const bundle = projectStore.bundle
+    const index = bundle.characters.findIndex(c => c.id === id)
     if (index !== -1) {
       projectStore.takeSnapshot()
       
       // 清理关联关系
-      if (projectStore.bundle.relationships) {
-          const toRemove = projectStore.bundle.relationships
+      if (bundle.relationships) {
+          const toRemove = bundle.relationships
               .filter(r => r.sourceId === id || r.targetId === id)
               .map(r => r.id)
           
           toRemove.forEach(relId => {
-              const rIndex = projectStore.bundle.relationships.findIndex(r => r.id === relId)
-              if (rIndex !== -1) projectStore.bundle.relationships.splice(rIndex, 1)
+              const rIndex = bundle.relationships.findIndex(r => r.id === relId)
+              if (rIndex !== -1) bundle.relationships.splice(rIndex, 1)
           })
       }
       
-      projectStore.bundle.characters.splice(index, 1)
+      bundle.characters.splice(index, 1)
       projectStore.markDirty()
     }
   }
@@ -299,8 +321,7 @@ export const useCharacterStore = defineStore('characters', () => {
     return newRel
   }
 
-  // 更新关系基础数据
-  function updateRelationshipBase(id: string, updates: Partial<RelationshipData>) {
+  function updateRelationshipBase(id: string, updates: Partial<Relationship>) {
     if (!projectStore.bundle?.relationships) return
     const rel = projectStore.bundle.relationships.find(r => r.id === id)
     if (rel) {
@@ -390,9 +411,11 @@ export const useCharacterStore = defineStore('characters', () => {
     }
   }
 
-  function smartUpdateRelationship(id: string, updates: Partial<RelationshipData>) {
+  function smartUpdateRelationship(id: string, updates: Partial<Relationship>) {
     if (currentPhaseId.value) {
-      updateRelationshipOverride(id, currentPhaseId.value, updates)
+      // 这里的 updates 可能包含 sourceId/targetId，但 override 仅支持 RelationshipData
+      const { sourceId: _s, targetId: _t, ...dataUpdates } = updates as any;
+      updateRelationshipOverride(id, currentPhaseId.value, dataUpdates)
     } else {
       updateRelationshipBase(id, updates)
     }
@@ -438,6 +461,7 @@ export const useCharacterStore = defineStore('characters', () => {
     updateCharacterBase,
     updateCharacterOverride,
     smartUpdateCharacter,
+    moveCharacter,
     
     addRelationship,
     removeRelationship,

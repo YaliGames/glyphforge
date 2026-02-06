@@ -45,7 +45,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useUIStore } from '@/store/ui'
 import AIProfileModal from '@/components/features/ai/AIProfileModal.vue'
 import HierarchyEditorModal from '@/components/features/editor/HierarchyEditorModal.vue'
@@ -56,9 +55,4 @@ import NewCategoryModal from '@/components/features/worldview/NewCategoryModal.v
 import SnapshotModal from '@/components/features/ai/SnapshotModal.vue'
 
 const uiStore = useUIStore()
-
-const platform = computed(() => {
-  if (!isElectron) return 'Web'
-  return (window as any).electronAPI?.platform || 'Electron'
-})
 </script>

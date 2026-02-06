@@ -81,7 +81,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { RelationshipData } from '@/types'
+import type { Relationship } from '@/types'
 
 const props = defineProps<{
   rel: any
@@ -90,8 +90,8 @@ const props = defineProps<{
   currentPhaseId: string | null
 }>()
 
-const emit = defineEmits<{
-  (e: 'update', updates: Partial<RelationshipData>): void
+defineEmits<{
+  (e: 'update', updates: Partial<Relationship>): void
   (e: 'swap'): void
   (e: 'remove'): void
 }>()

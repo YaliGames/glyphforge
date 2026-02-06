@@ -622,9 +622,9 @@ import { useOutlineStore } from '@/store/outline'
 import { useWorldviewStore } from '@/store/worldview'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
-import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall } from '@/types'
+import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall, type AIReference } from '@/types'
 import { AI_TOOLS } from '@/core/ai/tool-definitions'
-import { SCHEMA_REGISTRY, getAIExportKeys, getIdentityKeys, getTechnicalKeys } from '@/core/ai/schema-registry'
+import { SCHEMA_REGISTRY } from '@/core/ai/schema-registry'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useRouter } from 'vue-router'
 
@@ -1047,165 +1047,6 @@ function toggleSelectAll(key: string) {
  * 负责将原始项目数据转换为 AI 易于理解、无技术噪音、且带有语义说明的上下文快照。
  * 已升级：基于 schema-registry 进行动态字段过滤与数据清洗。
  */
-const ContextEngine = {
-  // 定义需要从发送给 AI 的数据中保留的核心标识字段
-  get IDENTITY_KEYS() { return getIdentityKeys() },
-  // 定义需要剔除的技术冗余字段
-  get TECHNICAL_KEYS() { return getTechnicalKeys() },
-
-  /**
-   * 深度递归处理数据，清理技术字段并保持结构清晰
-   * 优化：如果对象包含 base，则将其属性平铺到顶层，并彻底删除 base 对象，防止 AI 开启“模仿模式”。
-   */
-  cleanData(data: any, entityType?: string): any {
-    if (Array.isArray(data)) return data.map(item => this.cleanData(item, entityType));
-    if (data && typeof data === 'object') {
-      let source = { ...data };
-      
-      // 1. 摊平 base 并彻底删除原引用
-      if (source.base && typeof source.base === 'object') {
-        Object.assign(source, source.base);
-        delete source.base;
-      }
-
-      // 获取当前实体类型的可见字段白名单
-      const currentType = entityType || source.type;
-      const exportKeys = currentType ? getAIExportKeys(currentType) : [];
-
-      // 2. 构造清洗后的对象
-      const cleaned: any = {};
-      for (const [key, value] of Object.entries(source)) {
-        // 如果有明确的类型白名单，优先使用白名单
-        if (exportKeys.length > 0 && !this.IDENTITY_KEYS.includes(key)) {
-          if (!exportKeys.includes(key)) continue;
-        } else {
-           // 否则使用通用的技术字段剔除
-           if (this.TECHNICAL_KEYS.includes(key)) continue;
-        }
-        
-        // 核心标识字段始终保留
-        if (this.IDENTITY_KEYS.includes(key)) {
-          cleaned[key] = value;
-          continue;
-        }
-
-        // 剔除空值/函数
-        if (value === null || value === undefined || typeof value === 'function') continue;
-        
-        cleaned[key] = this.cleanData(value);
-      }
-      return cleaned;
-    }
-    return data;
-  },
-
-  /**
-   * 针对不同模块的专用处理器
-   */
-  handlers: {
-    manuscript: (bundle: any, selections: string[]) => {
-      const manuscript = bundle.manuscript.content || [];
-      if (!selections || selections.length === 0) return manuscript;
-
-      const selectedContent: string[] = [];
-      const allAnchorLines: number[] = [];
-      const collectAnchors = (items: any[]) => {
-        items.forEach(c => {
-          if (typeof c.anchorLineNumber === 'number') allAnchorLines.push(c.anchorLineNumber);
-          if (c.children) collectAnchors(c.children);
-        });
-      };
-      collectAnchors(bundle.chapters);
-      allAnchorLines.sort((a, b) => a - b);
-
-      selections.forEach(chapterId => {
-        const findChapter = (items: any[]): any => {
-          for (const item of items) {
-            if (item.id === chapterId) return item;
-            if (item.children) {
-              const found = findChapter(item.children);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        const chapter = findChapter(bundle.chapters);
-        if (chapter && typeof chapter.anchorLineNumber === 'number') {
-          const startIdx = chapter.anchorLineNumber - 1;
-          const nextAnchor = allAnchorLines.find(line => line > chapter.anchorLineNumber);
-          const endIdx = nextAnchor ? nextAnchor - 1 : manuscript.length;
-          selectedContent.push(`[章节: ${chapter.title}]`);
-          selectedContent.push(...manuscript.slice(startIdx, endIdx));
-        }
-      });
-      return selectedContent;
-    },
-
-    outline: (bundle: any, selections: string[]) => {
-      const allActs = bundle.outline.structure.acts;
-      const content = bundle.outline.content || [];
-      const targetActs = selections && selections.length > 0 
-        ? allActs.filter((a: any) => selections.includes(a.id))
-        : allActs;
-
-      return targetActs.map((act: any) => {
-        const { id, range, order, linkedChapters, ...rest } = act;
-        const result: any = { ...rest };
-        if (act.range) {
-          result.textSegments = content.slice(act.range.startLine - 1, act.range.endLine);
-        }
-        return result;
-      });
-    },
-
-    generic: (rawValue: any, selections: string[]) => {
-      if (!Array.isArray(rawValue)) return rawValue;
-      const filtered = selections && selections.length > 0
-        ? rawValue.filter((item: any) => selections.includes(item.id) || selections.includes(item.type))
-        : rawValue;
-      return filtered;
-    }
-  },
-
-  /**
-   * 自动生成语义化的字段解释文档
-   * 已升级：优先从 SCHEMA_REGISTRY 获取字段解释
-   */
-  generateExplanation(node: ReferenceNode, isGranularActive: boolean): string {
-    const schema = SCHEMA_REGISTRY[node.value];
-    
-    let lines = [
-      `#### 模块: ${node.label} (${node.value}) ####`, 
-      `* 功能描述: ${node.description}`,
-      `* 重要提示: 修改或删除此模块内容时，必须使用数据中的 "id" 作为唯一标识。`
-    ];
-    
-    if (schema) {
-      lines.push(`* 核心字段定义:`);
-      schema.fields.forEach(f => {
-        if (!f.aiExport || f.isTechnical) return;
-        lines.push(`  - ${f.key} (${f.label}): ${f.description}`);
-      });
-    } else {
-      // 回退逻辑：从 ReferenceNode 获取
-      let targetNodes = node.children || [];
-      if (isGranularActive) {
-        const subNode = targetNodes.find(n => n.value === 'acts' || n.value === 'content' || n.isGranular);
-        if (subNode && subNode.children) targetNodes = subNode.children;
-      }
-
-      if (targetNodes.length > 0) {
-        lines.push(`* 关键字段定义:`);
-        targetNodes.forEach(child => {
-          if (this.TECHNICAL_KEYS.includes(child.value)) return;
-          lines.push(`  - ${child.value}: ${child.description}`);
-        });
-      }
-    }
-    return lines.join('\n');
-  }
-};
-
 function getToolLabel(name: string) {
   const tool = AI_TOOLS.find(t => t.name === name)
   return tool?.description.split('：')[0] || name
@@ -1303,7 +1144,7 @@ function getToolSummary(call: AIToolCall) {
   }
 }
 
-async function handleApplyTool(messageId: string, call: AIToolCall) {
+async function handleApplyTool(_messageId: string, call: AIToolCall) {
   const toolName = call.function.name;
   console.group(`[AI Tool Engine] Applying Write-Tool: ${toolName}`);
   console.log('Raw Arguments from AI:', call.function.arguments);

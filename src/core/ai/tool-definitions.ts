@@ -1,5 +1,5 @@
 import { AITool } from '@/types/ai';
-import { SCHEMA_REGISTRY, generateAISchemaManual } from './schema-registry';
+import { generateAISchemaManual } from './schema-registry';
 
 /**
  * 助手方法：生成实体字段的 AI 描述信息

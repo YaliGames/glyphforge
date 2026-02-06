@@ -181,6 +181,7 @@ export const useUIStore = defineStore('ui', () => {
     updateLoadingProgress,
     stopLoading,
     recentFiles,
+    editorSelection,
     loadRecentFiles,
     addRecentFile,
     clearRecentFiles,

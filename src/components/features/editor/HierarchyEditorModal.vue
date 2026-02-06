@@ -82,9 +82,11 @@ function removeHierarchy(index: number) {
 }
 
 function save() {
-  projectStore.updateProjectMetadata({
-    hierarchies: localHierarchies.value
-  })
+  if (projectStore.bundle) {
+    projectStore.takeSnapshot()
+    projectStore.bundle.project.hierarchies = localHierarchies.value
+    projectStore.markDirty()
+  }
   uiStore.showToast('层级配置已更新', 'success')
   emit('close')
 }

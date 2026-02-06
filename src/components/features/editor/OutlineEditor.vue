@@ -27,7 +27,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', val: string): void
   (e: 'cursor-change', payload: { activeActId: string | null }): void
-  (e: 'selection-change', selection: monaco.ISelection): void
+  (e: 'selection-change', selection: monaco.IRange): void
 }>()
 
 const outlineStore = useOutlineStore()

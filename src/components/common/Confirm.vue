@@ -56,31 +56,32 @@ import Button from './Button.vue'
 const uiStore = useUIStore()
 
 const typeClasses = computed(() => {
-  switch (uiStore.confirmState.type) {
-    case 'warning':
-      return {
-        bg: 'bg-amber-50 dark:bg-amber-900/20',
-        icon: 'fa-solid fa-triangle-exclamation text-amber-500',
-        color: 'amber'
-      }
-    case 'danger':
-      return {
-        bg: 'bg-red-50 dark:bg-red-900/20',
-        icon: 'fa-solid fa-circle-exclamation text-red-500',
-        color: 'red'
-      }
-    case 'success':
-      return {
-        bg: 'bg-emerald-50 dark:bg-emerald-900/20',
-        icon: 'fa-solid fa-circle-check text-emerald-500',
-        color: 'green'
-      }
-    default:
-      return {
-        bg: 'bg-blue-50 dark:bg-blue-900/20',
-        icon: 'fa-solid fa-circle-info text-blue-500',
-        color: 'blue'
-      }
+  const type = uiStore.confirmState.type
+  if (type === 'warning') {
+    return {
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
+      icon: 'fa-solid fa-triangle-exclamation text-amber-500',
+      color: 'amber' as const
+    }
+  }
+  if (type === 'danger') {
+    return {
+      bg: 'bg-red-50 dark:bg-red-900/20',
+      icon: 'fa-solid fa-circle-exclamation text-red-500',
+      color: 'red' as const
+    }
+  }
+  if (type === 'success') {
+    return {
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      icon: 'fa-solid fa-circle-check text-emerald-500',
+      color: 'green' as const
+    }
+  }
+  return {
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    icon: 'fa-solid fa-circle-info text-blue-500',
+    color: 'blue' as const
   }
 })
 </script>

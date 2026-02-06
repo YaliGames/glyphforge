@@ -1,3 +1,5 @@
+import type { AppAction } from '@/types/project';
+
 export interface SettingOption {
   label: string;
   value: any;

@@ -445,7 +445,7 @@ function handleCursorChange(position: monaco.IPosition) {
   }
 }
 
-function handleSelectionChange(selection: monaco.ISelection) {
+function handleSelectionChange(selection: monaco.IRange) {
   if (!editor) return
   const model = editor.getModel()
   if (!model) return

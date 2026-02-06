@@ -19,6 +19,7 @@ export type AppAction =
   | 'goto-editor'
   | 'goto-characters'
   | 'goto-worldview'
+  | 'goto-relations'
   | 'goto-timeline'
   | 'settings'
   | 'theme-dark'

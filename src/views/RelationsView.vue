@@ -29,18 +29,18 @@
       <div class="flex items-center gap-3">
         <!-- 视图控制 -->
         <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded p-1">
-          <button @click="zoomIn" 
+          <button @click="() => zoomIn()" 
             class="w-7 h-7 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded transition-all text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:shadow-sm" 
             title="放大">
             <i class="fa-solid fa-plus text-[11px] leading-none"></i>
           </button>
-          <button @click="zoomOut" 
+          <button @click="() => zoomOut()" 
             class="w-7 h-7 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded transition-all text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:shadow-sm" 
             title="缩小">
             <i class="fa-solid fa-minus text-[11px] leading-none"></i>
           </button>
           <div class="w-[1px] h-3 bg-gray-300 dark:bg-gray-700/50 mx-0.5"></div>
-          <button @click="fitView" 
+          <button @click="() => fitView()" 
             class="w-7 h-7 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded transition-all text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:shadow-sm" 
             title="自适应显示">
             <i class="fa-solid fa-expand text-[11px] leading-none"></i>
@@ -70,7 +70,7 @@
         :zoom-on-double-click="!isConnectMode && !isLocked" @connect="onConnect" @edge-click="onEdgeClick"
         @node-click="onNodeClick" @node-drag-start="menu.visible = false" @node-drag-stop="onNodeDragStop"
         @pane-click="onPaneClickHandle">
-        <Background pattern-color="#aaa" gap="8" />
+        <Background pattern-color="#aaa" :gap="8" />
 
         <!-- 注册自定义节点 -->
         <template #node-character="props">
@@ -124,9 +124,8 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, provide } from 'vue'
-import { VueFlow, Panel, useVueFlow, Connection, EdgeMouseHandler, NodeDragHandler, NodeMouseHandler } from '@vue-flow/core'
+import { VueFlow, Panel, useVueFlow, type Connection } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
-import { Controls } from '@vue-flow/controls'
 import CharacterNode from '@/components/features/relations/CharacterNode.vue'
 import CustomEdge from '@/components/features/relations/CustomEdge.vue'
 import RelationshipEditModal from '@/components/features/relations/RelationshipEditModal.vue'
@@ -144,7 +143,7 @@ const characterStore = useCharacterStore()
 const uiStore = useUIStore()
 const router = useRouter()
 const { charactersInPhase: characters, relationshipsInPhase: relationships } = storeToRefs(characterStore)
-const { addEdges, removeEdges, zoomIn, zoomOut, fitView, findEdge } = useVueFlow()
+const { removeEdges, zoomIn, zoomOut, fitView, findEdge } = useVueFlow()
 
 const elements = ref<any[]>([])
 const isConnectMode = ref(false)
@@ -168,7 +167,7 @@ const onPaneClickHandle = () => {
   menu.value.visible = false
 }
 
-const onNodeClick: NodeMouseHandler = (event) => {
+const onNodeClick = (event: any) => {
   event.event.preventDefault()
   event.event.stopPropagation()
 
@@ -182,7 +181,7 @@ const onNodeClick: NodeMouseHandler = (event) => {
   }
 }
 
-const onEdgeClick: EdgeMouseHandler = (event) => {
+const onEdgeClick = (event: any) => {
   event.event.preventDefault()
   event.event.stopPropagation()
 
@@ -266,7 +265,7 @@ const saveRelationship = (updates: any) => {
 }
 
 // 节点拖拽结束保存位置
-const onNodeDragStop: NodeDragHandler = (event) => {
+const onNodeDragStop = (event: any) => {
   // Single node drag
   if (event.node) {
     characterStore.updateCharacterPosition(
@@ -278,7 +277,7 @@ const onNodeDragStop: NodeDragHandler = (event) => {
 
   // Multi-selection drag
   if (event.nodes && event.nodes.length > 0) {
-    event.nodes.forEach(node => {
+    event.nodes.forEach((node: any) => {
       characterStore.updateCharacterPosition(
         node.id,
         node.position.x,

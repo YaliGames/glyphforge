@@ -149,6 +149,7 @@ import { useFieldHistory } from '@/composables/useFieldHistory'
 import OutlineEditor from '@/components/features/editor/OutlineEditor.vue'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import * as monaco from 'monaco-editor'
 import type { OutlineAct } from '@/types'
 
 const outlineStore = useOutlineStore()
@@ -203,8 +204,8 @@ function handleCursorChange({ activeActId }: { activeActId: string | null }) {
   currentActId.value = activeActId
 }
 
-function handleSelectionChange(selection: monaco.ISelection) {
-  if (selection.startLineNumber !== selection.endLineNumber || selection.startColumn !== selection.endColumn) {
+function handleSelectionChange(selection: monaco.IRange) {
+  if (selection.startLineNumber !== selection.endLineNumber || (selection as any).startColumn !== (selection as any).endColumn) {
     uiStore.editorSelection = {
       startLine: selection.startLineNumber,
       endLine: selection.endLineNumber,

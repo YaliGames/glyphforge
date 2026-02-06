@@ -307,7 +307,7 @@ import AIButton from '@/components/common/AIButton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import CharacterFieldLabel from '@/components/features/relations/CharacterFieldLabel.vue'
 import RelationshipItem from '@/components/features/relations/RelationshipItem.vue'
-import type { Relationship, RelationshipData, StoryPhase } from '@/types'
+import type { RelationshipData, StoryPhase } from '@/types'
 
 // Local state for phase editing
 const editingPhaseId = ref<string | null>(null)
@@ -326,7 +326,6 @@ function savePhaseEdit() {
   editingPhaseLabel.value = ''
 }
 
-import { v4 as uuidv4 } from 'uuid'
 import { storeToRefs } from 'pinia'
 
 const characterStore = useCharacterStore()
@@ -339,8 +338,6 @@ const { startEdit, endEdit } = useFieldHistory()
 const { activeCharacterId, currentPhaseId, phases } = storeToRefs(characterStore)
 
 const searchQuery = ref('')
-const expandedPhaseIds = ref<Set<string>>(new Set())
-const editingPhaseIds = ref<Set<string>>(new Set())
 
 const vFocus = {
   mounted: (el: HTMLElement) => el.focus()
@@ -384,9 +381,9 @@ function restoreField(key: string) {
 }
 
 function isOverridden(key: string) {
-  if (!currentPhaseId.value || !activeCharacter.value) return false
-  const originalC = characterStore.rawCharacters.find(c => c.id === activeCharacter.value!.id)
-  return originalC?.overrides?.[currentPhaseId.value]?.[key] !== undefined
+  if (!currentPhaseId.value || !activeCharacterId.value) return false
+  const originalC = characterStore.rawCharacters.find(c => c.id === activeCharacterId.value)
+  return (originalC?.overrides?.[currentPhaseId.value] as any)?.[key] !== undefined
 }
 
 function hasOverride(char: any, phaseId: string) {
@@ -529,16 +526,6 @@ const removeRelation = async (relId: string) => {
 const updateRel = (relId: string, parsed: Partial<RelationshipData>) => {
   characterStore.smartUpdateRelationship(relId, parsed)
 }
-
-const baseFields = [
-  { key: 'name', label: '角色姓名' },
-  { key: 'aliases', label: '角色昵称' },
-  { key: 'factions', label: '角色阵营' },
-  { key: 'identities', label: '角色身份' },
-  { key: 'appearance', label: '外貌着装' },
-  { key: 'personality', label: '性格特征' },
-  { key: 'background', label: '身份背景' }
-] as const
 
 watch(() => activeCharacter.value, (newVal, oldVal) => {
   if (newVal && oldVal && newVal.id === oldVal.id) {

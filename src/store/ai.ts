@@ -7,7 +7,6 @@ import { useSettingsStore } from './settings'
 import { useUIStore } from './ui'
 import { useCharacterStore } from './characters'
 import { useOutlineStore } from './outline'
-import { useWorldviewStore } from './worldview'
 import { BUILTIN_PROMPTS, MAX_TOOL_OUTPUT_LENGTH } from '@/core/ai/constants'
 import { AI_TOOLS } from '@/core/ai/tool-definitions'
 import { getAIExportKeys, getIdentityKeys, getTechnicalKeys, generateAISchemaManual } from '@/core/ai/schema-registry'
@@ -20,7 +19,7 @@ export const useAIStore = defineStore('ai', () => {
   const history = ref<AIHistoryItem[]>([])
   const referenceKeys = ref<string[]>([])
   const selectedPromptId = ref<string>('')
-  const granularSelections = ref<Record<string, string[]>>({})
+  const granularSelections = ref<Record<string, any[]>>({})
   const pendingInput = ref<string>('')
   const executedToolCallIds = reactive(new Set<string>()) // 记录已执行过的工具调用 ID
   const executionMode = ref<AIExecutionMode>('chat')
@@ -138,7 +137,6 @@ export const useAIStore = defineStore('ai', () => {
     const projectStore = useProjectStore()
     const characterStore = useCharacterStore()
     const outlineStore = useOutlineStore()
-    const worldviewStore = useWorldviewStore()
 
     const name = call.function.name
     const rawArgs = call.function.arguments || '{}'
@@ -183,25 +181,50 @@ export const useAIStore = defineStore('ai', () => {
 
       // --- 只读工具实现 ---
       if (name === 'getEntityList') {
-        const { type } = args
+        const { type, fields } = args
         let list: any[] = []
         const bundle = projectStore.bundle;
         if (!bundle) throw new Error('No project bundle found');
 
+        const pickFields = (item: any, itemType: string) => {
+          let source = { ...item };
+          if (source.base) {
+            Object.assign(source, source.base);
+            delete source.base;
+          }
+
+          const result: any = { id: source.id || source.type };
+          
+          // 优先确定显示名称字段
+          const nameField = source.name ? 'name' : (source.title ? 'title' : (source.label ? 'label' : null));
+          if (nameField) result[nameField] = source[nameField];
+
+          if (Array.isArray(fields)) {
+            fields.forEach(f => {
+              if (source[f] !== undefined && f !== 'id' && f !== nameField) {
+                result[f] = source[f];
+              }
+            });
+          }
+          return result;
+        };
+
         if (type === 'character') {
-          list = (bundle.characters || []).map(c => ({ id: c.id, name: c.base.name || c.name }))
+          list = (bundle.characters || []).map(c => pickFields(c, 'character'))
+        } else if (type === 'relationship') {
+          list = (bundle.relationships || []).map(r => pickFields(r, 'relationship'))
         } else if (type === 'outline') {
-          list = (bundle.outline?.structure.acts || []).map(a => ({ id: a.id, name: a.title }))
+          list = (bundle.outline?.structure.acts || []).map(a => pickFields(a, 'outline'))
         } else if (type === 'worldview') {
-          list = (bundle.worldview?.categories || []).map(c => ({ id: c.type, name: c.name }))
+          list = (bundle.worldview?.categories || []).map(c => pickFields(c, 'worldview'))
         } else if (type === 'timeline') {
-          list = (bundle.worldview?.timeline || []).map(e => ({ id: e.id, name: e.title }))
+          list = (bundle.worldview?.timeline || []).map(e => pickFields(e, 'timeline'))
         } else if (type === 'chapters' || type === 'manuscript') {
           const chapters: any[] = []
           const flatten = (items: any[]) => {
             items.forEach(c => {
               if (c.type === 'chapter' || c.type === 'scene') {
-                chapters.push({ id: c.id, name: c.title })
+                chapters.push(pickFields(c, type))
               }
               if (c.children) flatten(c.children)
             })
@@ -349,42 +372,62 @@ export const useAIStore = defineStore('ai', () => {
       }
 
       if (name === 'searchEntities') {
-        const { query, type } = args
+        const { query, type, fields } = args
         const results: any[] = []
         const q = (query || '').toLowerCase()
         
+        const bundle = projectStore.bundle
+        if (!bundle) throw new Error('No project bundle found');
+
+        const pickFields = (item: any, itemType: string) => {
+          let source = { ...item };
+          if (source.base) {
+            Object.assign(source, source.base);
+            delete source.base;
+          }
+          const result: any = { id: source.id || source.type, type: itemType };
+          const nameField = source.name ? 'name' : (source.title ? 'title' : (source.label ? 'label' : null));
+          if (nameField) result[nameField] = source[nameField];
+
+          if (Array.isArray(fields)) {
+            fields.forEach(f => {
+              if (source[f] !== undefined && f !== 'id' && f !== nameField) {
+                result[f] = source[f];
+              }
+            });
+          }
+          return result;
+        };
+
         if (!type || type === 'character') {
-          characterStore.charactersInPhase.forEach(c => {
-            if (c.name.toLowerCase().includes(q)) {
-              results.push({ type: 'character', id: c.id, name: c.name })
+          bundle.characters.forEach(c => {
+            if (c.base.name.toLowerCase().includes(q)) {
+              results.push(pickFields(c, 'character'))
             }
           })
         }
         
         if (!type || type === 'outline') {
-           outlineStore.acts.forEach(a => {
+           bundle.outline.structure.acts.forEach(a => {
              if (a.title.toLowerCase().includes(q)) {
-               results.push({ type: 'outline', id: a.id, name: a.title })
+               results.push(pickFields(a, 'outline'))
              }
            })
         }
 
         if (!type || type === 'chapters' || type === 'manuscript') {
-          const bundle = projectStore.bundle
-          if (bundle) {
-            const flatten = (items: any[]) => {
-              items.forEach(c => {
-                if (c.title.toLowerCase().includes(q)) {
-                  results.push({ type: type || 'chapters', id: c.id, name: c.title })
-                }
-                if (c.children) flatten(c.children)
-              })
-            }
-            flatten(bundle.chapters)
+          const flatten = (items: any[]) => {
+            items.forEach(c => {
+              if (c.title.toLowerCase().includes(q)) {
+                results.push(pickFields(c, type || 'chapters'))
+              }
+              if (c.children) flatten(c.children)
+            })
           }
+          flatten(bundle.chapters)
         }
 
-        resultData = results.slice(0, 5);
+        resultData = results.slice(0, 10);
       }
 
       if (name === 'getRelationGraph') {
@@ -856,7 +899,7 @@ ${generateAISchemaManual()}
           await promise;
         } finally {
           if (watchdog) clearTimeout(watchdog);
-          if (removeListener) removeListener();
+          if (removeListener) (removeListener as Function)();
         }
         
       } else {
@@ -901,7 +944,7 @@ if (finalMsg && fullContent.trim().startsWith('{') && fullContent.trim().endsWit
             
             // 错误 1: ["item"] 被输出为 "['item']" (字符串包围的 Python 列表)
             if (/"ids":\s*"\[.*\]"/.test(rawArgs)) {
-               rawArgs = rawArgs.replace(/"ids":\s*"(\[.*\])"/, (match, group) => {
+               rawArgs = rawArgs.replace(/"ids":\s*"(\[.*\])"/, (_, group) => {
                  const fixedArr = group.replace(/'/g, '"');
                  return ` "ids": ${fixedArr}`;
                });
@@ -909,7 +952,7 @@ if (finalMsg && fullContent.trim().startsWith('{') && fullContent.trim().endsWit
 
             // 错误 2: Unicode 转义序列在非必要情况下被双重转义或以原始形式保留
             if (rawArgs.includes('\\\\u')) {
-              rawArgs = rawArgs.replace(/\\\\u([0-9a-fA-F]{4})/g, (match, grp) => {
+              rawArgs = rawArgs.replace(/\\\\u([0-9a-fA-F]{4})/g, (_, grp) => {
                 return String.fromCharCode(parseInt(grp, 16));
               });
             } else if (rawArgs.includes('\\u')) {
@@ -981,15 +1024,6 @@ if (finalMsg && fullContent.trim().startsWith('{') && fullContent.trim().endsWit
     
     // 发送一条简洁的“重试”指令，但携带完整的 fullPrompt 负载
     await sendMessage('重试', params.fullPrompt, params.references, false)
-  }
-
-  /**
-   * 辅助函数：通过路径获取对象属性值
-   */
-  function getValueByPath(obj: any, path: string) {
-    return path.split(/[.[\]]+/).filter(Boolean).reduce((acc, part) => {
-      return acc && acc[part] !== undefined ? acc[part] : undefined
-    }, obj)
   }
 
   return {
