@@ -623,8 +623,8 @@ import { useWorldviewStore } from '@/store/worldview'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
 import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall, type AIReference } from '@/types'
-import { AI_TOOLS } from '@/core/ai/tool-definitions'
-import { SCHEMA_REGISTRY } from '@/core/ai/schema-registry'
+import { AI_TOOLS } from '@/core/ai/toolDefinitions'
+import { getTool } from '@/core/ai/tools'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useRouter } from 'vue-router'
 
@@ -1045,7 +1045,7 @@ function toggleSelectAll(key: string) {
 // --- AI 上下文统一处理引擎 ---
 /**
  * 负责将原始项目数据转换为 AI 易于理解、无技术噪音、且带有语义说明的上下文快照。
- * 已升级：基于 schema-registry 进行动态字段过滤与数据清洗。
+ * 已升级：基于 schemaRegistry 进行动态字段过滤与数据清洗。
  */
 function getToolLabel(name: string) {
   const tool = AI_TOOLS.find(t => t.name === name)
@@ -1147,7 +1147,13 @@ function getToolSummary(call: AIToolCall) {
 async function handleApplyTool(_messageId: string, call: AIToolCall) {
   const toolName = call.function.name;
   console.group(`[AI Tool Engine] Applying Write-Tool: ${toolName}`);
-  console.log('Raw Arguments from AI:', call.function.arguments);
+  
+  const tool = getTool(toolName);
+  if (!tool) {
+    console.error(`Tool ${toolName} not found in registry.`);
+    console.groupEnd();
+    return;
+  }
 
   const ok = await uiStore.showConfirm({
     title: '确认执行 AI 操作',
@@ -1166,184 +1172,30 @@ async function handleApplyTool(_messageId: string, call: AIToolCall) {
     try {
       args = JSON.parse(call.function.arguments)
     } catch (e) {
-      console.error('Failed to parse arguments JSON:', e);
       throw new Error('AI 返回的指令参数格式错误');
     }
     
-    console.log('Parsed Arguments:', args);
-    let result = ''
-    let isSuccess = false
-
     projectStore.takeSnapshot()
 
-    if (toolName === 'editTextBlock') {
-      const { search_text, replace_text } = args
-      console.log(`Searching for: "${search_text}"`);
-      
-      // 1. 尝试在大纲中寻找并替换
-      const fullOutline = (projectStore.bundle?.outline.content || []).join('\n')
-      if (fullOutline.includes(search_text)) {
-        console.log('Match found in Outline');
-        const nextFull = fullOutline.replace(search_text, replace_text)
-        projectStore.bundle!.outline.content = nextFull.split('\n')
-        result = '已成功更新大纲文本段落'
-        isSuccess = true
-      } else {
-        console.log('No match in Outline, checking Manuscript...');
-        // 2. 尝试在正文中寻找并替换
-        const fullManuscript = (projectStore.bundle?.manuscript.content || []).join('\n')
-        if (fullManuscript.includes(search_text)) {
-          console.log('Match found in Manuscript');
-          const nextFull = fullManuscript.replace(search_text, replace_text)
-          projectStore.bundle!.manuscript.content = nextFull.split('\n')
-          result = '已成功更新正文文本段落'
-          isSuccess = true
-        } else {
-          console.error('CRITICAL: search_text not found in either Outline or Manuscript');
-          throw new Error('无法在当前正文或大纲中定位到指定的文本锚点，请尝试提供更精准的搜索片段。')
-        }
-      }
-    } else if (toolName === 'upsertEntities') {
-      let { entities } = args
-      
-      // 兜底：处理 AI 将数组序列化为字符串的情况
-      if (typeof entities === 'string') {
-        console.warn('AI incorrectly stringified the entities array, attempting to re-parse...');
-        try {
-          entities = JSON.parse(entities)
-        } catch (e) {
-          console.error('Re-parsing failed:', e)
-        }
-      }
+    const context = { projectStore, characterStore, outlineStore, worldviewStore, uiStore };
+    const result = await tool.execute(args, context);
+    
+    console.log('Tool execution successful:', result);
+    aiStore.executedToolCallIds.add(call.id)
+    expandedToolCallIds.delete(call.id) 
+    uiStore.showToast(result, 'success')
+    projectStore.markDirty()
 
-      if (!Array.isArray(entities)) {
-        console.error('Invalid entities payload:', entities);
-        throw new Error('Invalid payload: "entities" must be an array.')
-      }
+    // 将结果反馈给 AI 历史
+    aiStore.addHistory('tool', result, 'text', {
+      toolResults: [{
+        toolCallId: call.id,
+        content: JSON.stringify({ status: 'success', message: result })
+      }]
+    })
 
-      console.log(`Processing ${entities.length} entities...`);
-      const results: string[] = []
-      
-      for (const rawEntity of entities) {
-        let type = rawEntity.type
-        const id = rawEntity.id
-        
-        // 自动推断类型 (针对 AI 忘记传 type 的情况)
-        if (!type) {
-          if (rawEntity.personality || rawEntity.identities || rawEntity.factions) type = 'character'
-          else if (rawEntity.sourceId && rawEntity.targetId) type = 'relationship'
-          else if (rawEntity.summary || rawEntity.content) type = 'outline'
-          else if (rawEntity.details && Array.isArray(rawEntity.details)) type = 'worldview'
-          
-          if (type) console.warn(`      Inferred missing type: ${type}`);
-        }
-
-        console.log(`  - Processing ${type} (ID: ${id || 'NEW'}):`, rawEntity);
-
-        const schema = SCHEMA_REGISTRY[type]
-        if (!schema) {
-          console.warn(`    Unknown entity type: ${type}. Full payload:`, rawEntity);
-          continue
-        }
-
-        // --- 核心优化：基于 Schema Registry 的数据清洗 ---
-        const sanitizedData: any = {}
-        schema.fields.forEach(field => {
-          if (field.aiImport && rawEntity[field.key] !== undefined) {
-            sanitizedData[field.key] = rawEntity[field.key]
-          }
-        })
-        console.log('    Sanitized data for import:', sanitizedData);
-
-        // --- 分发到各 Store 进行落地 ---
-        if (type === 'character') {
-          if (id) {
-            characterStore.smartUpdateCharacter(id, sanitizedData)
-            const char = projectStore.bundle?.characters.find(c => c.id === id)
-            results.push(`更新角色: ${char?.base.name || id}`)
-          } else {
-            const newChar = characterStore.addCharacter(sanitizedData.name || '新角色')
-            if (newChar) {
-              characterStore.smartUpdateCharacter(newChar.id, sanitizedData)
-              results.push(`创建角色: ${sanitizedData.name}`)
-            }
-          }
-        } else if (type === 'relationship') {
-          if (id) {
-            characterStore.smartUpdateRelationship(id, sanitizedData)
-            results.push(`更新关系: ${sanitizedData.label || id}`)
-          } else if (sanitizedData.sourceId && sanitizedData.targetId) {
-            const newRel = characterStore.addRelationship(sanitizedData.sourceId, sanitizedData.targetId, sanitizedData.type || 'custom')
-            if (newRel) {
-              characterStore.smartUpdateRelationship(newRel.id, sanitizedData)
-              results.push(`创建关系: ${sanitizedData.label || '新关系'}`)
-            }
-          }
-        } else if (type === 'outline') {
-          if (id) {
-            outlineStore.updateActMetadata(id, sanitizedData)
-            results.push(`更新大纲幕: ${sanitizedData.title || id}`)
-          } else {
-            const newAct = outlineStore.createAct(sanitizedData.title || '新幕')
-            if (newAct) {
-              outlineStore.updateActMetadata(newAct.id, sanitizedData)
-              results.push(`创建大纲幕: ${sanitizedData.title}`)
-            }
-          }
-        } else if (type === 'worldview') {
-          // 世界观以 type 作为唯一标识 (geography, etc.)
-          const categoryId = id || sanitizedData.type || rawEntity.type
-          if (categoryId) {
-            worldviewStore.updateCategory(categoryId, sanitizedData)
-            results.push(`同步世界观: ${sanitizedData.name || categoryId}`)
-          }
-        }
-      }
-
-      result = results.length > 0 ? `操作成功：\n- ${results.join('\n- ')}` : '未发现可处理的实体数据'
-      isSuccess = true
-    } else if (toolName === 'deleteEntities') {
-      const { entities } = args
-      if (!Array.isArray(entities)) {
-        console.error('Invalid entities payload:', entities);
-        throw new Error('Invalid payload: "entities" must be an array.')
-      }
-
-      console.log(`Deleting ${entities.length} entities:`, entities);
-      entities.forEach((e: any) => {
-        if (!e.id && e.type !== 'worldview') {
-          console.warn('Skipping deletion: missing ID for non-worldview entity', e);
-          return
-        }
-        console.log(`  - Deleting ${e.type}: ${e.id}`);
-
-        if (e.type === 'character') characterStore.removeCharacter(e.id)
-        else if (e.type === 'outline') outlineStore.removeAct(e.id)
-        else if (e.type === 'relationship') characterStore.removeRelationship(e.id)
-      })
-
-      result = `成功删除了 ${entities.length} 个实体`
-      isSuccess = true
-    }
-
-    if (isSuccess) {
-      console.log('Tool execution successful:', result);
-      aiStore.executedToolCallIds.add(call.id)
-      expandedToolCallIds.delete(call.id) // 执行成功后自动折叠
-      uiStore.showToast(result, 'success')
-      projectStore.markDirty()
-
-      // 将结果反馈给 AI 历史
-      aiStore.addHistory('tool', result, 'text', {
-        toolResults: [{
-          toolCallId: call.id,
-          content: JSON.stringify({ status: 'success', message: result })
-        }]
-      })
-
-      // 自动驱动下一轮生成，让 AI 知道操作已完成并进行总结或下一步
-      await aiStore.sendMessage('', '', undefined, true);
-    }
+    // 自动驱动下一轮生成
+    await aiStore.sendMessage('', '', undefined, true);
 
   } catch (error: any) {
     console.error('Tool application failed:', error);
@@ -1454,29 +1306,49 @@ async function send() {
   let fullPrompt = userContent
 
   // 1. 构建参考上下文提示词 (Chip 引用系统由 computed 驱动)
-  if (activeReferences.value.length > 0) {
-    const refLines = activeReferences.value.map(r => {
-      const typeLabel = atMenu.types.find(t => t.value === r.type)?.label || r.type
-      
-      // 如果引用的是 "所有"，则在 Prompt 中列出具体包含的列表，帮助 AI 识别 ID
-      if (r.id === 'all') {
-        const children = aiStore.getContextOptions(r.type)
-        const childList = children.map((c: any) => `${c.label}(ID:${c.id})`).join('、')
-        return `- [@${r.label}] (类型:${typeLabel}, ID:all, 包含子项: ${childList || '空'})`
-      }
-      
-      return `- [@${r.label}] (类型:${typeLabel}, ID:${r.id})`
-    })
-    const refSection = `### 本次对话显式引用的实体索引 ###\n${refLines.join('\n')}\n\n(提示：索引仅包含 ID 和名称。若需分析具体内容，请务必先调用 getEntityDetail 获取详情)\n\n`
-    fullPrompt = refSection + fullPrompt
+  const refLines = activeReferences.value.map(r => {
+    const typeLabel = atMenu.types.find(t => t.value === r.type)?.label || r.type
+    
+    // 如果引用的是 "所有"，则在 Prompt 中列出具体包含的列表，帮助 AI 识别 ID
+    if (r.id === 'all') {
+      const children = aiStore.getContextOptions(r.type)
+      const childList = children.map((c: any) => `${c.label}(ID:${c.id})`).join('、')
+      return `- [@${r.label}] (类型:${typeLabel}, ID:all, 包含子项: ${childList || '空'})`
+    }
+    
+    return `- [@${r.label}] (类型:${typeLabel}, ID:${r.id})`
+  })
+
+  // 判定是否需要注入引用描述
+  if (refLines.length > 0) {
+    const refLinesText = refLines.join('\n')
+    const refNotice = `(提示：索引仅包含 ID 和名称。若需分析具体内容，请务必通过调用工具获取详情)`
+    const refSection = `### 本次对话引用的实体索引 ###\n${refLinesText}\n${refNotice}\n`
+    
+    // 如果没有使用模板，或者模板中没有 [REFERENCES] 标记，则维持原样将引用信息加在头部
+    const promptTemplate = selectedPromptId.value ? aiStore.allPrompts.find(p => p.id === selectedPromptId.value)?.content : null
+    
+    if (!promptTemplate || !promptTemplate.includes('[REFERENCES]')) {
+      fullPrompt = refSection + '\n' + fullPrompt
+    }
   }
 
   // 2. 选择提示词模板的处理
   if (selectedPromptId.value) {
     const prompt = aiStore.allPrompts.find(p => p.id === selectedPromptId.value)
     if (prompt) {
-      fullPrompt = prompt.content
-        .replace('[JSON]', '[已通过参考引用标识]') 
+      let templatedPrompt = prompt.content
+      
+      // 处理显式引用标记
+      if (templatedPrompt.includes('[REFERENCES]')) {
+        const refContent = refLines.length > 0 
+          ? `${refLines.join('\n')}` 
+          : '（本次对话中，用户未显式引用特定实体）'
+        templatedPrompt = templatedPrompt.replace('[REFERENCES]', refContent)
+      }
+
+      // 处理用户输入和弃用标记
+      fullPrompt = templatedPrompt
         .replace('[USER_INPUT]', fullPrompt)
     }
   }

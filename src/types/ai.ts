@@ -6,7 +6,7 @@ export interface AIPrompt {
   id: string
   label: string
   description: string // 简短描述，用于列表展示
-  content: string // 模板字符串，包含 [JSON] 和 [USER_INPUT]
+  content: string // 模板字符串，包含 [REFERENCES] 和 [USER_INPUT]
   category: 'outline' | 'writing' | 'character' | 'world' | 'general'
 }
 

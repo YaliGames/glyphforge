@@ -68,7 +68,7 @@
           <div class="space-y-2 flex flex-col flex-1 min-h-[300px]">
             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
               Prompt 模板
-              <span class="text-[8px] normal-case text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded">使用 [JSON] 和 [USER_INPUT] 占位</span>
+              <span class="text-[8px] normal-case text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded">使用 [REFERENCES] 和 [USER_INPUT] 占位</span>
             </label>
             <textarea v-model="activePrompt.content" 
               :disabled="activePrompt.id?.startsWith('builtin-')"
@@ -120,7 +120,7 @@ function createNew() {
     label: '新提示词模板',
     description: '简短描述该指令的用途',
     category: 'general',
-    content: '指令示例：\n\n[JSON]\n\n用户输入：\n[USER_INPUT]'
+    content: '指令示例：\n\n[REFERENCES]\n\n用户输入：\n[USER_INPUT]'
   }
 }
 

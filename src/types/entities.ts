@@ -42,8 +42,12 @@ export interface StoryPhase {
 export interface CharacterBase {
   name: string          // 角色姓名
   aliases: string[]     // 角色昵称 / 别名
+  gender: string        // 角色性别
+  age: string           // 角色年龄
   factions: string[]    // 角色阵营
   identities: string[]  // 角色身份 / 头衔
+  positioning: string   // 角色定位 (如: 主角/配角/反派)
+  motivation: string    // 动机目标
   appearance: string    // 外貌着装
   personality: string   // 性格特征
   background: string    // 身份背景

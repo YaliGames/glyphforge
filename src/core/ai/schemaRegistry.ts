@@ -3,7 +3,7 @@
  * 
  * 统一管理项目中各类实体（角色、世界观、大纲、关系等）的字段定义。
  * 作用：
- * 1. 自动生成工具调用的参数描述 (tool-definitions)。
+ * 1. 自动生成工具调用的参数描述 (toolDefinitions)。
  * 2. 驱动 ContextEngine 进行数据清洗（导出给 AI 的数据过滤）。
  * 3. 驱动 upsert 逻辑对 AI 返回的数据进行合法性校验。
  */
@@ -35,12 +35,16 @@ export const SCHEMA_REGISTRY: Record<string, EntitySchema> = {
     fields: [
       { key: 'id', label: 'ID', type: 'string', description: '唯一标识', aiExport: true, aiImport: true, isIdentity: true },
       { key: 'name', label: '姓名', type: 'string', description: '角色姓名', aiExport: true, aiImport: true, required: true },
-      { key: 'aliases', label: '别名', type: 'array', description: '昵称/曾用名列表', aiExport: true, aiImport: true },
-      { key: 'factions', label: '阵营', type: 'array', description: '所属组织/国家', aiExport: true, aiImport: true },
-      { key: 'identities', label: '身份/头衔', type: 'array', description: '社会地位/职务', aiExport: true, aiImport: true },
-      { key: 'appearance', label: '外貌', type: 'string', description: '长相/身材/衣着', aiExport: true, aiImport: true },
-      { key: 'personality', label: '性格', type: 'string', description: '核心性格/处事风格', aiExport: true, aiImport: true },
-      { key: 'background', label: '背景', type: 'string', description: '出身/经历/动机说明', aiExport: true, aiImport: true },
+      { key: 'aliases', label: '别名', type: 'array', description: '角色昵称或别名', aiExport: true, aiImport: true },
+      { key: 'gender', label: '性别', type: 'string', description: '角色性别', aiExport: true, aiImport: true },
+      { key: 'age', label: '年龄', type: 'string', description: '角色年龄', aiExport: true, aiImport: true },
+      { key: 'factions', label: '阵营', type: 'array', description: '角色所属的组织、流派或社会地位', aiExport: true, aiImport: true },
+      { key: 'identities', label: '身份/头衔', type: 'array', description: '角色的具体职位、称号或社会标签', aiExport: true, aiImport: true },
+      { key: 'positioning', label: '定位', type: 'string', description: '角色在故事中的定位，如主角、核心配角、对立角色等', aiExport: true, aiImport: true },
+      { key: 'motivation', label: '动机目标', type: 'string', description: '角色的核心目标与行动理由', aiExport: true, aiImport: true },
+      { key: 'appearance', label: '外貌', type: 'string', description: '角色的体貌特征、惯常穿着', aiExport: true, aiImport: true },
+      { key: 'personality', label: '性格', type: 'string', description: '角色的核心性格、行事逻辑', aiExport: true, aiImport: true },
+      { key: 'background', label: '背景', type: 'string', description: '角色的出身、过往经历、关键转折点', aiExport: true, aiImport: true },
       { key: 'tags', label: '标签', type: 'array', description: '检索关键词', aiExport: true, aiImport: true },
       { key: 'authorNotes', label: '作者备注', type: 'string', description: '额外补遗信息', aiExport: true, aiImport: true },
       { key: 'openQuestions', label: '待解决问题', type: 'string', description: '尚未确定的设定', aiExport: true, aiImport: true },

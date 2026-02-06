@@ -189,8 +189,12 @@ export const useCharacterStore = defineStore('characters', () => {
         base: {
           name,
           aliases: [],
+          gender: '',
+          age: '',
           factions: [],
           identities: [],
+          positioning: '',
+          motivation: '',
           appearance: '',
           personality: '',
           background: '',

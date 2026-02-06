@@ -7,9 +7,11 @@ import { useSettingsStore } from './settings'
 import { useUIStore } from './ui'
 import { useCharacterStore } from './characters'
 import { useOutlineStore } from './outline'
+import { useWorldviewStore } from './worldview'
 import { BUILTIN_PROMPTS, MAX_TOOL_OUTPUT_LENGTH } from '@/core/ai/constants'
-import { AI_TOOLS } from '@/core/ai/tool-definitions'
-import { getAIExportKeys, getIdentityKeys, getTechnicalKeys, generateAISchemaManual } from '@/core/ai/schema-registry'
+import { AI_TOOLS } from '@/core/ai/toolDefinitions'
+import { getTool, type ToolContext } from '@/core/ai/tools'
+import { generateAISchemaManual } from '@/core/ai/schemaRegistry'
 
 const STORAGE_KEY = 'glyphforge-custom-prompts'
 
@@ -115,7 +117,7 @@ export const useAIStore = defineStore('ai', () => {
       id: uuidv4(),
       label: prompt.label || '新提示词',
       description: prompt.description || '输入描述...',
-      content: prompt.content || '请输入指令，可用 [JSON] 和 [USER_INPUT] 标记位置',
+      content: prompt.content || '请输入指令，可用 [REFERENCES] 和 [USER_INPUT] 标记位置',
       category: (prompt.category as any) || 'general'
     }
     customPrompts.value.push(newPrompt)
@@ -137,6 +139,8 @@ export const useAIStore = defineStore('ai', () => {
     const projectStore = useProjectStore()
     const characterStore = useCharacterStore()
     const outlineStore = useOutlineStore()
+    const worldviewStore = useWorldviewStore()
+    const uiStore = useUIStore()
 
     const name = call.function.name
     const rawArgs = call.function.arguments || '{}'
@@ -146,23 +150,11 @@ export const useAIStore = defineStore('ai', () => {
       args = JSON.parse(rawArgs)
     } catch (e) {
       console.warn(`[AI Tool Engine] JSON parse error for ${name}, attempting simple fix:`, e)
-      // 处理常见的不完整 JSON：缺少闭合括号或引号
       let fixed = rawArgs.trim()
-      
-      // 1. 引号配对检查
       const quoteCount = (fixed.match(/"/g) || []).length
-      if (quoteCount % 2 !== 0) {
-        fixed += '"'
-      }
-      
-      // 2. 补全冒号后的空值 (形如 "id": )
-      if (fixed.endsWith(':')) {
-        fixed += '""'
-      } else if (fixed.endsWith(',')) {
-        fixed = fixed.slice(0, -1)
-      }
-
-      // 3. 闭合括号检查
+      if (quoteCount % 2 !== 0) fixed += '"'
+      if (fixed.endsWith(':')) fixed += '""'
+      else if (fixed.endsWith(',')) fixed = fixed.slice(0, -1)
       if (fixed.startsWith('{') && !fixed.endsWith('}')) fixed += '}'
       
       try {
@@ -173,297 +165,44 @@ export const useAIStore = defineStore('ai', () => {
       }
     }
 
-    console.group(`[AI Tool Engine] Executing Read-only: ${name}`);
-    console.log('Arguments:', args);
+    const tool = getTool(name);
+    if (!tool) {
+      return { toolCallId: call.id, content: `Error: Tool ${name} not found in registry.` };
+    }
 
-    try {
-      let resultData: any = null;
+    // 只读工具处理
+    if (tool.isReadOnly) {
+      console.group(`[AI Tool Engine] Executing Read-only: ${name}`);
+      console.log('Arguments:', args);
 
-      // --- 只读工具实现 ---
-      if (name === 'getEntityList') {
-        const { type, fields } = args
-        let list: any[] = []
-        const bundle = projectStore.bundle;
-        if (!bundle) throw new Error('No project bundle found');
-
-        const pickFields = (item: any, itemType: string) => {
-          let source = { ...item };
-          if (source.base) {
-            Object.assign(source, source.base);
-            delete source.base;
-          }
-
-          const result: any = { id: source.id || source.type };
-          
-          // 优先确定显示名称字段
-          const nameField = source.name ? 'name' : (source.title ? 'title' : (source.label ? 'label' : null));
-          if (nameField) result[nameField] = source[nameField];
-
-          if (Array.isArray(fields)) {
-            fields.forEach(f => {
-              if (source[f] !== undefined && f !== 'id' && f !== nameField) {
-                result[f] = source[f];
-              }
-            });
-          }
-          return result;
-        };
-
-        if (type === 'character') {
-          list = (bundle.characters || []).map(c => pickFields(c, 'character'))
-        } else if (type === 'relationship') {
-          list = (bundle.relationships || []).map(r => pickFields(r, 'relationship'))
-        } else if (type === 'outline') {
-          list = (bundle.outline?.structure.acts || []).map(a => pickFields(a, 'outline'))
-        } else if (type === 'worldview') {
-          list = (bundle.worldview?.categories || []).map(c => pickFields(c, 'worldview'))
-        } else if (type === 'timeline') {
-          list = (bundle.worldview?.timeline || []).map(e => pickFields(e, 'timeline'))
-        } else if (type === 'chapters' || type === 'manuscript') {
-          const chapters: any[] = []
-          const flatten = (items: any[]) => {
-            items.forEach(c => {
-              if (c.type === 'chapter' || c.type === 'scene') {
-                chapters.push(pickFields(c, type))
-              }
-              if (c.children) flatten(c.children)
-            })
-          }
-          flatten(bundle.chapters || [])
-          list = chapters
-        }
-        resultData = list;
-      }
-
-      if (name === 'getEntitySchema') {
-        const manual = generateAISchemaManual();
-        // 如果提供了 type，尝试只返回该部分的 schema，否则返回全部
-        resultData = manual || '未知类型或暂未定义 Schema';
-      }
-
-      if (name === 'getEntityDetail') {
-        const { type, ids, range } = args
-        if (!Array.isArray(ids)) throw new Error('ids must be an array');
-
-        let details: any[] = []
-        const isSelectAll = ids.includes('all');
-
-        if (type === 'character') {
-          const list = projectStore.bundle?.characters || []
-          details = isSelectAll ? list : list.filter(c => ids.includes(c.id))
-        } else if (type === 'outline') {
-          const list = projectStore.bundle?.outline.structure.acts || []
-          const content = projectStore.bundle?.outline.content || []
-          
-          let effectiveRange = range;
-          if (!effectiveRange && ids.length === 1 && ids[0].startsWith('range:')) {
-             const parts = ids[0].replace('range:', '').split('-');
-             if (parts.length === 2) {
-                effectiveRange = { start: parseInt(parts[0]), end: parseInt(parts[1]) };
-             }
-          }
-
-          if (effectiveRange) {
-             const start = Math.max(0, effectiveRange.start - 1)
-             const end = Math.min(content.length, effectiveRange.end)
-             details = [{
-               id: ids[0] || 'selection',
-               title: `大纲范围: ${effectiveRange.start}-${effectiveRange.end}`,
-               content: content.slice(start, end).join('\n')
-             }]
-          } else {
-             details = isSelectAll ? list : list.filter(a => ids.includes(a.id))
-          }
-        } else if (type === 'worldview') {
-          const list = projectStore.bundle?.worldview.categories || []
-          details = isSelectAll ? list : list.filter(c => ids.includes(c.type))
-        } else if (type === 'timeline') {
-          details = projectStore.bundle?.worldview.timeline || []
-        } else if (type === 'chapters') {
-          const allChapters: any[] = []
-          const flatten = (items: any[]) => {
-            items.forEach(c => {
-               allChapters.push(c)
-               if (c.children) flatten(c.children)
-            })
-          }
-          flatten(projectStore.bundle?.chapters || [])
-          details = isSelectAll ? allChapters : allChapters.filter(c => ids.includes(c.id))
-        } else if (type === 'manuscript') {
-          const bundle = projectStore.bundle
-          const manuscript = bundle?.manuscript.content || []
-          
-          // 增强：从 ids 中解析 range:start-end 这种伪 ID (适配 AI 可能的直接引用)
-          let effectiveRange = range;
-          if (!effectiveRange && ids.length === 1 && ids[0].startsWith('range:')) {
-             const parts = ids[0].replace('range:', '').split('-');
-             if (parts.length === 2) {
-                effectiveRange = { start: parseInt(parts[0]), end: parseInt(parts[1]) };
-             }
-          }
-
-          if (effectiveRange) {
-             // 优先处理显式的范围请求
-             const start = Math.max(0, effectiveRange.start - 1)
-             const end = Math.min(manuscript.length, effectiveRange.end)
-             details = [{
-               id: ids[0] || 'selection',
-               title: `正文范围: ${effectiveRange.start}-${effectiveRange.end}`,
-               content: manuscript.slice(start, end).join('\n')
-             }]
-          } else if (isSelectAll) {
-            details = [{ id: 'all', title: '全集正文', content: manuscript.join('\n') }]
-          } else {
-            const allAnchorLines: number[] = [];
-            const allNodes: any[] = [];
-            const collect = (items: any[]) => {
-              items.forEach(c => {
-                allNodes.push(c)
-                if (typeof c.anchorLineNumber === 'number') allAnchorLines.push(c.anchorLineNumber);
-                if (c.children) collect(c.children);
-              });
-            };
-            if (bundle) collect(bundle.chapters);
-            allAnchorLines.sort((a, b) => a - b);
-
-            details = ids.map(id => {
-              const node = allNodes.find(n => n.id === id)
-              if (node && typeof node.anchorLineNumber === 'number') {
-                const startIdx = node.anchorLineNumber - 1;
-                const nextAnchor = allAnchorLines.find(line => line > node.anchorLineNumber);
-                const endIdx = nextAnchor ? nextAnchor - 1 : manuscript.length;
-                return {
-                  id: node.id,
-                  title: node.title,
-                  content: manuscript.slice(startIdx, endIdx).join('\n')
-                }
-              }
-              return { id, error: 'Chapter not found or no content' }
-            })
-          }
-        }
-
-        // 重要：对返回给 AI 的详情数据也进行清洗，防止 AI 模仿内部的 base/projectId 结构
-        const cleanedDetails = details.map(item => {
-          let source = { ...item };
-          if (source.base) {
-            Object.assign(source, source.base);
-            delete source.base;
-          }
-
-          const exportKeys = getAIExportKeys(type);
-          const identityKeys = getIdentityKeys();
-          const technicalKeys = getTechnicalKeys();
-
-          const cleaned: any = {};
-          for (const [key, value] of Object.entries(source)) {
-            // 1. 如果在白名单中，或者是核心身份字段，则保留
-            if (exportKeys.includes(key) || identityKeys.includes(key)) {
-              // 2. 即使在白名单中，如果是技术字段且不在 identityKeys 中，也剔除
-              if (technicalKeys.includes(key) && !identityKeys.includes(key)) continue;
-              
-              cleaned[key] = value;
-            }
-          }
-          return cleaned;
-        });
-
-        resultData = cleanedDetails;
-      }
-
-      if (name === 'searchEntities') {
-        const { query, type, fields } = args
-        const results: any[] = []
-        const q = (query || '').toLowerCase()
+      try {
+        const context: ToolContext = { projectStore, characterStore, outlineStore, worldviewStore, uiStore };
+        const resultData = await tool.execute(args, context);
         
-        const bundle = projectStore.bundle
-        if (!bundle) throw new Error('No project bundle found');
-
-        const pickFields = (item: any, itemType: string) => {
-          let source = { ...item };
-          if (source.base) {
-            Object.assign(source, source.base);
-            delete source.base;
-          }
-          const result: any = { id: source.id || source.type, type: itemType };
-          const nameField = source.name ? 'name' : (source.title ? 'title' : (source.label ? 'label' : null));
-          if (nameField) result[nameField] = source[nameField];
-
-          if (Array.isArray(fields)) {
-            fields.forEach(f => {
-              if (source[f] !== undefined && f !== 'id' && f !== nameField) {
-                result[f] = source[f];
-              }
-            });
-          }
-          return result;
-        };
-
-        if (!type || type === 'character') {
-          bundle.characters.forEach(c => {
-            if (c.base.name.toLowerCase().includes(q)) {
-              results.push(pickFields(c, 'character'))
-            }
-          })
-        }
-        
-        if (!type || type === 'outline') {
-           bundle.outline.structure.acts.forEach(a => {
-             if (a.title.toLowerCase().includes(q)) {
-               results.push(pickFields(a, 'outline'))
-             }
-           })
-        }
-
-        if (!type || type === 'chapters' || type === 'manuscript') {
-          const flatten = (items: any[]) => {
-            items.forEach(c => {
-              if (c.title.toLowerCase().includes(q)) {
-                results.push(pickFields(c, type || 'chapters'))
-              }
-              if (c.children) flatten(c.children)
-            })
-          }
-          flatten(bundle.chapters)
-        }
-
-        resultData = results.slice(0, 10);
-      }
-
-      if (name === 'getRelationGraph') {
-        const nodes = characterStore.charactersInPhase.map(c => ({ id: c.id, label: c.name }))
-        const edges = characterStore.relationshipsInPhase.map(r => ({ from: r.sourceId, to: r.targetId, label: r.label }))
-        resultData = { nodes, edges };
-      }
-
-      if (resultData !== null) {
         let content = typeof resultData === 'string' ? resultData : JSON.stringify(resultData);
 
-        // --- 结果保护：防止单一工具返回内容过多导致 Context 爆炸 ---
+        // --- 结果保护 ---
         if (content.length > MAX_TOOL_OUTPUT_LENGTH) {
           const originalLength = content.length;
           content = content.slice(0, MAX_TOOL_OUTPUT_LENGTH) + 
             `\n\n... (内容过长已截断，共 ${originalLength} 字符)\n` + 
-            `[系统保护提示：当前工具返回数据量过大，已自动截断以保护对话上下文稳定性。如果需要获取完整内容，请 - 使用更精确的 ID - 指定行号范围(range: {start, end}) - 逐部分调取后续内容。]`;
-          
+            `[系统保护提示：数据量过大，已自动截断。]`;
           console.warn(`[AI Tool Engine] Result for ${name} truncated: ${originalLength} -> ${MAX_TOOL_OUTPUT_LENGTH}`);
         }
 
-        const result = { toolCallId: call.id, content };
         console.log('Result:', resultData);
         console.groupEnd();
-        return result;
+        return { toolCallId: call.id, content };
+      } catch (e: any) {
+        console.error('Execution Error:', e);
+        console.groupEnd();
+        return { toolCallId: call.id, content: `Error: ${e.message}` }
       }
-
-      // --- 写入型工具由 UI 处理 (AIAssistant.vue) ---
-      console.log('Result: PENDING_USER_CONFIRM');
-      console.groupEnd();
-      return { toolCallId: call.id, content: 'TOOL_PENDING_USER_CONFIRM' }
-    } catch (e: any) {
-      console.error('Execution Error:', e);
-      console.groupEnd();
-      return { toolCallId: call.id, content: `Error: ${e.message}` }
     }
+
+    // 写入型工具由 UI 处理 (AIAssistant.vue) 或稍候在 executeTool 中统一分发
+    console.log(`[AI Tool Engine] Tool ${name} is a Write-tool, pending confirmation.`);
+    return { toolCallId: call.id, content: 'TOOL_PENDING_USER_CONFIRM' }
   }
 
   /**
