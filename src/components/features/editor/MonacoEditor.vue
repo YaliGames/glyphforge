@@ -15,7 +15,7 @@ const props = defineProps<{
   options?: monaco.editor.IStandaloneEditorConstructionOptions
 }>()
 
-const emit = defineEmits(['update:modelValue', 'change', 'cursor-change', 'focus', 'blur', 'mounted'])
+const emit = defineEmits(['update:modelValue', 'change', 'cursor-change', 'selection-change', 'focus', 'blur', 'mounted'])
 
 const settingsStore = useSettingsStore()
 const editorContainer = ref<HTMLElement | null>(null)
@@ -106,6 +106,10 @@ function bindEditorEvents() {
     if (e.reason === monaco.editor.CursorChangeReason.Explicit) {
       useProjectStore().endEditSession()
     }
+  })
+
+  editor.onDidChangeCursorSelection((e) => {
+    emit('selection-change', e.selection)
   })
 }
 

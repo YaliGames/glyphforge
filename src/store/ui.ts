@@ -21,6 +21,9 @@ export const useUIStore = defineStore('ui', () => {
 
   const recentFiles = ref<{ name: string, path?: string, date: number, type: 'txt' | 'project' }[]>([])
 
+  // 编辑器状态同步 (用于 AI 引用等)
+  const editorSelection = ref<{ startLine: number, endLine: number, text: string } | null>(null)
+
   function startLoading(message = '正在加载...') {
     isLoading.value = true
     loadingMessage.value = message

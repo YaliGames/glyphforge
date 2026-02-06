@@ -68,7 +68,7 @@
       </div>
       <div class="flex-1 relative">
         <OutlineEditor ref="editorRef" v-model="narrativeSummary" class="absolute inset-0" :acts="acts"
-          @cursor-change="handleCursorChange" />
+          @cursor-change="handleCursorChange" @selection-change="handleSelectionChange" />
       </div>
     </main>
 
@@ -201,6 +201,18 @@ const currentAct = computed(() => {
 function handleCursorChange({ activeActId }: { activeActId: string | null }) {
   // 核心：根据光标位置自动切换激活的幕，如果不在任何幕内则清除激活状态
   currentActId.value = activeActId
+}
+
+function handleSelectionChange(selection: monaco.ISelection) {
+  if (selection.startLineNumber !== selection.endLineNumber || selection.startColumn !== selection.endColumn) {
+    uiStore.editorSelection = {
+      startLine: selection.startLineNumber,
+      endLine: selection.endLineNumber,
+      text: '大纲...'
+    }
+  } else {
+    uiStore.editorSelection = null
+  }
 }
 
 function createNewAct() {

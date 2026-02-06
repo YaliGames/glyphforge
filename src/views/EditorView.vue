@@ -52,6 +52,7 @@
           @update:model-value="debouncedContentUpdate"
           @mounted="onEditorMounted"
           @cursor-change="handleCursorChange"
+          @selection-change="handleSelectionChange"
           @blur="projectStore.endEditSession()"
         />
       </div>
@@ -441,6 +442,23 @@ function handleCursorChange(position: monaco.IPosition) {
   const currentChapter = chapters.find(c => c.anchorLineNumber <= position.lineNumber)
   if (currentChapter && currentChapter.id !== activeChapterId.value) {
     activeChapterId.value = currentChapter.id
+  }
+}
+
+function handleSelectionChange(selection: monaco.ISelection) {
+  if (!editor) return
+  const model = editor.getModel()
+  if (!model) return
+
+  const text = model.getValueInRange(selection)
+  if (text.trim()) {
+    uiStore.editorSelection = {
+      startLine: selection.startLineNumber,
+      endLine: selection.endLineNumber,
+      text: text.length > 50 ? text.slice(0, 50) + '...' : text
+    }
+  } else {
+    uiStore.editorSelection = null
   }
 }
 

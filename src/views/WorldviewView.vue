@@ -215,9 +215,9 @@ function openAIAssistant(cat: any) {
   aiStore.show({
     promptId: 'builtin-worldview-design',
     granular: {
-      'worldview_categories': [cat.type],
-      'worldview_timeline': 'all'
-      // 'characters': 'all'
+      'worldview': [cat.type],
+      'timeline': 'all'
+      // 'character': 'all'
     },
     input: `正在深化【${cat.name}】相关设定。\n当前摘要：${cat.summary || '暂无'}\n已记录条目：${cat.details.filter((d: string) => d).join('；') || '暂无'}\n请基于这些点，推演三个更具深度的关联细节或可能产生的社会冲突点。`
   })

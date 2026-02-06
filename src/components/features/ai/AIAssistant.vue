@@ -29,7 +29,7 @@
       <!-- 中间内容区容器 -->
       <div class="flex-1 relative overflow-hidden">
         <!-- 聊天记录滚动区 -->
-        <div class="absolute inset-0 overflow-y-auto p-4 space-y-6 custom-scrollbar flex flex-col pb-8" ref="historyBox">
+        <div class="absolute inset-0 overflow-y-auto p-4 space-y-2 custom-scrollbar flex flex-col pb-8" ref="historyBox">
           <EmptyState
             v-if="aiStore.history.length === 0"
             icon="fa-comment-dots"
@@ -38,140 +38,153 @@
             subtitle="选择要提供给AI参考内容，并开始对话"
           />
 
-          <div v-for="msg in aiStore.history" :key="msg.id" class="flex flex-col gap-2 shrink-0" :class="msg.role === 'user' ? 'items-end' : 'items-start'">
-            <div class="flex items-center gap-2 px-1 text-[10px] text-gray-400 w-full" :class="msg.role === 'user' ? 'justify-end' : 'justify-start'">
-               <i :class="msg.role === 'user' ? 'fa-solid fa-user' : 'fa-solid fa-robot'"></i>
-               <span>{{ msg.role === 'user' ? '你' : 'G-Forge AI' }}</span>
-               
-               <!-- 参考标记 -->
-               <div v-if="msg.references && Object.keys(msg.references).length > 0" class="ml-auto flex items-center gap-1 text-[9px] bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-full text-purple-600 border border-purple-100 dark:border-purple-800">
-                 <i class="fa-solid fa-link text-[8px]"></i>
-                 <span>参考了 {{ Object.keys(msg.references).length }} 项数据</span>
-                 <button @click="showRawData(msg.references)" class="hover:text-purple-800 transition-colors">
-                   <i class="fa-solid fa-circle-info cursor-help"></i>
-                 </button>
-               </div>
+          <div v-for="msg in aiStore.history" :key="msg.id">
+            <div 
+              v-if="msg.role !== 'tool' && (msg.content?.trim() || (msg.toolCalls && msg.toolCalls.length > 0))" 
+              class="flex flex-col gap-2 shrink-0 group/msg" 
+              :class="msg.role === 'user' ? 'items-end' : 'items-start'"
+            >
+              <div class="flex items-center gap-2 px-1 text-[10px] text-gray-400 w-full" :class="msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'">
+                <!-- 发送人标识 -->
+                <div class="flex items-center gap-2 shrink-0">
+                  <i :class="msg.role === 'user' ? 'fa-solid fa-user' : 'fa-solid fa-robot'"></i>
+                  <span>{{ msg.role === 'user' ? '你' : 'G-Forge AI' }}</span>
+                </div>
+
+                <!-- 复制按钮：显示在发送人标记的另一侧 -->
+                <button 
+                  v-if="msg.content"
+                  @click="copyContent(msg.content)"
+                  class="opacity-0 group-hover/msg:opacity-100 transition-opacity hover:text-purple-600 p-1"
+                  title="复制原始 MD 内容"
+                >
+                  <i class="fa-regular fa-copy"></i>
+                </button>
             </div>
             
             <div 
-              class="max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed relative group/msg"
-              :class="msg.role === 'user' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/10' : 'bg-gray-100 dark:bg-[#2d2d2d] dark:text-gray-200'"
+              class="max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed relative group/msg cursor-text select-text overflow-hidden"
+              :class="[
+                msg.role === 'user' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/10' : 'bg-gray-100 dark:bg-[#2d2d2d] dark:text-gray-200',
+                msg.isError ? '!bg-red-50 dark:!bg-red-900/10 border border-red-200 dark:border-red-900/50 !text-red-600 dark:!text-red-400' : ''
+              ]"
             >
               <!-- 文本内容区 -->
-              <template v-if="msg.type === 'json' && parseAIResponse(msg.content)">
-                 <div class="space-y-4">
-                  <!-- 创作内容区 -->
-                  <div class="space-y-2">
-                    <div class="flex items-center gap-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                      <i class="fa-solid fa-feather-pointed"></i>
-                      创作结果
-                    </div>
-                    <div v-if="parseAIResponse(msg.content)?.creative?.text" class="whitespace-pre-wrap text-[13px] leading-relaxed italic bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-black/5 dark:border-white/5">
-                      {{ parseAIResponse(msg.content).creative.text }}
-                    </div>
-                    <div v-if="parseAIResponse(msg.content)?.creative?.data" class="bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-black/5 dark:border-white/5">
-                      <pre class="text-[11px] font-mono overflow-x-auto">{{ JSON.stringify(parseAIResponse(msg.content).creative.data, null, 2) }}</pre>
-                    </div>
-                  </div>
-
-                  <!-- 导入按钮 -->
-                  <div v-if="parseAIResponse(msg.content)?.creative?.data" class="flex justify-end">
-                     <button @click="importAIResult(msg.content)" class="text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full flex items-center gap-1.5 transition-all shadow-md font-bold active:scale-95">
-                       <i class="fa-solid fa-file-import text-[9px]"></i>
-                       同步数据
-                     </button>
-                  </div>
-
-                  <!-- 逻辑分析区 -->
-                  <div v-if="parseAIResponse(msg.content)?.analytical" class="space-y-3 pt-2 border-t dark:border-white/5">
-                    <div v-if="parseAIResponse(msg.content).analytical.suggestions?.length" class="space-y-2 mt-3">
-                      <div class="flex items-center gap-2 text-[10px] font-bold text-purple-500/70 uppercase tracking-widest">
-                        <i class="fa-solid fa-lightbulb"></i>
-                        创作建议
-                      </div>
-                      <div class="flex flex-wrap gap-1.5">
-                        <div v-for="(sug, idx) in parseAIResponse(msg.content).analytical.suggestions" :key="idx"
-                          class="px-2 py-1 rounded-lg bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/10 text-[10px] text-purple-600 dark:text-purple-400">
-                          {{ sug }}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div v-if="parseAIResponse(msg.content).analytical.warnings?.length" class="space-y-2 mt-3">
-                      <div class="flex items-center gap-2 text-[10px] font-bold text-amber-500/70 uppercase tracking-widest">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        设定冲突
-                      </div>
-                      <div class="space-y-1">
-                        <div v-for="(warn, idx) in parseAIResponse(msg.content).analytical.warnings" :key="idx"
-                          class="text-[11px] text-amber-600 dark:text-amber-400/80 pl-2 border-l-2 border-amber-500/30">
-                          {{ warn }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </template>
-              <template v-else>
-                <div class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
-              </template>
+              <div v-if="msg.isError" class="flex flex-col gap-3">
+                 <div class="flex items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation mt-1 shrink-0"></i>
+                    <div class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
+                 </div>
+                 <button 
+                   v-if="msg.retryParams && !aiStore.isProcessing"
+                   @click="aiStore.retryMessage(msg.id)"
+                   class="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-all active:scale-95 shadow-md shadow-red-500/20"
+                 >
+                    <i class="fa-solid fa-rotate-right text-[10px]"></i>
+                    立即重试任务
+                 </button>
+              </div>
+              <div v-else class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
 
               <!-- 智能建议操作卡片 -->
-              <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="mt-4 space-y-2.5">
+              <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="mt-2 space-y-2">
                  <div v-for="call in msg.toolCalls" :key="call.id" 
-                   class="group/tool relative border transition-all duration-200"
+                   class="group/tool relative border transition-all duration-200 overflow-hidden"
                    :class="[
-                     aiStore.executedToolCallIds.has(call.id) 
+                     (aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name))
                       ? 'bg-transparent border-gray-200 dark:border-white/5 opacity-60' 
-                      : 'bg-[#f8f9fb] dark:bg-[#252526] border-[#e1e4e8] dark:border-[#3e3e42] rounded-lg shadow-sm'
+                      : 'bg-[#f8f9fb] dark:bg-[#252526] border-[#e1e4e8] dark:border-[#3e3e42] rounded-lg shadow-sm hover:border-blue-400/50'
                    ]"
                  >
-                    <div class="flex items-start p-3 gap-3">
-                       <!-- 状态图标 -->
-                       <div class="mt-0.5 shrink-0 w-5 h-5 rounded flex items-center justify-center text-[10px]"
-                         :class="aiStore.executedToolCallIds.has(call.id) ? 'text-green-500' : 'text-blue-500 bg-blue-500/5 dark:bg-blue-400/10'"
-                       >
-                         <i :class="aiStore.executedToolCallIds.has(call.id) ? 'fa-solid fa-square-check' : 'fa-solid fa-terminal'"></i>
+                    <div class="p-3">
+                       <!-- 核心概览行：始终可见 -->
+                       <div class="flex items-start gap-3 cursor-pointer select-none" @click="expandedToolCallIds.has(call.id) ? expandedToolCallIds.delete(call.id) : expandedToolCallIds.add(call.id)">
+                          <!-- 状态图标 -->
+                          <div class="mt-0.5 shrink-0 w-5 h-5 rounded flex items-center justify-center text-[10px]"
+                            :class="(aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name)) ? 'text-green-500' : 'text-blue-500 bg-blue-500/5 dark:bg-blue-400/10'"
+                          >
+                            <i :class="(aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name)) ? 'fa-solid fa-square-check' : 'fa-solid fa-wand-magic-sparkles'"></i>
+                          </div>
+
+                          <div class="flex-1 min-w-0">
+                             <div class="text-[12px] leading-relaxed text-gray-700 dark:text-gray-300 font-medium">
+                               <span v-if="aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name)" class="text-[10px] opacity-60 font-bold uppercase mr-1">[已完成]</span>
+                               {{ getToolSummary(call) }}
+                             </div>
+
+                             <!-- 修改动作按钮：始终可见 -->
+                             <div v-if="!aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) && !aiStore.isProcessing" class="mt-2.5 flex">
+                               <button 
+                                 @click.stop="handleApplyTool(msg.id, call)"
+                                 class="text-[10px] bg-[#007acc] hover:bg-[#0062a3] text-white px-3 py-1.5 rounded transition-all font-bold shadow-md flex items-center gap-1.5 active:scale-95"
+                               >
+                                 <i class="fa-solid fa-bolt-lightning text-[9px]"></i>
+                                 确认执行修改
+                               </button>
+                             </div>
+                          </div>
+
+                          <!-- 展开指示 -->
+                          <div class="text-[9px] text-gray-400 self-center">
+                            <i class="fa-solid" :class="expandedToolCallIds.has(call.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                          </div>
                        </div>
-                       
-                       <div class="flex-1 min-w-0">
-                         <div class="flex items-center justify-between gap-2 mb-1">
-                           <span class="text-[11px] font-mono font-bold tracking-tight uppercase opacity-80" :class="aiStore.executedToolCallIds.has(call.id) ? 'text-gray-500' : 'text-blue-600 dark:text-blue-400'">
-                             {{ call.function.name }}
-                           </span>
-                           <div v-if="!aiStore.executedToolCallIds.has(call.id)" class="flex gap-1">
-                             <button 
-                               @click.stop="showRawData({ name: call.function.name, arguments: call.function.arguments })"
-                               class="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
-                             >
-                               显示参数
-                             </button>
-                           </div>
-                         </div>
 
-                         <div class="text-[11px] leading-relaxed text-gray-600 dark:text-gray-400">
-                           <span v-if="aiStore.executedToolCallIds.has(call.id)" class="italic opacity-70">任务已完成：</span>
-                           {{ getToolSummary(call) }}
-                         </div>
+                       <!-- 展开详情区 -->
+                       <div v-if="expandedToolCallIds.has(call.id)" class="mt-3 pt-3 border-t dark:border-white/5 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <!-- 1. 技术详情 -->
+                          <div class="space-y-1">
+                             <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                               <i class="fa-solid fa-terminal text-[8px]"></i>
+                               技术接口 (API)
+                             </div>
+                             <div class="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-500/5 inline-block px-1.5 py-0.5 rounded border border-blue-500/10">
+                               {{ call.function.name }}
+                             </div>
+                          </div>
 
-                         <div v-if="!aiStore.executedToolCallIds.has(call.id)" class="mt-3 flex gap-2">
-                           <button 
-                             @click="handleApplyTool(msg.id, call)"
-                             class="text-[10px] bg-[#007acc] hover:bg-[#0062a3] text-white px-3 py-1 rounded transition-colors font-bold shadow-sm flex items-center gap-1.5"
-                           >
-                             <i class="fa-solid fa-bolt-lightning text-[9px]"></i>
-                             执行修改
-                           </button>
-                         </div>
+                          <!-- 2. AI 传入参数 -->
+                          <div class="space-y-1">
+                             <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                               <i class="fa-solid fa-sliders text-[8px]"></i>
+                               执行参数
+                             </div>
+                             <pre class="p-2 bg-gray-50 dark:bg-black/20 rounded border dark:border-white/5 text-[10px] text-gray-500 overflow-x-auto whitespace-pre-wrap leading-tight max-h-[150px] custom-scrollbar">{{ formatArgs(call.function.arguments) }}</pre>
+                          </div>
+
+                          <!-- 3. 执行结果反馈 -->
+                          <div v-if="getToolResultForCall(call.id)" class="space-y-1">
+                             <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                               <i class="fa-solid fa-reply-all text-[8px]"></i>
+                               执行结果
+                             </div>
+                             <div class="p-2 bg-green-500/5 dark:bg-green-500/10 rounded border border-green-500/10 text-[10px] font-mono text-green-600 dark:text-green-400/80 leading-relaxed">
+                                {{ getToolResultForCall(call.id)?.content }}
+                             </div>
+                          </div>
                        </div>
                     </div>
                  </div>
               </div>
+
+              <!-- 上下文引用 Chips：移动至泡泡右下角 -->
+              <div v-if="msg.selectedReferences && msg.selectedReferences.length > 0" class="mt-2 flex flex-wrap justify-end gap-1 border-t border-black/5 dark:border-white/5 pt-2">
+                <div v-for="(ref, ridx) in msg.selectedReferences" :key="ridx" 
+                  class="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full border transition-colors shadow-sm"
+                  :class="msg.role === 'user' 
+                    ? 'bg-white/20 border-white/20 text-white' 
+                    : 'bg-purple-50 dark:bg-purple-900/40 border-purple-100 dark:border-purple-800 text-purple-600 dark:text-purple-400'"
+                >
+                  <i class="fa-solid fa-at text-[7px] opacity-70"></i>
+                  <span>{{ ref.label }}</span>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- 处理中表现 -->
-          <div v-if="aiStore.isProcessing" class="flex flex-col gap-2 items-start shrink-0">
+        <!-- 处理中表现：仅在没有正在生成的回复内容时显示 -->
+          <div v-if="aiStore.isProcessing && (!aiStore.history.length || (aiStore.history[aiStore.history.length-1].role !== 'assistant' || (!aiStore.history[aiStore.history.length-1].content?.trim() && !aiStore.history[aiStore.history.length-1].toolCalls?.length)))" class="flex flex-col gap-2 items-start shrink-0">
             <div class="flex items-center justify-between gap-2 px-1 text-[10px] text-gray-400 w-full">
                <div class="flex items-center gap-2">
                  <i class="fa-solid fa-robot animate-pulse"></i>
@@ -323,7 +336,7 @@
                 <div class="space-y-3">
                   <div class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase px-1 tracking-wider">世界 & 角色</div>
                   <div class="space-y-4">
-                    <div v-for="val in ['worldview_categories', 'worldview_timeline', 'characters']" :key="val" class="space-y-2">
+                    <div v-for="val in ['worldview', 'timeline', 'character']" :key="val" class="space-y-2">
                       <button 
                         @click="toggleContext(val)"
                         class="w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all hover:shadow-md group"
@@ -333,7 +346,7 @@
                       >
                         <div class="flex items-center gap-3 truncate">
                           <i class="text-xs" :class="[
-                            val === 'worldview_categories' ? 'fa-solid fa-earth-asia' : val === 'worldview_timeline' ? 'fa-solid fa-clock-rotate-left' : 'fa-solid fa-users',
+                            val === 'worldview' ? 'fa-solid fa-earth-asia' : val === 'timeline' ? 'fa-solid fa-clock-rotate-left' : 'fa-solid fa-users',
                             aiStore.referenceKeys.includes(val) ? 'text-orange-600' : 'text-gray-400'
                           ]"></i>
                           <span class="text-[11px] font-bold truncate" :class="aiStore.referenceKeys.includes(val) ? 'text-orange-700' : 'text-gray-600 dark:text-gray-400'">
@@ -424,86 +437,520 @@
       </div>
 
 
-      <!-- 输入区 -->
-      <footer class="p-4 border-t dark:border-[#333] bg-gray-50/50 dark:bg-[#252525]/50 backdrop-blur-md shrink-0">
-        <!-- 辅助操作菜单 -->
-        <div class="flex items-center gap-2 mb-3 px-1">
-          <button 
-            @click="activePanel = activePanel === 'prompts' ? null : 'prompts'"
-            class="flex-1 flex items-center justify-center gap-2 py-1.5 rounded-xl border text-[10px] font-bold transition-all"
-            :class="activePanel === 'prompts' 
-              ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/20' 
-              : 'bg-white dark:bg-[#1e1e1e] border-gray-100 dark:border-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'"
-          >
-            <i class="fa-solid fa-wand-sparkles text-[9px]"></i>
-            {{ selectedPromptId ? (aiStore.allPrompts.find(p => p.id === selectedPromptId)?.label || '指令模板') : '选择指令模板' }}
-          </button>
+      <!-- 输入区 (4行设计) -->
+      <footer class="p-4 border-t dark:border-[#333] bg-gray-50/50 dark:bg-[#252525]/50 backdrop-blur-md shrink-0 space-y-2">
+        <!-- 第一行：任务与上下文控制区 -->
+        <div class="flex items-center gap-2">
+          <!-- 提示词选择 -->
+          <div class="relative flex-1 group">
+            <button 
+              @click="activePanel = activePanel === 'prompts' ? null : 'prompts'"
+              class="w-full h-9 flex items-center justify-between gap-2 px-3 rounded-xl border text-[11px] font-bold transition-all bg-white dark:bg-[#1e1e1e] border-gray-100 dark:border-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              :class="{ 'border-purple-500/50 text-purple-600': selectedPromptId }"
+            >
+              <div class="flex items-center gap-2 truncate">
+                <i class="fa-solid fa-wand-sparkles text-[9px]"></i>
+                <span class="truncate">{{ selectedPromptId ? (aiStore.allPrompts.find(p => p.id === selectedPromptId)?.label) : '选择任务模板' }}</span>
+              </div>
+              <i class="fa-solid fa-chevron-down text-[8px] opacity-50"></i>
+            </button>
+            <button v-if="selectedPromptId" @click.stop="selectedPromptId = ''" class="absolute -top-1 -right-1 w-4 h-4 bg-gray-100 dark:bg-[#333] rounded-full flex items-center justify-center text-[8px] hover:text-red-500 transition-colors">
+               <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
 
+          <!-- 实体选择开关 (手动面板) -->
           <button 
             @click="activePanel = activePanel === 'context' ? null : 'context'"
-            class="flex-1 flex items-center justify-center gap-2 py-1.5 rounded-xl border text-[10px] font-bold transition-all relative"
+            class="w-9 h-9 flex items-center justify-center rounded-xl border text-[11px] transition-all"
             :class="activePanel === 'context' 
               ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' 
-              : 'bg-white dark:bg-[#1e1e1e] border-gray-100 dark:border-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'"
+              : 'bg-white dark:bg-[#1e1e1e] border-gray-100 dark:border-white/5 text-gray-400'"
+            title="手动选择参考上下文"
           >
-            <i class="fa-solid fa-database text-[9px]"></i>
-            参考上下文
-            <span v-if="aiStore.referenceKeys.length > 0" class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full border-2 border-white dark:border-[#252525]">
-              {{ aiStore.referenceKeys.length }}
-            </span>
+            <i class="fa-solid fa-database text-[10px]"></i>
+          </button>
+
+          <!-- 添加当前到参考 -->
+          <button 
+            @click="addCurrentEntityToReference"
+            :disabled="!canReferenceCurrent"
+            class="w-9 h-9 flex items-center justify-center rounded-xl border transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            :class="canReferenceCurrent 
+              ? 'border-indigo-100 dark:border-indigo-800/50 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:scale-105 shadow-sm shadow-indigo-500/10' 
+              : 'border-gray-100 dark:border-white/5 bg-white dark:bg-[#1e1e1e] text-gray-400'"
+            title="添加当前页面实体到参考"
+          >
+            <i class="fa-solid fa-link text-[10px]"></i>
           </button>
         </div>
 
+        <!-- 第二行：参考实体展示行 -->
+        <div v-if="activeReferences.length > 0" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-h-[28px]">
+          <div 
+            v-for="(ref, idx) in activeReferences" 
+            :key="idx"
+            class="flex items-center gap-1.5 px-2.5 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 text-[10px] text-indigo-600 dark:text-indigo-400 group shrink-0"
+          >
+            <i class="fa-solid" :class="[
+              ref.type === 'character' ? 'fa-user' : 
+              ref.type === 'manuscript' ? 'fa-file-lines' : 
+              ref.type === 'outline' ? 'fa-scroll' :
+              ref.type === 'worldview' ? 'fa-earth-asia' : 
+              ref.type === 'timeline' ? 'fa-clock-rotate-left' : 
+              ref.type === 'chapters' ? 'fa-list-ul' : 'fa-tag'
+            ]"></i>
+            <span class="font-bold">@{{ ref.label }}</span>
+            <button @click="removeReference(ref)" class="hover:text-red-500 transition-colors ml-0.5">
+              <i class="fa-solid fa-circle-xmark opacity-60"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 第三行：输入区 -->
         <div class="relative group">
           <textarea 
+            ref="inputAreaRef"
             v-model="input"
-            rows="3"
-            class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#444] rounded-xl pl-3 pr-12 py-3 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all resize-none shadow-sm group-hover:border-gray-300 dark:group-hover:border-[#555]"
-            placeholder="输入对话或指令..."
+            rows="4"
+            class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333] rounded-2xl pl-4 pr-12 py-3 text-[13px] leading-relaxed focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 transition-all resize-none shadow-sm dark:text-gray-200"
+            placeholder="输入任务描述，支持 @ 引用实体..."
+            @input="handleAtInput"
+            @blur="handleAtBlur"
+            @keydown="handleAtKeydown"
             @keydown.enter.ctrl.exact="send"
           ></textarea>
-          <button 
-            @click="send"
-            :disabled="!input.trim() || aiStore.isProcessing"
-            class="absolute bottom-3 right-3 w-8 h-8 bg-purple-600 text-white rounded-lg flex items-center justify-center hover:bg-purple-700 disabled:opacity-30 disabled:hover:bg-purple-600 transition-all shadow-lg shadow-purple-500/20"
-          >
-            <i class="fa-solid fa-arrow-up text-xs"></i>
-          </button>
         </div>
-        <div class="mt-2 flex justify-between items-center">
-          <button v-if="selectedPromptId" @click="selectedPromptId = ''" class="text-[9px] text-purple-400 hover:text-purple-600 transition-colors">
-            清除当前模板
-          </button>
-          <div class="ml-auto text-[9px] text-gray-400">Ctrl + Enter 发送</div>
+
+        <!-- 第四行：执行控制区 -->
+        <div class="flex items-center justify-between gap-2 h-9">
+          <div class="flex items-center gap-2 h-full">
+            <!-- 模式选择 -->
+            <select 
+              v-model="executionMode"
+              class="h-full bg-white dark:bg-[#1e1e1e] border border-gray-100 dark:border-white/10 rounded-xl px-2.5 text-[11px] font-bold outline-none transition-all cursor-pointer"
+              :class="executionMode === 'agent' ? 'text-orange-500 border-orange-500/30' : 'text-blue-500 border-blue-500/30'"
+            >
+              <option value="chat">Chat</option>
+              <option value="agent">Agent</option>
+            </select>
+
+            <!-- 模型选择 (从 settingsStore 获取) -->
+            <div class="h-full flex items-center px-3 text-[11px] text-gray-400 font-mono bg-white/50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 truncate max-w-[140px]">
+              <i class="fa-solid fa-microchip text-[9px] mr-2 opacity-50"></i>
+              {{ settingsStore.activeAIProfile?.model || '未选模型' }}
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 h-full">
+            <span class="text-[9px] text-gray-400 font-medium">Ctrl+Enter</span>
+            <button 
+              @click="send"
+              :disabled="!input.trim() || aiStore.isProcessing"
+              class="h-full flex items-center px-4 bg-purple-600 text-white rounded-xl text-[11px] font-bold hover:bg-purple-700 disabled:opacity-30 transition-all shadow-md shadow-purple-500/20 active:scale-95"
+            >
+              <i v-if="!aiStore.isProcessing" class="fa-solid fa-paper-plane text-[9px]"></i>
+              <i v-else class="fa-solid fa-circle-notch fa-spin text-[9px]"></i>
+            </button>
+          </div>
         </div>
       </footer>
+
+      <!-- @Mention 菜单 (浮层) -->
+      <div v-if="atMenu.visible" class="absolute inset-0 z-[95]" @click="closeAtMenu"></div>
+      <div 
+        v-if="atMenu.visible"
+        @mousedown.prevent
+        class="absolute bottom-[200px] left-4 z-[100] bg-white dark:bg-[#222] border dark:border-[#333] rounded-xl shadow-2xl w-56 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150"
+      >
+        <div v-if="atMenu.step === 1" class="py-1">
+          <div class="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b dark:border-white/5 mb-1 flex items-center gap-2">
+            <i class="fa-solid fa-at text-purple-500"></i>
+            引用实体类型
+          </div>
+          <div ref="atScrollContainer1" class="max-h-[300px] overflow-y-auto custom-scrollbar">
+            <button 
+              v-for="(type, idx) in atMenu.types" 
+              :key="type.value"
+              @click="selectAtType(type)"
+              class="w-full flex items-center gap-3 px-3 py-2.5 text-[13px] transition-colors"
+              :class="atMenu.selectedIndex === idx ? 'bg-purple-600 text-white active-at-item' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'"
+            >
+              <i class="fa-solid w-4 text-center" :class="type.icon"></i>
+              {{ type.label }}
+              <i class="fa-solid fa-chevron-right ml-auto text-[9px] opacity-30"></i>
+            </button>
+          </div>
+        </div>
+        <div v-else class="py-1 flex flex-col max-h-[320px]">
+          <div class="px-3 py-2 flex items-center justify-between border-b dark:border-white/5 mb-1 bg-gray-50/50 dark:bg-white/5">
+            <span class="text-[10px] font-black text-purple-500 uppercase tracking-widest flex items-center gap-2">
+               <button @click="atMenu.step = 1" class="hover:text-purple-700"><i class="fa-solid fa-arrow-left"></i></button>
+               选择{{ atMenu.types.find(t => t.value === atMenu.selectedType)?.label }}
+            </span>
+            <span v-if="atMenu.search" class="text-[9px] bg-purple-100 dark:bg-purple-900/40 px-1.5 py-0.5 rounded text-purple-600">{{ atMenu.search }}</span>
+          </div>
+          <div ref="atScrollContainer2" class="flex-1 overflow-y-auto custom-scrollbar pr-0.5">
+            <button 
+              v-for="(item, idx) in filteredAtInstances" 
+              :key="item.id"
+              @click="confirmAtReference(item)"
+              class="w-full text-left px-3 py-2.5 text-[13px] transition-colors truncate border-b border-gray-50 dark:border-white/5 last:border-0"
+              :class="atMenu.selectedIndex === idx ? 'bg-purple-600 text-white active-at-item' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'"
+            >
+              <i class="fa-solid fa-check-circle mr-2 text-[10px]" :class="atMenu.selectedIndex === idx ? 'opacity-100' : 'opacity-0'"></i>
+              {{ item.label }}
+            </button>
+            <div v-if="filteredAtInstances.length === 0" class="px-3 py-8 text-center">
+              <i class="fa-solid fa-magnifying-glass text-gray-300 mb-2 block"></i>
+              <span class="text-xs text-gray-400">未找到相关项</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </transition>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, nextTick, computed, reactive } from 'vue'
 import { marked } from 'marked'
 import { useAIStore } from '@/store/ai'
 import { useProjectStore } from '@/store/project'
 import { useCharacterStore } from '@/store/characters'
+import { useOutlineStore } from '@/store/outline'
+import { useWorldviewStore } from '@/store/worldview'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
 import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall } from '@/types'
 import { AI_TOOLS } from '@/core/ai/tool-definitions'
+import { SCHEMA_REGISTRY, getAIExportKeys, getIdentityKeys, getTechnicalKeys } from '@/core/ai/schema-registry'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useRouter } from 'vue-router'
 
 const aiStore = useAIStore()
 const projectStore = useProjectStore()
 const characterStore = useCharacterStore()
+const outlineStore = useOutlineStore()
+const worldviewStore = useWorldviewStore()
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
 const router = useRouter()
 
 const input = ref('')
+const expandedToolCallIds = reactive(new Set<string>())
 const historyBox = ref<HTMLElement | null>(null)
+const inputAreaRef = ref<HTMLTextAreaElement | null>(null)
 const activePanel = ref<'context' | 'prompts' | null>(null)
+
+// --- 工具解析辅助 ---
+const readOnlyTools = ['getEntityList', 'getEntitySchema', 'getEntityDetail', 'searchEntities', 'getRelationGraph'];
+
+/**
+ * 自动管理工具卡片展开状态
+ * 1. 发现新的待确认工具调用时，默认展开
+ * 2. 工具执行成功后，自动折叠
+ */
+watch(() => aiStore.history, (newHistory) => {
+  const lastMsg = newHistory[newHistory.length - 1]
+  if (lastMsg && lastMsg.role === 'assistant' && lastMsg.toolCalls) {
+    lastMsg.toolCalls.forEach(call => {
+      // 如果是写入型工具，且未执行过，且不在已展开列表中，则自动展开
+      if (!readOnlyTools.includes(call.function.name) && 
+          !aiStore.executedToolCallIds.has(call.id)) {
+        expandedToolCallIds.add(call.id)
+      }
+    })
+  }
+}, { deep: true })
+
+// --- @Mention 状态与滚动控制 ---
+const atScrollContainer1 = ref<HTMLElement | null>(null)
+const atScrollContainer2 = ref<HTMLElement | null>(null)
+
+const atMenu = reactive({
+  visible: false,
+  step: 1 as 1 | 2,
+  search: '',
+  selectedType: null as string | null,
+  selectedIndex: 0,
+  rect: { top: 0, left: 0 },
+  types: [
+    { value: 'character', label: '角色', icon: 'fa-user-circle' },
+    { value: 'outline', label: '大纲', icon: 'fa-scroll' },
+    { value: 'worldview', label: '世界观设定', icon: 'fa-earth-asia' },
+    { value: 'chapters', label: '目录', icon: 'fa-list-ul' },
+    { value: 'manuscript', label: '正文', icon: 'fa-file-lines' },
+    { value: 'timeline', label: '时间线', icon: 'fa-clock-rotate-left' },
+  ],
+  instances: [] as any[]
+})
+
+/**
+ * 自动滚动 @ 菜单以确保当前选中的 item 可见
+ */
+watch([() => atMenu.selectedIndex, () => atMenu.step], async () => {
+  if (!atMenu.visible) return
+  await nextTick()
+  
+  const container = atMenu.step === 1 ? atScrollContainer1.value : atScrollContainer2.value
+  if (!container) return
+
+  const activeItem = container.querySelector('.active-at-item') as HTMLElement
+  if (activeItem) {
+    activeItem.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+  }
+})
+
+const filteredAtInstances = computed(() => {
+  const query = atMenu.search.toLowerCase()
+  const list = [
+    { id: 'all', label: '所有' },
+    ...atMenu.instances
+  ]
+  if (!query) return list
+  return list.filter(i => (i.label || '').toLowerCase().includes(query))
+})
+
+// --- 模式切换与模型 ---
+const executionMode = computed({
+  get: () => aiStore.executionMode,
+  set: (val) => aiStore.executionMode = val
+})
+
+/**
+ * 核心同步逻辑：将手动选择的状态转化为 @引用列表
+ */
+const activeReferences = computed(() => {
+  const refs: AIReference[] = []
+  
+  aiStore.referenceKeys.forEach(key => {
+    const node = findNodeByValue(key)
+    if (!node) return
+    
+    // 获取分类标签 (例如 "角色")
+    const typeLabel = atMenu.types.find(t => t.value === key)?.label || node.label
+
+    if (!node.isGranular) {
+      // 非精细化项 (如项目元数据)
+      refs.push({ type: key as any, id: 'all', label: `${typeLabel}: 所有` })
+    } else {
+      // 精细化项 (如角色、章节)
+      const selectedIds = aiStore.granularSelections[key] || []
+      const options = aiStore.getContextOptions(key)
+      
+      if (selectedIds.length > 0 && selectedIds.length === options.length && !selectedIds.some(id => typeof id === 'object')) {
+         refs.push({ type: key as any, id: 'all', label: `${typeLabel}: 所有` })
+      } else {
+        selectedIds.forEach(id => {
+          if (typeof id === 'object' && (id as any).start !== undefined) {
+             // 处理范围引用 (如正文选区)
+             const obj = id as any
+             refs.push({ 
+               type: key as any, 
+               id: `range:${obj.start}-${obj.end}`, 
+               label: obj.label || `${typeLabel}: ${obj.start}-${obj.end}`,
+               range: { start: obj.start, end: obj.end }
+             })
+          } else {
+            const opt = options.find((o: any) => o.id === id)
+            if (opt) {
+              refs.push({ type: key as any, id: id as string, label: `${typeLabel}: ${opt.label}` })
+            }
+          }
+        })
+      }
+    }
+  })
+  return refs
+})
+
+// 同步本地计算得到的引用列表到 store，以便 sendMessage 能抓取到正确的上下文快照
+watch(activeReferences, (newRefs) => {
+  aiStore.activeReferences = newRefs
+}, { immediate: true })
+
+function removeReference(ref: AIReference) {
+  if (ref.id === 'all') {
+    // 移除大类
+    const idx = aiStore.referenceKeys.indexOf(ref.type)
+    if (idx !== -1) aiStore.referenceKeys.splice(idx, 1)
+    // 如果是精细化类，清空其子项
+    if (aiStore.granularSelections[ref.type]) {
+      aiStore.granularSelections[ref.type] = []
+    }
+  } else {
+    // 移除特定子项
+    const items = aiStore.granularSelections[ref.type] || []
+    let idx = -1
+    
+    if (ref.id.startsWith('range:')) {
+       // 查找范围对象
+       idx = items.findIndex((i: any) => 
+         typeof i === 'object' && `range:${i.start}-${i.end}` === ref.id
+       )
+    } else {
+       idx = items.indexOf(ref.id)
+    }
+
+    if (idx !== -1) {
+      items.splice(idx, 1)
+    }
+    // 同步更新大类激活状态
+    syncCategorySelection(ref.type)
+  }
+}
+
+function handleAtInput(e: Event) {
+  const textarea = e.target as HTMLTextAreaElement
+  const cursor = textarea.selectionStart
+  const val = textarea.value
+  const textBefore = val.substring(0, cursor)
+  
+  // 查找当前光标前最近的一个 @
+  const lastAtIndex = textBefore.lastIndexOf('@')
+  
+  // 如果没有 @，则关闭菜单
+  if (lastAtIndex === -1) {
+    if (atMenu.visible) closeAtMenu()
+    return
+  }
+
+  // 获取 @ 之后到当前光标的内容
+  const query = textBefore.substring(lastAtIndex + 1)
+  
+  atMenu.visible = true
+
+  // 检查 query 是否以某个已知类型开头
+  const foundType = atMenu.types.find(t => query.startsWith(t.label))
+  
+  if (foundType) {
+    // 进入二级菜单（筛选实例）
+    atMenu.step = 2
+    atMenu.selectedType = foundType.value
+    atMenu.instances = aiStore.getContextOptions(foundType.value)
+    // 搜索词是类型名之后的内容
+    atMenu.search = query.substring(foundType.label.length).trimStart()
+  } else {
+    // 退回一级菜单（选择类型）
+    atMenu.step = 1
+    atMenu.search = query
+    atMenu.selectedType = null
+  }
+  
+  atMenu.selectedIndex = 0
+}
+
+async function selectAtType(type: any) {
+  atMenu.selectedType = type.value
+  atMenu.step = 2
+  atMenu.selectedIndex = 0
+  atMenu.search = ''
+  atMenu.instances = aiStore.getContextOptions(type.value)
+
+  // 在编辑区域追加类型名称
+  const textarea = inputAreaRef.value
+  if (textarea) {
+    const cursor = textarea.selectionStart
+    const textBefore = textarea.value.substring(0, cursor)
+    const lastAtIndex = textBefore.lastIndexOf('@')
+    const textAfter = textarea.value.substring(cursor)
+    
+    // 更新输入框内容：@ -> @类型 (追加一个空格便于后续输入)
+    const newTextBefore = textarea.value.substring(0, lastAtIndex + 1) + type.label + ' '
+    input.value = newTextBefore + textAfter
+    
+    // 将光标移至空格之后
+    nextTick(() => {
+      const newCursor = newTextBefore.length
+      textarea.setSelectionRange(newCursor, newCursor)
+      textarea.focus()
+    })
+  }
+}
+
+function handleAtBlur() {
+  // 延迟关闭，防止点击菜单项时菜单立即消失导致点击失效
+  setTimeout(() => {
+    closeAtMenu()
+  }, 200)
+}
+
+function confirmAtReference(instance: any) {
+  const type = atMenu.selectedType!
+  
+  if (instance.id === 'all') {
+    if (!aiStore.referenceKeys.includes(type)) {
+      aiStore.referenceKeys.push(type)
+    }
+    const options = aiStore.getContextOptions(type)
+    aiStore.granularSelections[type] = options.map((o: any) => o.id)
+  } else {
+    if (!aiStore.granularSelections[type]) aiStore.granularSelections[type] = []
+    
+    // 如果是范围对象，执行深度比较
+    const isRange = typeof instance.id === 'object' && instance.id.start !== undefined
+    const exists = isRange 
+      ? aiStore.granularSelections[type].some((id: any) => 
+          typeof id === 'object' && id.start === instance.id.start && id.end === instance.id.end
+        )
+      : aiStore.granularSelections[type].includes(instance.id)
+
+    if (!exists) {
+      aiStore.granularSelections[type].push(instance.id)
+    }
+    syncCategorySelection(type)
+  }
+  
+  const textarea = inputAreaRef.value
+  if (textarea) {
+    const cursor = textarea.selectionStart
+    const textBefore = textarea.value.substring(0, cursor)
+    const lastAtIndex = textBefore.lastIndexOf('@')
+    const textAfter = textarea.value.substring(cursor)
+    input.value = textarea.value.substring(0, lastAtIndex) + textAfter
+    
+    nextTick(() => {
+      textarea.setSelectionRange(lastAtIndex, lastAtIndex)
+      textarea.focus()
+    })
+  }
+
+  closeAtMenu()
+}
+
+function closeAtMenu() {
+  atMenu.visible = false
+  atMenu.selectedType = null
+  atMenu.instances = []
+}
+
+function handleAtKeydown(e: KeyboardEvent) {
+  if (!atMenu.visible) return
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    const max = atMenu.step === 1 ? atMenu.types.length : filteredAtInstances.value.length
+    atMenu.selectedIndex = (atMenu.selectedIndex + 1) % max
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    const max = atMenu.step === 1 ? atMenu.types.length : filteredAtInstances.value.length
+    atMenu.selectedIndex = (atMenu.selectedIndex - 1 + max) % max
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    if (atMenu.step === 1) {
+      selectAtType(atMenu.types[atMenu.selectedIndex])
+    } else {
+      confirmAtReference(filteredAtInstances.value[atMenu.selectedIndex])
+    }
+  } else if (e.key === 'Escape') {
+    closeAtMenu()
+  } else if (e.key === 'Backspace' && atMenu.step === 2 && !atMenu.search) {
+    e.preventDefault()
+    atMenu.step = 1
+    atMenu.selectedIndex = 0
+  }
+}
 
 function renderMarkdown(content: string) {
   try {
@@ -511,22 +958,6 @@ function renderMarkdown(content: string) {
   } catch (e) {
     return content
   }
-}
-
-function parseAIResponse(content: string) {
-  if (!content) return null;
-  try {
-    // 提取可能的 JSON 块
-    const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/{[\s\S]*}/);
-    const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
-    return JSON.parse(jsonStr);
-  } catch (e) {
-    return null;
-  }
-}
-
-function importAIResult(content: string) {
-  uiStore.showToast('请通过下方的“建议操作”卡片进行精准数据变更。', 'info')
 }
 
 // --- 从 Store 同步状态 ---
@@ -611,48 +1042,53 @@ function toggleSelectAll(key: string) {
   syncCategorySelection(key)
 }
 
-function showRawData(refs: any) {
-  uiStore.openModal('ai-snapshot', refs)
-}
-
 // --- AI 上下文统一处理引擎 ---
 /**
  * 负责将原始项目数据转换为 AI 易于理解、无技术噪音、且带有语义说明的上下文快照。
+ * 已升级：基于 schema-registry 进行动态字段过滤与数据清洗。
  */
 const ContextEngine = {
   // 定义需要从发送给 AI 的数据中保留的核心标识字段
-  IDENTITY_KEYS: ['id', 'type', 'name'],
+  get IDENTITY_KEYS() { return getIdentityKeys() },
   // 定义需要剔除的技术冗余字段
-  TECHNICAL_KEYS: ['order', 'range', 'anchorLineNumber', 'linkedChapters', 'projectId', 'depth'],
+  get TECHNICAL_KEYS() { return getTechnicalKeys() },
 
   /**
    * 深度递归处理数据，清理技术字段并保持结构清晰
-   * 额外优化：如果对象包含 base 属性且 base 中有 name，则将其提升至顶层，便于 AI 关联 ID 和名称
+   * 优化：如果对象包含 base，则将其属性平铺到顶层，并彻底删除 base 对象，防止 AI 开启“模仿模式”。
    */
-  cleanData(data: any): any {
-    if (Array.isArray(data)) return data.map(item => this.cleanData(item));
+  cleanData(data: any, entityType?: string): any {
+    if (Array.isArray(data)) return data.map(item => this.cleanData(item, entityType));
     if (data && typeof data === 'object') {
-      let source = data;
-      // 自动摊平角色等带有 base 属性的数据
-      if (data.base && typeof data.base === 'object') {
-        source = { 
-          id: data.id, 
-          type: data.type, 
-          ...data.base,
-          ...data 
-        };
-        delete (source as any).base;
+      let source = { ...data };
+      
+      // 1. 摊平 base 并彻底删除原引用
+      if (source.base && typeof source.base === 'object') {
+        Object.assign(source, source.base);
+        delete source.base;
       }
 
+      // 获取当前实体类型的可见字段白名单
+      const currentType = entityType || source.type;
+      const exportKeys = currentType ? getAIExportKeys(currentType) : [];
+
+      // 2. 构造清洗后的对象
       const cleaned: any = {};
       for (const [key, value] of Object.entries(source)) {
-        // 保留核心标识
+        // 如果有明确的类型白名单，优先使用白名单
+        if (exportKeys.length > 0 && !this.IDENTITY_KEYS.includes(key)) {
+          if (!exportKeys.includes(key)) continue;
+        } else {
+           // 否则使用通用的技术字段剔除
+           if (this.TECHNICAL_KEYS.includes(key)) continue;
+        }
+        
+        // 核心标识字段始终保留
         if (this.IDENTITY_KEYS.includes(key)) {
           cleaned[key] = value;
           continue;
         }
-        // 剔除技术冗余
-        if (this.TECHNICAL_KEYS.includes(key)) continue;
+
         // 剔除空值/函数
         if (value === null || value === undefined || typeof value === 'function') continue;
         
@@ -733,37 +1169,65 @@ const ContextEngine = {
 
   /**
    * 自动生成语义化的字段解释文档
+   * 已升级：优先从 SCHEMA_REGISTRY 获取字段解释
    */
   generateExplanation(node: ReferenceNode, isGranularActive: boolean): string {
+    const schema = SCHEMA_REGISTRY[node.value];
+    
     let lines = [
       `#### 模块: ${node.label} (${node.value}) ####`, 
       `* 功能描述: ${node.description}`,
-      `* 重要提示: 调用工具修改或删除此模块内容时，必须使用下方数据中的 "id" 字段作为唯一标识。`
+      `* 重要提示: 修改或删除此模块内容时，必须使用数据中的 "id" 作为唯一标识。`
     ];
     
-    // 获取需要解释的字段集
-    let targetNodes = node.children || [];
-    if (isGranularActive) {
-      const subNode = targetNodes.find(n => n.value === 'acts' || n.value === 'content' || n.isGranular);
-      if (subNode && subNode.children) targetNodes = subNode.children;
-    }
-
-    if (targetNodes.length > 0) {
-      lines.push(`* 关键字段定义:`);
-      targetNodes.forEach(child => {
-        if (this.TECHNICAL_KEYS.includes(child.value)) return;
-        lines.push(`  - ${child.value}: ${child.description}`);
+    if (schema) {
+      lines.push(`* 核心字段定义:`);
+      schema.fields.forEach(f => {
+        if (!f.aiExport || f.isTechnical) return;
+        lines.push(`  - ${f.key} (${f.label}): ${f.description}`);
       });
-    //   if (node.value === 'outline') lines.push(`  - textSegments: 该幕在大纲中对应的具体文字叙述`);
+    } else {
+      // 回退逻辑：从 ReferenceNode 获取
+      let targetNodes = node.children || [];
+      if (isGranularActive) {
+        const subNode = targetNodes.find(n => n.value === 'acts' || n.value === 'content' || n.isGranular);
+        if (subNode && subNode.children) targetNodes = subNode.children;
+      }
+
+      if (targetNodes.length > 0) {
+        lines.push(`* 关键字段定义:`);
+        targetNodes.forEach(child => {
+          if (this.TECHNICAL_KEYS.includes(child.value)) return;
+          lines.push(`  - ${child.value}: ${child.description}`);
+        });
+      }
     }
     return lines.join('\n');
   }
 };
 
-// --- 工具解析辅助 ---
 function getToolLabel(name: string) {
   const tool = AI_TOOLS.find(t => t.name === name)
   return tool?.description.split('：')[0] || name
+}
+
+function formatArgs(raw: string) {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2)
+  } catch (e) {
+    return raw
+  }
+}
+
+function getToolResultForCall(callId: string) {
+  // 从历史记录中查找对应的 tool 角色消息
+  for (const msg of aiStore.history) {
+    if (msg.role === 'tool' && msg.toolResults) {
+      const found = msg.toolResults.find(r => r.toolCallId === callId)
+      if (found) return found
+    }
+  }
+  return null
 }
 
 function getToolSummary(call: AIToolCall) {
@@ -779,18 +1243,59 @@ function getToolSummary(call: AIToolCall) {
       return '解析参数中...'
     }
 
-    if (call.function.name === 'edit_text_block') {
+    const typeMap: Record<string, string> = { 
+      'character': '角色', 
+      'worldview': '世界观', 
+      'relationship': '关系', 
+      'timeline': '时间线',
+      'chapters': '目录',
+      'manuscript': '正文'
+    }
+
+    if (call.function.name === 'editTextBlock') {
       const search = (args.search_text || '')
-      const replace = (args.replace_text || '')
-      return `精准修改正文内容，将 "${search.length > 20 ? search.slice(0, 20) + '...' : search}" 修正为符合设定的描述。`
+      return `精准修正文本：根据设定更新“${search.length > 15 ? search.slice(0, 15) + '...' : search}”的相关描述。`
     }
-    if (call.function.name === 'upsert_entities') {
-      const typeMap: Record<string, string> = { 'character': '角色', 'worldview': '世界观', 'relationship': '关系', 'timeline': '时间线' }
-      const labels = (args.entities || []).map((e: any) => e.name || e.id).filter(Boolean)
-      return `同步 ${typeMap[args.type] || args.type} 数据：${labels.length > 0 ? labels.join('、') : '新项'}`
+    if (call.function.name === 'upsertEntities') {
+      const entities = args.entities || []
+      const counts: Record<string, { create: number, update: number }> = {}
+      
+      entities.forEach((e: any) => {
+        const typeKey = typeMap[e.type] || e.type
+        if (!counts[typeKey]) counts[typeKey] = { create: 0, update: 0 }
+        if (e.id) counts[typeKey].update++
+        else counts[typeKey].create++
+      })
+
+      const details = Object.entries(counts).map(([type, c]) => {
+        const parts = []
+        if (c.create > 0) parts.push(`创建${c.create}个${type}`)
+        if (c.update > 0) parts.push(`更新${c.update}个${type}`)
+        return parts.join('、')
+      }).join('；')
+
+      return `同步设定档案：${details || '处理实体定义'}`
     }
-    if (call.function.name === 'delete_entities') {
-      return `从工程中移除 ${args.ids?.length || 0} 个指定的实体系目。`
+    if (call.function.name === 'deleteEntities') {
+      return `清理失效数据：移除 ${args.entities?.length || 0} 项过时的工程条目。`
+    }
+    if (call.function.name === 'getEntityList') {
+       return `自动调取上下文：正在获取${typeMap[args.type] || args.type}的全量索引...`
+    }
+    if (call.function.name === 'getEntityDetail') {
+       return `深度背景分析：正在调取特定${typeMap[args.type] || args.type}条目的详细设定...`
+    }
+    if (call.function.name === 'searchEntities') {
+       return `全局搜索引用：正在检索与 "${args.query}" 相关的历史背景...`
+    }
+    if (call.function.name === 'getRelationGraph') {
+       return `关系图谱建模：正在构建当前视角下的全景人物/势力关系网络...`
+    }
+    if (call.function.name === 'getEntitySchema') {
+       return `正在解析模型字段定义与验证规则...`
+    }
+    if (call.function.name === 'searchEntities') {
+       return `正在项目中搜索 "${args.query}" 相关的内容...`
     }
     return `执行系统指令: ${call.function.name}`
   } catch (e) {
@@ -799,12 +1304,13 @@ function getToolSummary(call: AIToolCall) {
 }
 
 async function handleApplyTool(messageId: string, call: AIToolCall) {
-  console.group(`[AI Tool Engine] Applying: ${call.function.name}`);
-  console.log('Raw Arguments:', call.function.arguments);
+  const toolName = call.function.name;
+  console.group(`[AI Tool Engine] Applying Write-Tool: ${toolName}`);
+  console.log('Raw Arguments from AI:', call.function.arguments);
 
   const ok = await uiStore.showConfirm({
     title: '确认执行 AI 操作',
-    message: `AI 建议执行 “${getToolLabel(call.function.name)}”，是否继续？`,
+    message: `AI 建议执行 “${getToolLabel(toolName)}”，是否继续？`,
     confirmText: '确认执行'
   })
 
@@ -815,21 +1321,28 @@ async function handleApplyTool(messageId: string, call: AIToolCall) {
   }
 
   try {
-    const args = JSON.parse(call.function.arguments)
+    let args;
+    try {
+      args = JSON.parse(call.function.arguments)
+    } catch (e) {
+      console.error('Failed to parse arguments JSON:', e);
+      throw new Error('AI 返回的指令参数格式错误');
+    }
+    
     console.log('Parsed Arguments:', args);
     let result = ''
     let isSuccess = false
 
     projectStore.takeSnapshot()
 
-    if (call.function.name === 'edit_text_block') {
+    if (toolName === 'editTextBlock') {
       const { search_text, replace_text } = args
       console.log(`Searching for: "${search_text}"`);
       
       // 1. 尝试在大纲中寻找并替换
       const fullOutline = (projectStore.bundle?.outline.content || []).join('\n')
       if (fullOutline.includes(search_text)) {
-        console.log('Found match in Outline');
+        console.log('Match found in Outline');
         const nextFull = fullOutline.replace(search_text, replace_text)
         projectStore.bundle!.outline.content = nextFull.split('\n')
         result = '已成功更新大纲文本段落'
@@ -839,7 +1352,7 @@ async function handleApplyTool(messageId: string, call: AIToolCall) {
         // 2. 尝试在正文中寻找并替换
         const fullManuscript = (projectStore.bundle?.manuscript.content || []).join('\n')
         if (fullManuscript.includes(search_text)) {
-          console.log('Found match in Manuscript');
+          console.log('Match found in Manuscript');
           const nextFull = fullManuscript.replace(search_text, replace_text)
           projectStore.bundle!.manuscript.content = nextFull.split('\n')
           result = '已成功更新正文文本段落'
@@ -849,58 +1362,133 @@ async function handleApplyTool(messageId: string, call: AIToolCall) {
           throw new Error('无法在当前正文或大纲中定位到指定的文本锚点，请尝试提供更精准的搜索片段。')
         }
       }
-    } else if (call.function.name === 'upsert_entities') {
-      const { type, entities } = args
-      console.log(`Upserting ${type} entities:`, entities);
+    } else if (toolName === 'upsertEntities') {
+      let { entities } = args
+      
+      // 兜底：处理 AI 将数组序列化为字符串的情况
+      if (typeof entities === 'string') {
+        console.warn('AI incorrectly stringified the entities array, attempting to re-parse...');
+        try {
+          entities = JSON.parse(entities)
+        } catch (e) {
+          console.error('Re-parsing failed:', e)
+        }
+      }
 
-      if (type === 'character') {
-        const updatedNames: string[] = []
-        entities.forEach((entity: any) => {
-          if (entity.id) {
-            console.log(`Updating existing character: ${entity.id}`);
-            const char = projectStore.bundle?.characters.find(c => c.id === entity.id)
-            if (char) {
-              const { id, type: _, ...updates } = entity
-              Object.assign(char.base, updates)
-              updatedNames.push(char.base.name)
-              console.log('Successfully updated:', char.base.name);
-            } else {
-              console.error(`Character with ID ${entity.id} not found!`);
-            }
-          } else {
-            console.log('Creating new character:', entity.name);
-            const newChar = characterStore.addCharacter(entity.name || '新角色')
-            if (newChar) {
-              const { name: _, ...updates } = entity
-              Object.assign(newChar.base, updates)
-              updatedNames.push(newChar.base.name)
-              console.log('Successfully created:', newChar.base.name);
-            }
+      if (!Array.isArray(entities)) {
+        console.error('Invalid entities payload:', entities);
+        throw new Error('Invalid payload: "entities" must be an array.')
+      }
+
+      console.log(`Processing ${entities.length} entities...`);
+      const results: string[] = []
+      
+      for (const rawEntity of entities) {
+        let type = rawEntity.type
+        const id = rawEntity.id
+        
+        // 自动推断类型 (针对 AI 忘记传 type 的情况)
+        if (!type) {
+          if (rawEntity.personality || rawEntity.identities || rawEntity.factions) type = 'character'
+          else if (rawEntity.sourceId && rawEntity.targetId) type = 'relationship'
+          else if (rawEntity.summary || rawEntity.content) type = 'outline'
+          else if (rawEntity.details && Array.isArray(rawEntity.details)) type = 'worldview'
+          
+          if (type) console.warn(`      Inferred missing type: ${type}`);
+        }
+
+        console.log(`  - Processing ${type} (ID: ${id || 'NEW'}):`, rawEntity);
+
+        const schema = SCHEMA_REGISTRY[type]
+        if (!schema) {
+          console.warn(`    Unknown entity type: ${type}. Full payload:`, rawEntity);
+          continue
+        }
+
+        // --- 核心优化：基于 Schema Registry 的数据清洗 ---
+        const sanitizedData: any = {}
+        schema.fields.forEach(field => {
+          if (field.aiImport && rawEntity[field.key] !== undefined) {
+            sanitizedData[field.key] = rawEntity[field.key]
           }
         })
-        result = `已同步 ${updatedNames.length} 个角色：${updatedNames.join(', ')}`
-        isSuccess = true
-      } else {
-        console.warn(`Upsert for entity type "${type}" is not fully implemented.`);
-        result = '目前仅支持角色实体的自动同步，其他类型即将上线。'
-        isSuccess = true
+        console.log('    Sanitized data for import:', sanitizedData);
+
+        // --- 分发到各 Store 进行落地 ---
+        if (type === 'character') {
+          if (id) {
+            characterStore.smartUpdateCharacter(id, sanitizedData)
+            const char = projectStore.bundle?.characters.find(c => c.id === id)
+            results.push(`更新角色: ${char?.base.name || id}`)
+          } else {
+            const newChar = characterStore.addCharacter(sanitizedData.name || '新角色')
+            if (newChar) {
+              characterStore.smartUpdateCharacter(newChar.id, sanitizedData)
+              results.push(`创建角色: ${sanitizedData.name}`)
+            }
+          }
+        } else if (type === 'relationship') {
+          if (id) {
+            characterStore.smartUpdateRelationship(id, sanitizedData)
+            results.push(`更新关系: ${sanitizedData.label || id}`)
+          } else if (sanitizedData.sourceId && sanitizedData.targetId) {
+            const newRel = characterStore.addRelationship(sanitizedData.sourceId, sanitizedData.targetId, sanitizedData.type || 'custom')
+            if (newRel) {
+              characterStore.smartUpdateRelationship(newRel.id, sanitizedData)
+              results.push(`创建关系: ${sanitizedData.label || '新关系'}`)
+            }
+          }
+        } else if (type === 'outline') {
+          if (id) {
+            outlineStore.updateActMetadata(id, sanitizedData)
+            results.push(`更新大纲幕: ${sanitizedData.title || id}`)
+          } else {
+            const newAct = outlineStore.createAct(sanitizedData.title || '新幕')
+            if (newAct) {
+              outlineStore.updateActMetadata(newAct.id, sanitizedData)
+              results.push(`创建大纲幕: ${sanitizedData.title}`)
+            }
+          }
+        } else if (type === 'worldview') {
+          // 世界观以 type 作为唯一标识 (geography, etc.)
+          const categoryId = id || sanitizedData.type || rawEntity.type
+          if (categoryId) {
+            worldviewStore.updateCategory(categoryId, sanitizedData)
+            results.push(`同步世界观: ${sanitizedData.name || categoryId}`)
+          }
+        }
       }
-    } else if (call.function.name === 'delete_entities') {
-      const { type, ids } = args
-      console.log(`Deleting ${type} ids:`, ids);
-      if (type === 'character') {
-        ids.forEach((id: string) => {
-          console.log(`Deleting character: ${id}`);
-          characterStore.removeCharacter(id);
-        })
-        result = `成功删除了 ${ids.length} 个角色`
-        isSuccess = true
+
+      result = results.length > 0 ? `操作成功：\n- ${results.join('\n- ')}` : '未发现可处理的实体数据'
+      isSuccess = true
+    } else if (toolName === 'deleteEntities') {
+      const { entities } = args
+      if (!Array.isArray(entities)) {
+        console.error('Invalid entities payload:', entities);
+        throw new Error('Invalid payload: "entities" must be an array.')
       }
+
+      console.log(`Deleting ${entities.length} entities:`, entities);
+      entities.forEach((e: any) => {
+        if (!e.id && e.type !== 'worldview') {
+          console.warn('Skipping deletion: missing ID for non-worldview entity', e);
+          return
+        }
+        console.log(`  - Deleting ${e.type}: ${e.id}`);
+
+        if (e.type === 'character') characterStore.removeCharacter(e.id)
+        else if (e.type === 'outline') outlineStore.removeAct(e.id)
+        else if (e.type === 'relationship') characterStore.removeRelationship(e.id)
+      })
+
+      result = `成功删除了 ${entities.length} 个实体`
+      isSuccess = true
     }
 
     if (isSuccess) {
       console.log('Tool execution successful:', result);
       aiStore.executedToolCallIds.add(call.id)
+      expandedToolCallIds.delete(call.id) // 执行成功后自动折叠
       uiStore.showToast(result, 'success')
       projectStore.markDirty()
 
@@ -911,6 +1499,9 @@ async function handleApplyTool(messageId: string, call: AIToolCall) {
           content: JSON.stringify({ status: 'success', message: result })
         }]
       })
+
+      // 自动驱动下一轮生成，让 AI 知道操作已完成并进行总结或下一步
+      await aiStore.sendMessage('', '', undefined, true);
     }
 
   } catch (error: any) {
@@ -921,65 +1512,142 @@ async function handleApplyTool(messageId: string, call: AIToolCall) {
   }
 }
 
+function addCurrentEntityToReference() {
+  const path = router.currentRoute.value.path
+  let type: any = null
+  let id: any = ''
+  let label: string = ''
+  let range: { start: number, end: number } | undefined = undefined
+
+  if (path === '/editor') {
+    type = 'manuscript'
+    if (uiStore.editorSelection) {
+      id = `range:${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine}`
+      label = `正文: ${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine}`
+      range = { start: uiStore.editorSelection.startLine, end: uiStore.editorSelection.endLine }
+    } else {
+      uiStore.showToast('请先在正文中选择一段文字', 'warning')
+      return
+    }
+  } else if (path === '/outline') {
+    type = 'outline'
+    if (uiStore.editorSelection) {
+      id = `range:${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine}`
+      label = `大纲: ${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine}`
+      range = { start: uiStore.editorSelection.startLine, end: uiStore.editorSelection.endLine }
+    } else {
+      uiStore.showToast('请先在大纲编辑器中选择文字', 'warning')
+      return
+    }
+  } else if (path === '/characters') {
+    if (characterStore.activeCharacterId) {
+      const char = characterStore.charactersInPhase.find(c => c.id === characterStore.activeCharacterId)
+      if (char) {
+        type = 'character'
+        id = char.id
+        label = `角色: ${char.name}`
+      }
+    }
+  } else if (path === '/worldview') {
+    if (worldviewStore.activeCategoryType) {
+      const cat = worldviewStore.worldview?.categories.find(c => c.type === worldviewStore.activeCategoryType)
+      if (cat) {
+        type = 'worldview'
+        id = cat.type
+        label = `设定: ${cat.name}`
+      }
+    }
+  } else if (path === '/timeline') {
+    type = 'timeline'
+    id = 'timeline_default'
+    label = '参考: 时间线'
+  }
+
+  if (type) {
+    if (!aiStore.referenceKeys.includes(type)) {
+      aiStore.referenceKeys.push(type)
+    }
+    
+    if ((type === 'manuscript' || type === 'outline') && range) {
+       // 这是一个特殊的范围引用
+       if (!aiStore.granularSelections[type]) aiStore.granularSelections[type] = []
+       const existing = aiStore.granularSelections[type].find((item: any) => 
+         typeof item === 'object' && item.start === range!.start && item.end === range!.end
+       )
+       if (!existing) {
+         aiStore.granularSelections[type].push({ ...range, label })
+       }
+    } else {
+      if (!aiStore.granularSelections[type]) aiStore.granularSelections[type] = []
+      if (!aiStore.granularSelections[type].includes(id)) {
+        aiStore.granularSelections[type].push(id)
+      }
+    }
+    uiStore.showToast(`已引用 ${label}`, 'success')
+  } else {
+    uiStore.showToast('当前页面没有可引用的具体内容', 'info')
+  }
+}
+
+const canReferenceCurrent = computed(() => {
+  const path = router.currentRoute.value.path
+  if (path === '/editor' || path === '/outline') {
+    return !!uiStore.editorSelection
+  }
+  if (path === '/characters') {
+    return !!characterStore.activeCharacterId
+  }
+  if (path === '/worldview') {
+    return !!worldviewStore.activeCategoryType
+  }
+  if (path === '/timeline') {
+    return true // 时间线是全局的，始终可以引用
+  }
+  return false
+})
+
 async function send() {
   if (!input.value.trim() || aiStore.isProcessing) return
 
-  const capturedRefs: Record<string, any> = {}
-  let contextPayload = "### [AI 参考内容与数据结构详解] ###\n\n"
+  const userContent = input.value.trim()
+  let fullPrompt = userContent
 
-  if (aiStore.referenceKeys.length > 0 && projectStore.bundle) {
-    aiStore.referenceKeys.forEach(value => {
-      const node = findNodeByValue(value)
-      if (!node || !projectStore.bundle) return
-
-      // 1. 数据定位
-      const path = node.path || ''
-      const keys = path.split('.')
-      let rawData: any = projectStore.bundle
-      keys.forEach(k => { if (rawData && k) rawData = rawData[k] })
-
-      const selections = granularSelections.value[value] || []
+  // 1. 构建参考上下文提示词 (Chip 引用系统由 computed 驱动)
+  if (activeReferences.value.length > 0) {
+    const refLines = activeReferences.value.map(r => {
+      const typeLabel = atMenu.types.find(t => t.value === r.type)?.label || r.type
       
-      // 用户要求：如果开启了精细化筛选但没选任何子项，则不传给 AI 任何参数
-      if (node.isGranular && selections.length === 0) return;
-
-      let processedData: any;
-
-      // 2. 路由到专用处理器或通用处理器
-      const handlers = ContextEngine.handlers as Record<string, Function>;
-      if (handlers[value]) {
-        processedData = handlers[value](projectStore.bundle, selections)
-      } else {
-        processedData = ContextEngine.handlers.generic(rawData, selections)
+      // 如果引用的是 "所有"，则在 Prompt 中列出具体包含的列表，帮助 AI 识别 ID
+      if (r.id === 'all') {
+        const children = aiStore.getContextOptions(r.type)
+        const childList = children.map((c: any) => `${c.label}(ID:${c.id})`).join('、')
+        return `- [@${r.label}] (类型:${typeLabel}, ID:all, 包含子项: ${childList || '空'})`
       }
-
-      // 3. 递归清理技术噪音并生成文档化说明
-      const finalValue = ContextEngine.cleanData(processedData)
-      capturedRefs[value] = finalValue
-
-      contextPayload += ContextEngine.generateExplanation(node, !!(node.isGranular && selections.length > 0)) + '\n';
-      contextPayload += `* 参考数据快照 (JSON):\n\`\`\`json\n${JSON.stringify(finalValue, null, 2)}\n\`\`\`\n\n`
+      
+      return `- [@${r.label}] (类型:${typeLabel}, ID:${r.id})`
     })
+    const refSection = `### 本次对话显式引用的实体索引 ###\n${refLines.join('\n')}\n\n(提示：索引仅包含 ID 和名称。若需分析具体内容，请务必先调用 getEntityDetail 获取详情)\n\n`
+    fullPrompt = refSection + fullPrompt
   }
 
-  // 2. 构建 Prompt 内容 (全量发送给 AI)
-  let finalContent = input.value
-  const prompt = aiStore.allPrompts.find(p => p.id === selectedPromptId.value)
-  if (prompt) {
-    // 使用新的占位符 [JSON] 和 [USER_INPUT]
-    finalContent = prompt.content
-      .replace('[JSON]', contextPayload)
-      .replace('[USER_INPUT]', input.value)
-  } else if (aiStore.referenceKeys.length > 0) {
-    finalContent = `${contextPayload}\n--- 任务指令 ---\n${input.value}`
+  // 2. 选择提示词模板的处理
+  if (selectedPromptId.value) {
+    const prompt = aiStore.allPrompts.find(p => p.id === selectedPromptId.value)
+    if (prompt) {
+      fullPrompt = prompt.content
+        .replace('[JSON]', '[已通过参考引用标识]') 
+        .replace('[USER_INPUT]', fullPrompt)
+    }
   }
 
-  // 3. 发送并保存参考快照
-  // 注入 Payload 副本到 capturedRefs，以便弹窗显示“给 AI 看了什么”
-  capturedRefs['__prompt_injection__'] = contextPayload
-
-  await aiStore.sendMessage(input.value, finalContent, capturedRefs)
+  // 3. 发送消息
+  await aiStore.sendMessage(userContent, fullPrompt)
+  
+  // 4. 发送后清理状态
   input.value = ""
+  selectedPromptId.value = ""
+  aiStore.referenceKeys = []
+  aiStore.granularSelections = {}
   
   await nextTick()
   if (historyBox.value) {
@@ -987,7 +1655,7 @@ async function send() {
   }
 }
 
-watch(() => aiStore.isVisible, (val) => {
+watch(() => aiStore.isVisible, async (val) => {
   if (val) {
     // 处理待定输入
     if (aiStore.pendingInput) {
@@ -997,6 +1665,12 @@ watch(() => aiStore.isVisible, (val) => {
     
     // 展开所有被激活的精细化类目
     expandActiveKeys()
+
+    // 每一打开都滚动到底部
+    await nextTick()
+    if (historyBox.value) {
+      historyBox.value.scrollTop = historyBox.value.scrollHeight
+    }
   }
 })
 
@@ -1021,6 +1695,15 @@ function goToSettings(section?: string) {
     path: '/settings',
     query: { section: section || 'ai' }
   })
+}
+
+async function copyContent(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    uiStore.showToast('已复制到剪贴板', 'success')
+  } catch (err) {
+    uiStore.showToast('复制失败', 'error')
+  }
 }
 </script>
 

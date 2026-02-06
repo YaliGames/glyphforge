@@ -409,9 +409,9 @@ function openAIAssistant(promptId = 'builtin-character-design') {
   aiStore.show({
     promptId: promptId,
     granular: {
-      'characters': [activeCharacter.value.id],
-      'worldview_categories': 'all',
-      'worldview_timeline': 'all'
+      'character': [activeCharacter.value.id],
+      'worldview': 'all',
+      'timeline': 'all'
     },
     input: '请基于以上勾选的世界观背景与历史设定，为我深化并完善该角色的档案。'
   })

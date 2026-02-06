@@ -1,5 +1,7 @@
 import { AIPrompt } from '@/types/ai';
 
+export const MAX_TOOL_OUTPUT_LENGTH = 10000; // 单个工具返回内容的最大长度保护
+
 export const BUILTIN_PROMPTS: AIPrompt[] = [
   {
     id: 'builtin-expand',
@@ -10,7 +12,7 @@ export const BUILTIN_PROMPTS: AIPrompt[] = [
 
 你可以：
 1. 直接在回复中给出扩写后的文本片段。
-2. 如果你认为直接修改更方便，请调用 edit_text_block 工具。
+2. 如果你认为直接修改更方便，请调用 editTextBlock 工具。
 3. 在文本后面附带你的创作思路和后续建议。
 
 [ 项目上下文 ]
@@ -28,7 +30,7 @@ export const BUILTIN_PROMPTS: AIPrompt[] = [
 
 你可以：
 1. 详细描述角色的外貌、性格和背景。
-2. 使用 upsert_entities 工具直接将建议的属性同步到角色档案中。
+2. 使用 upsertEntities 工具直接将建议的属性同步到角色档案中。
 3. 分析该角色与现有角色的潜在冲突。
 
 [ 世界观上下文 ]
@@ -46,7 +48,7 @@ export const BUILTIN_PROMPTS: AIPrompt[] = [
 
 你可以：
 1. 详细推演该设定的历史由来、运行逻辑和社会影响。
-2. 使用 upsert_entities 工具将新条目添加到百科中。
+2. 使用 upsertEntities 工具将新条目添加到百科中。
 
 [ 现有设定基础 ]
 [JSON]

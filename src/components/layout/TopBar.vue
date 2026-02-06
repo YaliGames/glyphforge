@@ -32,6 +32,15 @@
           title="重做 (Ctrl+Y)">
           <i class="fa-solid fa-rotate-right text-sm"></i>
         </button>
+
+        <button v-if="settingsStore.getSettings()['ai.enabled']" @click="aiStore.toggle()" :disabled="!projectStore.isLoaded"
+          class="p-1.5 transition-all rounded disabled:opacity-30 hover:text-purple-600 hover:bg-gray-100 dark:hover:bg-[#37373d]"
+          :class="aiStore.isVisible 
+            ? 'text-purple-600' 
+            : 'text-gray-500 dark:text-gray-400'"
+          title="AI 创作助手">
+          <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+        </button>
       </div>
 
       <!-- 窗口控制按钮组 -->
@@ -44,6 +53,8 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useProjectStore } from '@/store/project'
+import { useSettingsStore } from '@/store/settings'
+import { useAIStore } from '@/store/ai'
 import { useActions } from '@/composables/useActions'
 import { isElectron } from '@/utils/env'
 import MenuBar from './MenuBar.vue'
@@ -53,6 +64,8 @@ import type { AppAction } from '@/types'
 const router = useRouter()
 const route = useRoute()
 const projectStore = useProjectStore()
+const settingsStore = useSettingsStore()
+const aiStore = useAIStore()
 const { handleAction } = useActions()
 
 const displayFileName = computed(() => {
