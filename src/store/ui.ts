@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { ViewMode, EditMode } from '@/types'
+import { STORAGE_KEYS } from '@/config'
 
 export interface Toast {
   id: number
@@ -64,7 +65,7 @@ export const useUIStore = defineStore('ui', () => {
   
   // --- 持久化方法 ---
   function loadRecentFiles() {
-    const saved = localStorage.getItem('glyphforge-recent-files')
+    const saved = localStorage.getItem(STORAGE_KEYS.RECENT_FILES)
     if (saved) {
       try { recentFiles.value = JSON.parse(saved) } catch (e) {}
     }
@@ -78,12 +79,12 @@ export const useUIStore = defineStore('ui', () => {
     }
     recentFiles.value.unshift({ name, path, date: now, type })
     recentFiles.value = recentFiles.value.slice(0, 10)
-    localStorage.setItem('glyphforge-recent-files', JSON.stringify(recentFiles.value))
+    localStorage.setItem(STORAGE_KEYS.RECENT_FILES, JSON.stringify(recentFiles.value))
   }
 
   function clearRecentFiles() {
     recentFiles.value = []
-    localStorage.removeItem('glyphforge-recent-files')
+    localStorage.removeItem(STORAGE_KEYS.RECENT_FILES)
   }
 
   // --- 模式切换 ---

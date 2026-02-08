@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { SETTINGS_SCHEMA, type AIProfile } from '@/config/settings.schema'
+import { STORAGE_KEYS } from '@/config'
 
 export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<Record<string, any>>({})
 
   // 初始化设置
   function initSettings() {
-    const saved = localStorage.getItem('glyphforge-settings')
+    const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS)
     const initial: Record<string, any> = {}
     
     // 注入默认值
@@ -39,7 +40,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function updateSetting(key: string, value: any) {
     settings.value[key] = value
-    localStorage.setItem('glyphforge-settings', JSON.stringify(settings.value))
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings.value))
   }
 
   /**

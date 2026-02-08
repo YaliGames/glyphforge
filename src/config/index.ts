@@ -16,6 +16,15 @@ export const APP_CONFIG = {
 } as const
 
 /**
+ * 存储相关的 Key
+ */
+export const STORAGE_KEYS = {
+  CUSTOM_PROMPTS: 'glyphforge-custom-prompts',
+  SETTINGS: 'glyphforge-settings',
+  RECENT_FILES: 'glyphforge-recent-files',
+} as const
+
+/**
  * 世界观设定维度预设定义
  */
 export const WORLDVIEW_PRESET_CATEGORIES = [

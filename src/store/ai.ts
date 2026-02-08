@@ -11,8 +11,7 @@ import { useWorldviewStore } from './worldview'
 import { BUILTIN_PROMPTS, MAX_TOOL_OUTPUT_LENGTH } from '@/core/ai/constants'
 import { AI_TOOLS, READ_ONLY_TOOLS, getTool, type ToolContext } from '@/core/ai/tools'
 import { PromptAssembler } from '@/core/ai/prompts/assembler'
-
-const STORAGE_KEY = 'glyphforge-custom-prompts'
+import { STORAGE_KEYS } from '@/config'
 
 export const useAIStore = defineStore('ai', () => {
   const isVisible = ref(false)
@@ -27,11 +26,11 @@ export const useAIStore = defineStore('ai', () => {
   const activeReferences = ref<AIReference[]>([])
 
   // 用户自定义提示词，从 localStorage 加载
-  const customPrompts = ref<AIPrompt[]>(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'))
+  const customPrompts = ref<AIPrompt[]>(JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOM_PROMPTS) || '[]'))
 
   // 监听自定义提示词变化并保存
   watch(customPrompts, (val) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_PROMPTS, JSON.stringify(val))
   }, { deep: true })
 
   // 合并内置和自定义提示词
