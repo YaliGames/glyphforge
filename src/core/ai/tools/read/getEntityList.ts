@@ -2,20 +2,20 @@ import { DecoupledTool, ToolContext } from '../index';
 
 export const getEntityListTool: DecoupledTool = {
   name: 'getEntityList',
-  description: '获取某一实体类型下的实体列表概要信息，用于了解项目中“有哪些对象可被引用”。',
+  description: '获取指定类型的实体索引列表。用于初步定位项目中存在的对象。规范：结果默认仅包含 ID 和名称标识，若需获取特定业务属性，必须在 fields 参数中显式声明。',
   isReadOnly: true,
   parameters: {
     type: 'object',
     properties: {
       type: { 
         type: 'string', 
-        enum: ['character', 'worldview', 'relationship', 'timeline', 'chapters', 'manuscript'], 
-        description: '实体类型' 
+        enum: ['character', 'worldview', 'relationship', 'timeline', 'chapters', 'manuscript', 'outline'], 
+        description: '目标实体分类。' 
       },
       fields: { 
         type: 'array', 
         items: { type: 'string' }, 
-        description: '需要返回的额外字段列表，默认仅返回 name/title。' 
+        description: '可选：显式声明需要返回的业务属性字段。未声明则默认仅返回标识信息。' 
       }
     },
     required: ['type']

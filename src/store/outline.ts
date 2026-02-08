@@ -177,7 +177,7 @@ export const useOutlineStore = defineStore('outline', () => {
     }
   }
 
-  function updateActMetadata(id: string, updates: Partial<{ title: string; purpose: string }>) {
+  function updateActMetadata(id: string, updates: Partial<{ title: string; purpose: string; linkedChapters: string[]; range: ActRange }>) {
     if (!projectStore.bundle) return
     const target = projectStore.bundle.outline.structure.acts.find(a => a.id === id)
     if (target) {

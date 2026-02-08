@@ -9,9 +9,8 @@ import { useCharacterStore } from './characters'
 import { useOutlineStore } from './outline'
 import { useWorldviewStore } from './worldview'
 import { BUILTIN_PROMPTS, MAX_TOOL_OUTPUT_LENGTH } from '@/core/ai/constants'
-import { AI_TOOLS } from '@/core/ai/toolDefinitions'
-import { getTool, type ToolContext } from '@/core/ai/tools'
-import { generateAISchemaManual } from '@/core/ai/schemaRegistry'
+import { AI_TOOLS, READ_ONLY_TOOLS, getTool, type ToolContext } from '@/core/ai/tools'
+import { PromptAssembler } from '@/core/ai/prompts/assembler'
 
 const STORAGE_KEY = 'glyphforge-custom-prompts'
 
@@ -46,16 +45,16 @@ export const useAIStore = defineStore('ai', () => {
 
     if (key === 'chapters' || key === 'manuscript') {
       const options: any[] = []
-      
+
       // 如果是正文类型，且存在编辑器选区，则注入一个特殊的选区选项
       if (key === 'manuscript' && uiStore.editorSelection) {
-        options.push({ 
-          id: { 
-            start: uiStore.editorSelection.startLine, 
+        options.push({
+          id: {
+            start: uiStore.editorSelection.startLine,
             end: uiStore.editorSelection.endLine,
             label: `选区: ${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine}`
-          }, 
-          label: `当前选区 (${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine})` 
+          },
+          label: `当前选区 (${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine})`
         })
       }
 
@@ -85,15 +84,15 @@ export const useAIStore = defineStore('ai', () => {
 
     if (key === 'acts' || key === 'outline') {
       const options: any[] = []
-      
+
       if (key === 'outline' && uiStore.editorSelection) {
-        options.push({ 
-          id: { 
-            start: uiStore.editorSelection.startLine, 
+        options.push({
+          id: {
+            start: uiStore.editorSelection.startLine,
             end: uiStore.editorSelection.endLine,
             label: `选区: ${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine}`
-          }, 
-          label: `当前选区 (${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine})` 
+          },
+          label: `当前选区 (${uiStore.editorSelection.startLine}-${uiStore.editorSelection.endLine})`
         })
       }
 
@@ -103,7 +102,7 @@ export const useAIStore = defineStore('ai', () => {
 
     return []
   }
-  
+
   function updatePrompt(id: string, updates: Partial<AIPrompt>) {
     // 首先尝试在自定义提示词中查找
     const idx = customPrompts.value.findIndex(p => p.id === id)
@@ -145,7 +144,7 @@ export const useAIStore = defineStore('ai', () => {
     const name = call.function.name
     const rawArgs = call.function.arguments || '{}'
     let args: any = {}
-    
+
     try {
       args = JSON.parse(rawArgs)
     } catch (e) {
@@ -156,7 +155,7 @@ export const useAIStore = defineStore('ai', () => {
       if (fixed.endsWith(':')) fixed += '""'
       else if (fixed.endsWith(',')) fixed = fixed.slice(0, -1)
       if (fixed.startsWith('{') && !fixed.endsWith('}')) fixed += '}'
-      
+
       try {
         args = JSON.parse(fixed)
       } catch (e2) {
@@ -178,14 +177,14 @@ export const useAIStore = defineStore('ai', () => {
       try {
         const context: ToolContext = { projectStore, characterStore, outlineStore, worldviewStore, uiStore };
         const resultData = await tool.execute(args, context);
-        
+
         let content = typeof resultData === 'string' ? resultData : JSON.stringify(resultData);
 
         // --- 结果保护 ---
         if (content.length > MAX_TOOL_OUTPUT_LENGTH) {
           const originalLength = content.length;
-          content = content.slice(0, MAX_TOOL_OUTPUT_LENGTH) + 
-            `\n\n... (内容过长已截断，共 ${originalLength} 字符)\n` + 
+          content = content.slice(0, MAX_TOOL_OUTPUT_LENGTH) +
+            `\n\n... (内容过长已截断，共 ${originalLength} 字符)\n` +
             `[系统保护提示：数据量过大，已自动截断。]`;
           console.warn(`[AI Tool Engine] Result for ${name} truncated: ${originalLength} -> ${MAX_TOOL_OUTPUT_LENGTH}`);
         }
@@ -222,25 +221,25 @@ export const useAIStore = defineStore('ai', () => {
    *        - 'all': 自动填入该分类下所有项
    *        - true: 启用该分类（主要针对非精细化的分类）
    */
-  function show(options?: { 
-    promptId?: string, 
-    granular?: Record<string, string[] | 'all' | boolean>, 
+  function show(options?: {
+    promptId?: string,
+    granular?: Record<string, string[] | 'all' | boolean>,
     references?: AIReference[],
     mode?: AIExecutionMode,
-    input?: string 
+    input?: string
   }) {
     if (options?.promptId) selectedPromptId.value = options.promptId
     if (options?.input) pendingInput.value = options.input
     if (options?.mode) executionMode.value = options.mode
     if (options?.references) activeReferences.value = options.references
-    
+
     if (options?.granular) {
       const resolvedGranular: Record<string, string[]> = {}
       const activeKeys: string[] = []
 
       for (const [key, value] of Object.entries(options.granular)) {
         if (value === false) continue
-        
+
         activeKeys.push(key)
 
         if (value === 'all' || value === true) {
@@ -257,16 +256,16 @@ export const useAIStore = defineStore('ai', () => {
       granularSelections.value = resolvedGranular
       referenceKeys.value = activeKeys
     }
-    
+
     isVisible.value = true
   }
 
   function addHistory(
-    role: 'user' | 'assistant' | 'tool' | 'system', 
-    content: string, 
-    type: 'text' | 'json' = 'text', 
-    options?: { 
-      references?: Record<string, any>, 
+    role: 'user' | 'assistant' | 'tool' | 'system',
+    content: string,
+    type: 'text' | 'json' = 'text',
+    options?: {
+      references?: Record<string, any>,
       selectedReferences?: AIReference[],
       toolCalls?: AIToolCall[],
       toolResults?: AIToolResult[]
@@ -302,12 +301,12 @@ export const useAIStore = defineStore('ai', () => {
     }
 
     isProcessing.value = true
-    
+
     // 非循环模式下，添加用户消息
     if (!isLoop) {
-      addHistory('user', displayContent, 'text', { 
-        references, 
-        selectedReferences: [...activeReferences.value] 
+      addHistory('user', displayContent, 'text', {
+        references,
+        selectedReferences: [...activeReferences.value]
       })
     }
 
@@ -315,7 +314,7 @@ export const useAIStore = defineStore('ai', () => {
     let assistantMsgId: string
     let fullContent = ''
     let existingToolCalls: AIToolCall[] | undefined = undefined
-    
+
     const lastMsg = history.value[history.value.length - 1]
     if (isLoop && lastMsg && lastMsg.role === 'assistant') {
       assistantMsgId = lastMsg.id
@@ -343,147 +342,51 @@ export const useAIStore = defineStore('ai', () => {
 
       // 构建消息列表
       const messages: any[] = []
-      
-      // 1. 系统角色与工具使用规范
-      const modeLabel = executionMode.value === 'agent' ? 'Agent (读写模式)' : 'Chat (只读模式)';
-      const modeGuidance = executionMode.value === 'agent' 
-        ? '你当前拥有实体的 Read & Write 权限，可以根据用户指令或创作需要，主动调用工具来同步更新项目数据。'
-        : '你当前处于 [只读] 状态。你无法直接修改数据。如果用户指令隐含了“修改、创建或删除”的需求，你必须在回复中提醒用户点击左下角的模式切换按钮，将其改为 "Agent" 后再重试。';
 
-      let systemPrompt = `
-### 一、角色定位与工作目标
-
-* 你是一个**写作辅助型 AI**，职责是协助用户完成构思、表达、结构优化与语言校正等写作相关工作。
-* 你的输出应以**提升文本的清晰度、准确性、可读性和逻辑连贯性**为目标。
-* 你不主动设定写作主题、立场或价值判断，除非用户明确要求。
-
----
-
-### 二、基本工作原则
-
-1. **以用户文本与指令为中心**
-
-   * 严格围绕用户提供的内容与需求展开，不引入无关背景或扩展性假设。
-   * 不替用户“补充立场”“拔高意义”或进行价值评判。
-
-2. **最小必要干预原则**
-
-   * 在润色、修改、改写时，只对必要部分进行调整。
-   * 保留原有信息结构与表达意图，避免不必要的重写。
-
-3. **逻辑优先于修辞**
-
-   * 优先保证因果关系、条件关系、时间顺序和概念边界的清晰。
-   * 当语言流畅性与逻辑严谨性冲突时，优先保证逻辑。
-
-4. **显性结构，隐性评价**
-
-   * 可以调整段落结构、句序和信息组织方式。
-   * 避免对“写得好不好”“思路是否高级”等进行主观评价。
-
-5. **一致性维护**
-
-   * 术语、指代对象、时间口径、统计口径应保持一致。
-   * 不随意替换已有概念名称，除非用户明确要求统一或规范。
-
----
-
-### 三、语言风格约束
-
-1. **表达风格**
-
-   * 偏向书面、理性、中性表达。
-   * 避免使用过多“黑话”、“行话”和“网络用语”，除非用户明确要求。
-   * 避免情绪化、煽动性或过度修辞的语言。
-   * 严格避免夹杂其他语言词汇或表达，除非用户明确要求。
-
-2. **句式使用限制**
-
-   * 避免频繁使用对立式句型（如“不是……而是……”）。
-   * 避免使用高度概括性、抽象性但缺乏指向的判断句。
-   * 减少空泛总结性语句，优先使用具体、可指代的表达。
-
-3. **用词要求**
-
-   * 用词应明确、可追溯，避免模糊指代（如“这种情况”“这些方面”），必要时直接指明对象。
-   * 避免堆砌形容词与评价性副词。
-
-4. **语气控制**
-
-   * 不过度肯定用户观点，也不进行反驳式表达，除非用户明确要求评析或论证。
-   * 不使用教学式、说教式语气。
-
----
-
-### 四、输出行为约束
-
-* 不主动添加总结段、升华段或价值判断段。
-* 不擅自扩展篇幅，除非用户要求“扩写”“细化”。
-* 不引入未被用户提及的理论框架、政策背景或案例。
-* 当用户指令存在歧义时，优先采用**保守解释**，而非自行发挥。
-
----
-
-### 五、默认交互策略
-
-* 若用户提供文本：以**编辑、优化、结构调整**为优先。
-* 若用户提供要求：严格按要求执行，不叠加额外目标。
-* 若用户未说明风格：延续其已有文本风格与语域。
-
----
-
-### 运行环境状态 ###
-- **当前模式**：${modeLabel}
-- **模式声明**：${modeGuidance}
-
-### 核心操作原则 ###
-1. **数据通信标准**：
-   - **严格 JSON**：工具参数必须是合法对象，严禁将 array/object 序列化为转义字符串填充在字段中。
-   - **扁平化输出**：严禁输出 \`base\` 嵌套层级，所有属性必须直铺在对象根路径；严禁输出 \`projectId\`、\`overrides\` 等研发侧技术字段。
-2. **写入规范**：
-   - 调用 \`upsertEntities\` 时，每个实体对象必须包含 \`type\`。
-   - 更新已有项必须获取其真实有效的 \`id\`。
-
-### 项目实体权限与 Schema 参考 ###
-${generateAISchemaManual()}
-
-### 工具调用决策指南 ###
-- **通用意图**：默认进行自然对话。仅在确实需要依赖项目背景或用户明确要求操作数据时才使用 Function Calling。
-- **只读查询**（全模式可用）：
-  - 需要深挖背景：使用 \`getEntityDetail\`。
-  - 查找关联项：使用 \`searchEntities\`。
-  - 分析关系：使用 \`getRelationGraph\`。
-- **数据写回**（仅限 Agent 模式）：
-  - 发现新灵感或用户要求记录新设定：使用 \`upsertEntities\`。
-  - 用户明确要求精细修改正文或大纲的特定文本片段：使用 \`editTextBlock\`。
-- **越权提醒**：
-  - 如果你在 [只读模式] 下识别到用户想要“保存某段话到设定”或“修改某人性格”，不要尝试调用写入工具，而应回复：“我当前的模式是只读的，请切换到 Agent 模式后，我将为您执行保存操作。”`
-
+      // 1. 系统角色与工具使用规范 (通过 Assembler 组装)
+      const systemPrompt = PromptAssembler.assembleSystemPrompt(executionMode.value);
       messages.push({ role: 'system', content: systemPrompt })
 
-      // 处理历史记录
+      // 2. 处理历史记录
       history.value.forEach((item, index) => {
         if (item.role === 'user') {
-          // 如果是循环调用（工具返回后），由于 history 长度变了，这里 index 的判断需要谨慎
-          // 我们取最后一个 user 角色之后且在当前助理消息之前的 fullPrompt
           const isLatestUser = index === history.value.findLastIndex(v => v.role === 'user');
-          const content = isLatestUser ? fullPrompt : item.content;
+          let content = isLatestUser ? fullPrompt : item.content;
+
+          if (isLatestUser && !isLoop) {
+            content = PromptAssembler.getModeAnchor(executionMode.value) + content;
+          }
+
           messages.push({ role: 'user', content });
         } else if (item.role === 'assistant') {
           if (item.id === assistantMsgId) return;
-          // OpenAI 要求 tool_calls 必须配对
-          messages.push({ 
-            role: 'assistant', 
-            content: item.content || null, 
-            tool_calls: (item.toolCalls && item.toolCalls.length > 0) ? item.toolCalls : undefined 
+          
+          // 历史污染防御：校验并过滤掉非法的 tool_calls，防止后端接口因无法解析历史参数而导致 400 阻塞
+          let validToolCalls: AIToolCall[] | undefined = undefined;
+          if (item.toolCalls && item.toolCalls.length > 0) {
+            validToolCalls = item.toolCalls.filter(tc => {
+              try {
+                JSON.parse(tc.function.arguments);
+                return true;
+              } catch (e) {
+                console.error(`[AI Store] 检测到历史记录中存在非法工具参数 (${tc.function.name})，已自动剔除以防止请求阻塞。`);
+                return false;
+              }
+            });
+          }
+
+          messages.push({
+            role: 'assistant',
+            content: item.content || '',
+            tool_calls: (validToolCalls && validToolCalls.length > 0) ? validToolCalls : undefined
           });
         } else if (item.role === 'tool') {
           if (item.toolResults) {
             item.toolResults.forEach(result => {
-              messages.push({ 
-                role: 'tool', 
-                tool_call_id: result.toolCallId, 
-                content: result.content || '' 
+              messages.push({
+                role: 'tool',
+                tool_call_id: result.toolCallId,
+                content: result.content || ''
               });
             });
           }
@@ -493,9 +396,8 @@ ${generateAISchemaManual()}
       let body: any
 
       // 根据执行模式过滤工具
-      const readOnlyTools = ['getEntityList', 'getEntitySchema', 'getEntityDetail', 'searchEntities', 'getRelationGraph'];
-      const availableTools = executionMode.value === 'chat' 
-        ? AI_TOOLS.filter(t => readOnlyTools.includes(t.name))
+      const availableTools = executionMode.value === 'chat'
+        ? AI_TOOLS.filter(t => READ_ONLY_TOOLS.includes(t.name))
         : AI_TOOLS;
 
       if (activeProfile.provider === 'openai') {
@@ -530,7 +432,7 @@ ${generateAISchemaManual()}
         if (!activeProfile.template) {
           throw new Error('自定义提供商必须配置请求模板')
         }
-        
+
         const payloadStr = activeProfile.template
           .replace(/\$\{model\}/g, activeProfile.model)
           .replace(/\$\{messages\}/g, JSON.stringify(messages))
@@ -547,15 +449,15 @@ ${generateAISchemaManual()}
         let removeListener: (() => void) | null = null;
         let lineBuffer = ''; // 用于处理跨 chunk 的行
         let watchdog: any = null;
-        
+
         const promise = new Promise<void>((resolve, reject) => {
-          // 设置看门狗：如果 30 秒没有任何数据返回，强制超时
+          // 设置定时器 (看门狗)：如果 30 秒没有任何数据返回，强制超时
           watchdog = setTimeout(() => {
             reject(new Error('AI 服务器响应超时 (30秒未收到数据)'));
           }, 30000);
 
           removeListener = electronAPI.onAIChunk((data: any) => {
-            // 只要有任何数据（哪怕是 chunk），就刷新看门狗
+            // 只要有任何数据返回（chunk），就重置计时器
             if (watchdog) {
               clearTimeout(watchdog);
               watchdog = setTimeout(() => {
@@ -564,7 +466,7 @@ ${generateAISchemaManual()}
             }
 
             if (data.type === 'chunk') {
-              // ... 原有逻辑 ...
+              // ... chunk 处理逻辑 ...
               lineBuffer += data.content;
               const lines = lineBuffer.split('\n');
               lineBuffer = lines.pop() || '';
@@ -572,20 +474,20 @@ ${generateAISchemaManual()}
               for (const line of lines) {
                 const trimmed = line.trim();
                 if (!trimmed || !trimmed.startsWith('data: ')) continue;
-                
+
                 const jsonStr = trimmed.slice(6).trim();
                 if (jsonStr === '[DONE]') continue;
 
                 try {
                   const chunk = JSON.parse(jsonStr);
                   const delta = chunk.choices?.[0]?.delta;
-                  
+
                   if (delta?.content) {
                     fullContent += delta.content;
                     const msg = history.value.find(m => m.id === assistantMsgId);
                     if (msg) msg.content = fullContent;
                   }
-                  
+
                   if (delta?.tool_calls) {
                     if (!toolCalls) toolCalls = [];
                     delta.tool_calls.forEach((tc: any) => {
@@ -612,9 +514,7 @@ ${generateAISchemaManual()}
                     const msg = history.value.find(m => m.id === assistantMsgId);
                     if (msg) msg.toolCalls = JSON.parse(JSON.stringify(toolCalls));
                   }
-                } catch (e) {
-                  // 忽略不完整的 JSON 片段，等待后续补充
-                }
+                } catch (e) { }
               }
             } else if (data.type === 'done') {
               if (watchdog) clearTimeout(watchdog);
@@ -624,23 +524,30 @@ ${generateAISchemaManual()}
         });
 
         try {
-          const result = await electronAPI.aiRequest(activeProfile.endpoint, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(body)
-          });
+          // 使用 Promise.race 确保无论请求本身挂死，还是流式中断，都能触发超时
+          await Promise.race([
+            (async () => {
+              const result = await electronAPI.aiRequest(activeProfile.endpoint, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body)
+              });
 
-          if (!result.ok) {
-            const errDetail = typeof result.error === 'object' ? (result.error.message || JSON.stringify(result.error)) : result.error;
-            throw new Error(errDetail || '请求发送失败');
-          }
+              if (!result.ok) {
+                const errDetail = typeof result.error === 'object' ? (result.error.message || JSON.stringify(result.error)) : result.error;
+                throw new Error(errDetail || '请求发送失败');
+              }
 
-          await promise;
+              // 请求成功发出后，继续等待流式数据结束
+              await promise;
+            })(),
+            promise // 只要 promise (含 watchdog) reject，整个 race 就会提前 reject
+          ]);
         } finally {
           if (watchdog) clearTimeout(watchdog);
           if (removeListener) (removeListener as Function)();
         }
-        
+
       } else {
         // --- 非流式/Web 模式 (降级处理) ---
         const response = await fetch(activeProfile.endpoint, {
@@ -653,14 +560,14 @@ ${generateAISchemaManual()}
           const errData = await response.json().catch(() => ({}))
           throw new Error(errData.error?.message || errData.message || `请求失败: ${response.status}`)
         }
-        
+
         const data = await response.json()
         if (activeProfile.provider === 'openai') {
           const message = data.choices?.[0]?.message
           fullContent = message?.content || ''
           toolCalls = message?.tool_calls
         }
-        
+
         const msg = history.value.find(m => m.id === assistantMsgId);
         if (msg) {
           msg.content = fullContent;
@@ -670,36 +577,23 @@ ${generateAISchemaManual()}
 
       // 修正工具调用的 JSON 类型或其他状态
       const finalMsg = history.value.find(m => m.id === assistantMsgId);
-if (finalMsg && fullContent.trim().startsWith('{') && fullContent.trim().endsWith('}')) {
+      if (finalMsg && fullContent.trim().startsWith('{') && fullContent.trim().endsWith('}')) {
         finalMsg.type = 'json';
       }
-      
+
       // --- 工具调用参数清洗逻辑 ---
       if (finalMsg && finalMsg.toolCalls) {
         finalMsg.toolCalls.forEach(tc => {
           try {
-            // 尝试通过正则或简单的字符串替换来修复常见的 AI 参数错误
+            // 仅修复结构性错误，严禁手工进行 Unicode 反转义或字符串替换，否则会破坏 JSON 结构
             let rawArgs = tc.function.arguments || '{}';
-            
+
             // 错误 1: ["item"] 被输出为 "['item']" (字符串包围的 Python 列表)
             if (/"ids":\s*"\[.*\]"/.test(rawArgs)) {
-               rawArgs = rawArgs.replace(/"ids":\s*"(\[.*\])"/, (_, group) => {
-                 const fixedArr = group.replace(/'/g, '"');
-                 return ` "ids": ${fixedArr}`;
-               });
-            }
-
-            // 错误 2: Unicode 转义序列在非必要情况下被双重转义或以原始形式保留
-            if (rawArgs.includes('\\\\u')) {
-              rawArgs = rawArgs.replace(/\\\\u([0-9a-fA-F]{4})/g, (_, grp) => {
-                return String.fromCharCode(parseInt(grp, 16));
+              rawArgs = rawArgs.replace(/"ids":\s*"(\[.*\])"/, (_, group) => {
+                const fixedArr = group.replace(/'/g, '"');
+                return ` "ids": ${fixedArr}`;
               });
-            } else if (rawArgs.includes('\\u')) {
-              // 尝试直接解析
-              try {
-                const temp = JSON.parse(`{"t":"${rawArgs.replace(/"/g, '\\"')}"}`).t;
-                if (temp) rawArgs = temp;
-              } catch(e) {}
             }
 
             // 更新修复后的参数
@@ -709,21 +603,21 @@ if (finalMsg && fullContent.trim().startsWith('{') && fullContent.trim().endsWit
           }
         });
       }
-      
+
       // 如果有工具调用，触发自动执行或 UI 逻辑
       if (toolCalls && toolCalls.length > 0) {
         const readOnlyNames = ['getEntityList', 'getEntitySchema', 'getEntityDetail', 'searchEntities', 'getRelationGraph'];
-        
+
         // 1. 识别并执行只读工具
         const autoCalls = toolCalls.filter(tc => readOnlyNames.includes(tc.function.name));
-        
+
         if (autoCalls.length > 0) {
           console.log(`[AI Store] Auto-executing ${autoCalls.length} read-only tools...`);
           const results = await Promise.all(autoCalls.map(tc => executeTool(tc)));
-          
+
           // 2. 将结果写入历史 (作为一个 tool 角色消息，内容为空以便 UI 隐藏或整合)
-          addHistory('tool', '', 'text', { 
-            toolResults: results 
+          addHistory('tool', '', 'text', {
+            toolResults: results
           });
 
           // 3. 如果所有工具调用都已执行，自动驱动下一轮生成
@@ -734,16 +628,24 @@ if (finalMsg && fullContent.trim().startsWith('{') && fullContent.trim().endsWit
           }
         }
       }
-      
+
     } catch (error: any) {
       console.error('[AI Error]', error)
+      stopGeneration() // 关键：发生任何错误（含超时）时，立即通知 API 终止后端请求并重置状态
+
+      // 如果错误已经被处理过（在递归调用的深层已记录到消息中），则直接向上抛出，避免父级重复记录
+      if (error._handled) throw error;
+      error._handled = true;
+
       const assistantMsg = history.value.find(m => m.id === assistantMsgId)
       if (assistantMsg) {
         assistantMsg.content = `抱歉，请求模型时出错：${error.message || error}`
+        assistantMsg.type = 'error' as any
         assistantMsg.isError = true
         // 存储重试参数，即使是 Loop 模式，我们也存储最初触发该序列的参数
         assistantMsg.retryParams = { displayContent, fullPrompt, references }
       }
+      throw error // 重新抛出错误，确保 UI 组件（如 AIAssistant.vue）可以捕获到异常并显示全局提示（Tips）
     } finally {
       // 只有在非循环或最终完成时才重置处理状态
       // 注意：如果是递归调用，sendMessage 内部会再次设置 isProcessing=true
@@ -756,13 +658,13 @@ if (finalMsg && fullContent.trim().startsWith('{') && fullContent.trim().endsWit
   }
 
   async function retryMessage(msgId: string) {
-    const msg = history.value.find(m => m.id === msgId)
-    if (!msg || !msg.retryParams) return
+    const index = history.value.findIndex(m => m.id === msgId)
+    if (index === -1) return
 
-    const params = { ...msg.retryParams }
-    
-    // 发送一条简洁的“重试”指令，但携带完整的 fullPrompt 负载
-    await sendMessage('重试', params.fullPrompt, params.references, false)
+    // 移除出错的消息块
+    history.value.splice(index, 1)
+
+    await sendMessage('重试', '重试', undefined, false)
   }
 
   return {

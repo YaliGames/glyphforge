@@ -33,7 +33,7 @@ export const SCHEMA_REGISTRY: Record<string, EntitySchema> = {
     label: '角色',
     description: '用于存储小说中人物的形象、性格、背景等核心信息。建议在提到新角色或重大设定更新时使用。',
     fields: [
-      { key: 'id', label: 'ID', type: 'string', description: '唯一标识', aiExport: true, aiImport: true, isIdentity: true },
+      { key: 'id', label: 'ID', type: 'string', description: '唯一标识，由系统自动生成。仅在更新已有项时提供，创建新项时请勿包含此字段。', aiExport: true, aiImport: true, isIdentity: true },
       { key: 'name', label: '姓名', type: 'string', description: '角色姓名', aiExport: true, aiImport: true, required: true },
       { key: 'aliases', label: '别名', type: 'array', description: '角色昵称或别名', aiExport: true, aiImport: true },
       { key: 'gender', label: '性别', type: 'string', description: '角色性别', aiExport: true, aiImport: true },
@@ -57,7 +57,7 @@ export const SCHEMA_REGISTRY: Record<string, EntitySchema> = {
     label: '人物关系',
     description: '描述两个角色之间的社交关系、情感状态及冲突。',
     fields: [
-      { key: 'id', label: 'ID', type: 'string', description: '唯一标识', aiExport: true, aiImport: true, isIdentity: true },
+      { key: 'id', label: 'ID', type: 'string', description: '唯一标识，由系统自动生成。仅在更新已有项时提供，创建新项时请勿包含此字段。', aiExport: true, aiImport: true, isIdentity: true },
       { key: 'sourceId', label: '源角色ID', type: 'string', description: '发起方的 ID (必须从已存在角色中选择)', aiExport: true, aiImport: true, required: true },
       { key: 'targetId', label: '目标角色ID', type: 'string', description: '接收方的 ID (必须从已存在角色中选择)', aiExport: true, aiImport: true, required: true },
       { key: 'type', label: '关系类型', type: 'string', description: '分类标识 (如 enemy, friend)', aiExport: true, aiImport: true, required: true },
@@ -69,54 +69,63 @@ export const SCHEMA_REGISTRY: Record<string, EntitySchema> = {
   },
   outline: {
     type: 'outline',
-    label: '大纲幕',
-    description: '小说情节的结构单元。AI 应根据当前情节分析自动更新对应幕的摘要。',
+    label: '大纲',
+    description: '小说剧情的结构单元（幕/Act）。对应【大纲手稿】中的一段，仅作为行号索引存在，不包含额外正文内容。',
     fields: [
       { key: 'id', label: 'ID', type: 'string', description: '唯一标识', aiExport: true, aiImport: true, isIdentity: true },
       { key: 'title', label: '标题', type: 'string', description: '该幕标题', aiExport: true, aiImport: true, required: true },
-      { key: 'purpose', label: '创作意图', type: 'string', description: '该幕的作用', aiExport: true, aiImport: true },
-      { key: 'textSegments', label: '文本片段', type: 'array', description: '叙述内容 (只读)', aiExport: true, aiImport: false },
-      { key: 'linkedChapters', label: '关联章节', type: 'array', description: '章节ID', aiExport: false, aiImport: false, isTechnical: true },
+      { key: 'purpose', label: '主要冲突/意图', type: 'string', description: '该幕在整部小说或该章节中的作用', aiExport: true, aiImport: true },
+      { key: 'range', label: '大纲行号范围', type: 'object', description: '锚定到【大纲手稿】的行号范围(startLine, endLine)。这是该幕内容的唯一来源。', aiExport: true, aiImport: true },
+      { key: 'content', label: '摘要文本', type: 'string', description: '该幕对应的摘要内容（注意：若已拉取大纲全文，此字段可能冗余）', aiExport: true, aiImport: false },
+      { key: 'textSegments', label: '关联原文片段', type: 'array', description: '系统自动填充的【大纲手稿】切片，仅用于参考。', aiExport: true, aiImport: false },
+      { key: 'linkedChapters', label: '关联正文章节', type: 'array', description: '该幕对应的正文章节ID或名称列表', aiExport: true, aiImport: true },
       { key: 'order', label: '排序', type: 'number', description: '排序权重', aiExport: false, aiImport: false, isTechnical: true },
     ]
   },
   worldview: {
     type: 'worldview',
     label: '世界观',
-    description: '描述小说的宏观背景。包含地理、文明、法则等分类。',
+    description: '描述小说的宏观背景、地理、文明、法则。注意：世界观分类是预设的，AI 仅能修改已知分类的内容。',
     fields: [
-      { key: 'type', label: '类别', type: 'string', description: '类别 ID (如 geography)', aiExport: true, aiImport: false, isIdentity: true },
-      { key: 'name', label: '名称', type: 'string', description: '分类名称', aiExport: true, aiImport: true, required: true },
-      { key: 'summary', label: '概述', type: 'string', description: '整体说明', aiExport: true, aiImport: true },
-      { key: 'details', label: '设定点', type: 'array', description: '具体设定点列表 (字符串数组)', aiExport: true, aiImport: true }
+      { 
+        key: 'id', 
+        label: '类别ID', 
+        type: 'string', 
+        description: '必须提供分类 ID。可选值: geography(地理), politics(势力), culture(习俗), military(军事), religion(宗教), magic(力量), technology(科技), economy(经济), history(历史)。', 
+        aiExport: true, 
+        aiImport: true, 
+        isIdentity: true 
+      },
+      { key: 'name', label: '名称', type: 'string', description: '分类名称 (由系统自动关联 ID，无需 AI 修改)', aiExport: true, aiImport: false },
+      { key: 'summary', label: '概述', type: 'string', description: '该分类的整体说明', aiExport: true, aiImport: true },
+      { key: 'details', label: '设定点', type: 'array', description: '具体设定点列表 (字符串数组)。更新时请提供全量数组，系统将执行完全替换。', aiExport: true, aiImport: true }
     ]
   },
   chapters: {
     type: 'chapters',
-    label: '目录',
-    description: '小说的层级目录树（卷、章、节节点列表）。',
+    label: '正文目录',
+    description: '小说正文的层级目录树（卷、章、节列表）。',
     fields: [
-      { key: 'id', label: 'ID', type: 'string', description: '唯一标识', aiExport: true, aiImport: false, isIdentity: true },
-      { key: 'title', label: '标题', type: 'string', description: '目录项标题', aiExport: true, aiImport: false },
+      { key: 'id', label: 'ID', type: 'string', description: '章节 ID', aiExport: true, aiImport: false, isIdentity: true },
+      { key: 'title', label: '标题', type: 'string', description: '章节标题', aiExport: true, aiImport: false },
       { key: 'type', label: '节点类型', type: 'string', description: '节点类型 (volume, chapter, scene)', aiExport: true, aiImport: false },
       { key: 'children', label: '子节点', type: 'array', description: '子级目录项', aiExport: true, aiImport: false },
     ]
   },
   manuscript: {
     type: 'manuscript',
-    label: '正文',
-    description: '作品的实时文本内容。',
+    label: '正文手稿',
+    description: '小说的实际叙事、描写正文。与【大纲手稿】完全隔离，获取或修改原文请使用此类型。',
     fields: [
-      { key: 'id', label: 'ID', type: 'string', description: '关联的章节 ID', aiExport: true, aiImport: false, isIdentity: true },
+      { key: 'id', label: 'ID', type: 'string', description: '关联的章节 ID (建议从目录 chapters 中获取) 或 "all"', aiExport: true, aiImport: false, isIdentity: true },
       { key: 'title', label: '标题', type: 'string', description: '章节标题', aiExport: true, aiImport: false },
-      { key: 'content', label: '文本内容', type: 'string', description: '该章节的完整原始文本', aiExport: true, aiImport: false }
+      { key: 'content', label: '正文内容', type: 'string', description: '该章节的原始叙述文本', aiExport: true, aiImport: false }
     ]
   }
 };
 
 /**
- * 核心逻辑：为 AI 生成严格的指令指南
- * 这是一个动态生成的文档，告诉 AI 每个实体有哪些字段可以用。
+ * 这是一个动态生成的文档，告诉 AI 每个实体有哪些字段可以使用
  */
 export function generateAISchemaManual(): string {
   let manual = "### 实体字段操作规范 (Strict Field Schema) ###\n\n";

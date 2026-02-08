@@ -2,7 +2,7 @@ import { DecoupledTool, ToolContext } from '../index';
 
 export const deleteEntitiesTool: DecoupledTool = {
   name: 'deleteEntities',
-  description: '批量删除指定的工程实体。',
+  description: '从项目中彻底移除指定的物理实体及其关联数据。支持跨类型批量操作。',
   isReadOnly: false,
   parameters: {
     type: 'object',
@@ -12,11 +12,17 @@ export const deleteEntitiesTool: DecoupledTool = {
         items: {
           type: 'object',
           properties: {
-            type: { type: 'string', enum: ['character', 'worldview', 'relationship', 'outline'] },
-            id: { type: 'string' }
+            type: { 
+              type: 'string', 
+              enum: ['character', 'worldview', 'relationship', 'outline'],
+              description: '待删除的实体分类。'
+            },
+            id: { type: 'string', description: '目标实体的物理 ID（UUID）。' },
+            categoryType: { type: 'string', description: '仅限世界观类型：分类 ID（如 geography）。' }
           },
           required: ['type', 'id']
-        }
+        },
+        description: '待移除的目标列表。'
       }
     },
     required: ['entities']

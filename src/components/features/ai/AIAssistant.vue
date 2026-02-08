@@ -101,25 +101,43 @@
                        <div class="flex items-start gap-3 cursor-pointer select-none" @click="expandedToolCallIds.has(call.id) ? expandedToolCallIds.delete(call.id) : expandedToolCallIds.add(call.id)">
                           <!-- 状态图标 -->
                           <div class="mt-0.5 shrink-0 w-5 h-5 rounded flex items-center justify-center text-[10px]"
-                            :class="(aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name)) ? 'text-green-500' : 'text-blue-500 bg-blue-500/5 dark:bg-blue-400/10'"
+                            :class="[
+                              readOnlyTools.includes(call.function.name) || (aiStore.executedToolCallIds.has(call.id) && !isToolRejected(call.id) && !isToolFailed(call.id)) ? 'text-green-500 bg-green-500/5' : '',
+                              isToolRejected(call.id) ? 'text-gray-400 bg-gray-100 dark:bg-white/5' : '',
+                              isToolFailed(call.id) ? 'text-red-500 bg-red-500/5' : '',
+                              !aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) ? 'text-blue-500 bg-blue-500/5 dark:bg-blue-400/10' : ''
+                            ]"
                           >
-                            <i :class="(aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name)) ? 'fa-solid fa-square-check' : 'fa-solid fa-wand-magic-sparkles'"></i>
+                            <i v-if="readOnlyTools.includes(call.function.name) || (aiStore.executedToolCallIds.has(call.id) && !isToolRejected(call.id) && !isToolFailed(call.id))" class="fa-solid fa-square-check"></i>
+                            <i v-else-if="isToolRejected(call.id)" class="fa-solid fa-ban"></i>
+                            <i v-else-if="isToolFailed(call.id)" class="fa-solid fa-triangle-exclamation"></i>
+                            <i v-else class="fa-solid fa-wand-magic-sparkles"></i>
                           </div>
 
                           <div class="flex-1 min-w-0">
                              <div class="text-[12px] leading-relaxed text-gray-700 dark:text-gray-300 font-medium">
-                               <span v-if="aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name)" class="text-[10px] opacity-60 font-bold uppercase mr-1">[已完成]</span>
+                               <span v-if="readOnlyTools.includes(call.function.name)" class="text-[10px] opacity-60 font-bold uppercase mr-1">[已自动]</span>
+                               <span v-else-if="isToolRejected(call.id)" class="text-[10px] text-gray-400 font-bold uppercase mr-1">[已拒绝]</span>
+                               <span v-else-if="isToolFailed(call.id)" class="text-[10px] text-red-600 dark:text-red-500 font-bold uppercase mr-1">[执行失败]</span>
+                               <span v-else-if="aiStore.executedToolCallIds.has(call.id)" class="text-[10px] text-green-600 dark:text-green-500 opacity-80 font-bold uppercase mr-1">[已执行]</span>
                                {{ getToolSummary(call) }}
                              </div>
 
                              <!-- 修改动作按钮：始终可见 -->
-                             <div v-if="!aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) && !aiStore.isProcessing" class="mt-2.5 flex">
+                             <div v-if="!aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) && !aiStore.isProcessing" class="mt-2.5 flex items-center gap-2">
                                <button 
                                  @click.stop="handleApplyTool(msg.id, call)"
                                  class="text-[10px] bg-[#007acc] hover:bg-[#0062a3] text-white px-3 py-1.5 rounded transition-all font-bold shadow-md flex items-center gap-1.5 active:scale-95"
                                >
                                  <i class="fa-solid fa-bolt-lightning text-[9px]"></i>
-                                 确认执行修改
+                                 确认执行
+                               </button>
+                               <button 
+                                 @click.stop="handleRejectTool(msg.id, call)"
+                                 class="text-[10px] bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded transition-all font-bold flex items-center gap-1.5 active:scale-95"
+                               >
+                                 <i class="fa-solid fa-ban text-[8px]"></i>
+                                 拒绝
                                </button>
                              </div>
                           </div>
@@ -158,8 +176,11 @@
                                <i class="fa-solid fa-reply-all text-[8px]"></i>
                                执行结果
                              </div>
-                             <div class="p-2 bg-green-500/5 dark:bg-green-500/10 rounded border border-green-500/10 text-[10px] font-mono text-green-600 dark:text-green-400/80 leading-relaxed">
-                                {{ getToolResultForCall(call.id)?.content }}
+                             <div 
+                               class="p-2 rounded border text-[10px] font-mono leading-relaxed"
+                               :class="isToolRejected(call.id) ? 'bg-gray-500/5 border-gray-500/10 text-gray-500' : 'bg-green-500/5 dark:bg-green-500/10 border-green-500/10 text-green-600 dark:text-green-400/80'"
+                             >
+                                {{ isToolRejected(call.id) ? '用户拒绝了此项操作。' : getToolResultForCall(call.id)?.content }}
                              </div>
                           </div>
                        </div>
@@ -623,8 +644,7 @@ import { useWorldviewStore } from '@/store/worldview'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
 import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall, type AIReference } from '@/types'
-import { AI_TOOLS } from '@/core/ai/toolDefinitions'
-import { getTool } from '@/core/ai/tools'
+import { AI_TOOLS, READ_ONLY_TOOLS, getTool } from '@/core/ai/tools'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useRouter } from 'vue-router'
 
@@ -644,7 +664,7 @@ const inputAreaRef = ref<HTMLTextAreaElement | null>(null)
 const activePanel = ref<'context' | 'prompts' | null>(null)
 
 // --- 工具解析辅助 ---
-const readOnlyTools = ['getEntityList', 'getEntitySchema', 'getEntityDetail', 'searchEntities', 'getRelationGraph'];
+const readOnlyTools = READ_ONLY_TOOLS;
 
 /**
  * 自动管理工具卡片展开状态
@@ -1071,6 +1091,34 @@ function getToolResultForCall(callId: string) {
   return null
 }
 
+/**
+ * 判断工具是否已被拒绝
+ */
+function isToolRejected(callId: string) {
+  const result = getToolResultForCall(callId);
+  if (!result) return false;
+  try {
+    const data = JSON.parse(result.content);
+    return data.status === 'rejected';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * 判断工具是否执行失败
+ */
+function isToolFailed(callId: string) {
+  const result = getToolResultForCall(callId);
+  if (!result) return false;
+  try {
+    const data = JSON.parse(result.content);
+    return data.status === 'error';
+  } catch (e) {
+    return false;
+  }
+}
+
 function getToolSummary(call: AIToolCall) {
   try {
     const rawArgs = call.function.arguments
@@ -1144,7 +1192,7 @@ function getToolSummary(call: AIToolCall) {
   }
 }
 
-async function handleApplyTool(_messageId: string, call: AIToolCall) {
+async function handleApplyTool(messageId: string, call: AIToolCall) {
   const toolName = call.function.name;
   console.group(`[AI Tool Engine] Applying Write-Tool: ${toolName}`);
   
@@ -1162,7 +1210,6 @@ async function handleApplyTool(_messageId: string, call: AIToolCall) {
   })
 
   if (!ok) {
-    console.log('User cancelled the operation');
     console.groupEnd();
     return;
   }
@@ -1171,8 +1218,21 @@ async function handleApplyTool(_messageId: string, call: AIToolCall) {
     let args;
     try {
       args = JSON.parse(call.function.arguments)
-    } catch (e) {
-      throw new Error('AI 返回的指令参数格式错误');
+    } catch (e: any) {
+      let msg = 'AI 返回的指令参数格式错误';
+      const posMatch = e.message.match(/at position (\d+)/) || e.message.match(/column (\d+)/);
+      if (posMatch) {
+        const pos = parseInt(posMatch[1]);
+        const text = call.function.arguments;
+        const start = Math.max(0, pos - 20);
+        const end = Math.min(text.length, pos + 20);
+        const snippet = text.substring(start, end);
+        const pointer = ' '.repeat(pos - start) + '▲';
+        msg += `: ${e.message}\n\nERROR CONTEXT:\n${snippet}\n${pointer}`;
+      } else {
+        msg += `: ${e.message}`;
+      }
+      throw new Error(msg);
     }
     
     projectStore.takeSnapshot()
@@ -1194,14 +1254,74 @@ async function handleApplyTool(_messageId: string, call: AIToolCall) {
       }]
     })
 
-    // 自动驱动下一轮生成
-    await aiStore.sendMessage('', '', undefined, true);
+    // 检查是否所有工具都已处理，若是则自动驱动下一轮生成
+    await checkAndContinueAILoop(messageId);
 
   } catch (error: any) {
     console.error('Tool application failed:', error);
     uiStore.showToast(`执行失败: ${error.message}`, 'error')
+
+    // 记录执行失败状态并反馈给 AI，以便其尝试纠正（由于参数错误或执行逻辑错误）
+    aiStore.executedToolCallIds.add(call.id)
+    
+    aiStore.addHistory('tool', `Execution failed: ${error.message}`, 'text', {
+      toolResults: [{
+        toolCallId: call.id,
+        content: JSON.stringify({ status: 'error', message: error.message })
+      }]
+    })
+
+    // 即使失败也标记为已处理，并检查是否继续循环
+    await checkAndContinueAILoop(messageId);
   } finally {
     console.groupEnd();
+  }
+}
+
+/**
+ * 拒绝执行 AI 建议的工具调用
+ */
+async function handleRejectTool(messageId: string, call: AIToolCall) {
+  const ok = await uiStore.showConfirm({
+    title: '拒绝 AI 操作',
+    message: `确定要拒绝执行 “${getToolLabel(call.function.name)}” 吗？\n拒绝后 AI 将得知该操作未被允许，并根据情况调整后续建议。`,
+    confirmText: '确定拒绝',
+    type: 'danger'
+  })
+
+  if (!ok) return;
+
+  aiStore.executedToolCallIds.add(call.id)
+  expandedToolCallIds.delete(call.id)
+
+  // 反馈拒绝结果给 AI
+  aiStore.addHistory('tool', 'User rejected this operation.', 'text', {
+    toolResults: [{
+      toolCallId: call.id,
+      content: JSON.stringify({ status: 'rejected', message: 'User declined to execute this operation.' })
+    }]
+  })
+
+  // 检查是否所有工具都已处理
+  await checkAndContinueAILoop(messageId);
+}
+
+/**
+ * 检查当前消息中的所有工具调用是否都已被处理（确认或拒绝）
+ * 如果全部完成，则驱动下一轮 AI 生成
+ */
+async function checkAndContinueAILoop(messageId: string) {
+  const msg = aiStore.history.find(m => m.id === messageId);
+  if (!msg || !msg.toolCalls) return;
+
+  const pendingCount = msg.toolCalls.filter(tc => 
+    !readOnlyTools.includes(tc.function.name) && 
+    !aiStore.executedToolCallIds.has(tc.id)
+  ).length;
+
+  if (pendingCount === 0) {
+    console.log('[AI Store] All tools in message resolved, driving next loop.');
+    await aiStore.sendMessage('', '', undefined, true);
   }
 }
 

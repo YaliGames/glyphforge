@@ -23,7 +23,7 @@ export interface AIHistoryItem {
   id: string
   role: 'user' | 'assistant' | 'tool' | 'system'
   content: string
-  type: 'text' | 'json' | 'tool_call'
+  type: 'text' | 'json' | 'tool_call' | 'error'
   isError?: boolean // 标记该消息是否为错误信息
   retryParams?: { // 用于失败后的重试逻辑
     displayContent: string

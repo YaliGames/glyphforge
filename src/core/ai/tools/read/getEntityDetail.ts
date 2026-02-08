@@ -1,9 +1,9 @@
 import { DecoupledTool, ToolContext } from '../index';
-import { getAIExportKeys, getIdentityKeys, getTechnicalKeys } from '../../schema-registry';
+import { getAIExportKeys, getIdentityKeys, getTechnicalKeys } from '../../schemaRegistry';
 
 export const getEntityDetailTool: DecoupledTool = {
   name: 'getEntityDetail',
-  description: '获取单个或多个实体的详细完整信息。对于 manuscript 或 outline，支持通过 range 参数获取特定行号范围的正文。',
+  description: '通过物理 ID 获取实体的全量详情或特定文本切片。规范：1. 设定类 IDs 必须为真实 UUID；2. 正文类 IDs 必须为章节 ID（ch-xxx），严禁传入虚拟行号标识符；3. 文本类对象支持配合 range 参数进行物理范围截取。',
   isReadOnly: true,
   parameters: {
     type: 'object',
@@ -11,24 +11,28 @@ export const getEntityDetailTool: DecoupledTool = {
       type: { 
         type: 'string', 
         enum: ['character', 'worldview', 'relationship', 'outline', 'chapters', 'manuscript'], 
-        description: '实体类型' 
+        description: '实体类型。' 
       },
-      ids: { type: 'array', items: { type: 'string' }, description: '实体 ID 列表。支持 ["all"]。' },
+      ids: { 
+        type: 'array', 
+        items: { type: 'string' }, 
+        description: '目标实体的 ID 集合，设定类为 UUID；世界观类为分类 ID (如 geography)；正文类为章节 ID。支持 ["all"] 获取全部对象。' 
+      },
       range: { 
         type: 'object', 
         properties: {
-          start: { type: 'number', description: '起始物理行号' },
-          end: { type: 'number', description: '结束物理行号' }
-        }
+          start: { type: 'number', description: '起始物理行号（1-indexed）。' },
+          end: { type: 'number', description: '结束物理行号（1-indexed）。' }
+        },
+        description: '可选：物理行号范围。仅在 type 为 manuscript 或 outline 时有效。若提供了此参数，ids 可省略。'
       }
     },
-    required: ['type', 'ids']
+    required: ['type']
   },
 
   async execute(args: any, context: ToolContext) {
-    const { type, ids, range } = args;
+    const { type, ids = [], range } = args;
     const { projectStore } = context;
-    if (!Array.isArray(ids)) throw new Error('ids must be an array');
 
     let details: any[] = [];
     const isSelectAll = ids.includes('all');
@@ -48,12 +52,26 @@ export const getEntityDetailTool: DecoupledTool = {
           effectiveRange = { start: parseInt(parts[0]), end: parseInt(parts[1]) };
         }
       }
+
       if (effectiveRange) {
         const start = Math.max(0, effectiveRange.start - 1);
         const end = Math.min(content.length, effectiveRange.end);
-        details = [{ id: ids[0], title: `大纲范围: ${effectiveRange.start}-${effectiveRange.end}`, content: content.slice(start, end).join('\n') }];
+        const lines = content.slice(start, end).map((line: string, idx: number) => `${start + idx + 1}: ${line}`);
+        details = [{ id: ids[0] || 'range-selection', title: `大纲范围: ${effectiveRange.start}-${effectiveRange.end}`, content: lines.join('\n') }];
+      } else if (ids.includes('full-text') || ids.includes('all')) {
+        const lines = content.map((line: string, idx: number) => `${idx + 1}: ${line}`);
+        details = [{ id: 'all', title: '大纲全集手稿', content: lines.join('\n') }];
       } else {
-        details = isSelectAll ? list : list.filter((a: any) => ids.includes(a.id));
+        const filtered = isSelectAll ? list : list.filter((a: any) => ids.includes(a.id));
+        details = filtered.map((act: any) => {
+          const actClone = { ...act };
+          if (act.range) {
+            const start = Math.max(0, act.range.startLine - 1);
+            const end = Math.min(content.length, act.range.endLine);
+            actClone.textSegments = content.slice(start, end).map((line: string, idx: number) => `${start + idx + 1}: ${line}`);
+          }
+          return actClone;
+        });
       }
     } else if (type === 'worldview') {
       const list = bundle.worldview?.categories || [];
@@ -77,7 +95,8 @@ export const getEntityDetailTool: DecoupledTool = {
       if (effectiveRange) {
         const start = Math.max(0, effectiveRange.start - 1);
         const end = Math.min(manuscript.length, effectiveRange.end);
-        details = [{ id: ids[0], title: `正文范围: ${effectiveRange.start}-${effectiveRange.end}`, content: manuscript.slice(start, end).join('\n') }];
+        const lines = manuscript.slice(start, end).map((line: string, idx: number) => `${start + idx + 1}: ${line}`);
+        details = [{ id: ids[0] || 'range-selection', title: `正文范围: ${effectiveRange.start}-${effectiveRange.end}`, content: lines.join('\n') }];
       } else if (isSelectAll) {
         details = [{ id: 'all', title: '全集正文', content: manuscript.join('\n') }];
       } else {

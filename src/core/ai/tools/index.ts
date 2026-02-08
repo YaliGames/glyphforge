@@ -54,7 +54,6 @@ export function getReadOnlyToolNames(): string[] {
     .map(t => t.name);
 }
 
-// 注册所有工具
 import { getEntityListTool } from './read/getEntityList';
 import { getEntityDetailTool } from './read/getEntityDetail';
 import { getEntitySchemaTool } from './read/getEntitySchema';
@@ -74,3 +73,19 @@ registerTool(getRelationGraphTool);
 registerTool(upsertEntitiesTool);
 registerTool(editTextBlockTool);
 registerTool(deleteEntitiesTool);
+
+/**
+ * 预定义 AI 工具集 (Function Calling)
+ * 此处通过聚合注册中心中的解耦工具实现，为 AI 引擎提供标准接口定义。
+ */
+export const AI_TOOLS: AITool[] = getAllTools().map(tool => ({
+  name: tool.name,
+  description: tool.description,
+  parameters: tool.parameters
+}));
+
+/**
+ * 只读型工具列表
+ * 动态从工具注册表中获取标记为 isReadOnly: true 的工具
+ */
+export const READ_ONLY_TOOLS = getReadOnlyToolNames();

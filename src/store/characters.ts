@@ -416,11 +416,19 @@ export const useCharacterStore = defineStore('characters', () => {
   }
 
   function smartUpdateRelationship(id: string, updates: Partial<Relationship>) {
+    const { sourceId, targetId, ...dataUpdates } = updates as any;
+
     if (currentPhaseId.value) {
-      // 这里的 updates 可能包含 sourceId/targetId，但 override 仅支持 RelationshipData
-      const { sourceId: _s, targetId: _t, ...dataUpdates } = updates as any;
-      updateRelationshipOverride(id, currentPhaseId.value, dataUpdates)
+      // 1. sourceId 和 targetId 属于结构性字段，目前不支持阶段覆盖，统一更新到 Base
+      if (sourceId !== undefined || targetId !== undefined) {
+        updateRelationshipBase(id, { sourceId, targetId } as any)
+      }
+      // 2. 其他属性更新到当前阶段的 Override
+      if (Object.keys(dataUpdates).length > 0) {
+        updateRelationshipOverride(id, currentPhaseId.value, dataUpdates)
+      }
     } else {
+      // 全局模式下，直接更新 Base
       updateRelationshipBase(id, updates)
     }
   }
