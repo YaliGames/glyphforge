@@ -112,7 +112,7 @@ export const getEntityDetailTool: DecoupledTool = {
         };
         collect(bundle.chapters);
         allAnchorLines.sort((a, b) => a - b);
-        details = ids.map(id => {
+        details = ids.map((id: string) => {
           const node = allNodes.find((n: any) => n.id === id);
           if (node && typeof node.anchorLineNumber === 'number') {
             const startIdx = node.anchorLineNumber - 1;
@@ -126,7 +126,7 @@ export const getEntityDetailTool: DecoupledTool = {
     }
 
     // 处理数据清洗
-    return details.map(item => {
+    return details.map((item: any) => {
       let source = { ...item };
       if (source.base) { Object.assign(source, source.base); delete source.base; }
       const exportKeys = getAIExportKeys(type);
