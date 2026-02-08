@@ -17,11 +17,13 @@
           <tbody class="divide-y dark:divide-[#333333]">
             <tr v-for="(h, index) in localHierarchies" :key="index" class="bg-white dark:bg-[#1e1e1e]">
               <td class="px-3 py-2 font-mono text-gray-400">{{ index }}</td>
-              <td class="px-3 py-2">
-                <input 
-                  v-model="h.name" 
-                  class="w-full bg-transparent outline-none focus:text-blue-500 transition-colors"
-                  placeholder="层级名称，如：卷、章、节"
+              <td class="px-3 py-1">
+                <Input
+                  variant="ghost"
+                  size="sm"
+                  v-model="h.name"
+                  placeholder="层级名称"
+                  input-class="hover:text-blue-500 transition-colors"
                 />
               </td>
               <td class="px-3 py-2 text-center">
@@ -61,6 +63,7 @@ import { useProjectStore } from '@/store/project'
 import { useUIStore } from '@/store/ui'
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
+import Input from '@/components/common/Input.vue'
 
 const emit = defineEmits(['close'])
 const projectStore = useProjectStore()

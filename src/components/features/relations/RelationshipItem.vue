@@ -60,16 +60,25 @@
     </div>
 
     <div class="relative w-24 shrink-0">
-      <input :value="rel.label" placeholder="关系名称"
-        class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333] rounded px-2 py-1.5 text-xs text-center outline-none focus:border-blue-500 transition-colors"
-        @change="(e) => $emit('update', { label: (e.target as HTMLInputElement).value })" />
+      <Input
+        size="sm"
+        placeholder="关系名称"
+        input-class="text-center"
+        :model-value="rel.label"
+        @update:model-value="(val) => $emit('update', { label: val as string })"
+      />
     </div>
 
-    <div class="flex-1 flex items-center gap-2 pl-2 border-l dark:border-[#333] ml-2 border-dashed min-w-[100px]">
-      <i class="fa-regular fa-note-sticky text-gray-300 text-[10px] shrink-0"></i>
-      <input :value="rel.notes" placeholder="添加备注..."
-        class="w-full bg-transparent border-none py-1 text-xs outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600 text-gray-500"
-        @change="(e) => $emit('update', { notes: (e.target as HTMLInputElement).value })" />
+    <div class="flex-1 flex items-center pl-2 border-l dark:border-[#333] ml-2 border-dashed min-w-[100px]">
+      <Input
+        size="sm"
+        variant="ghost"
+        placeholder="添加备注..."
+        icon-prefix="fa-regular fa-note-sticky"
+        input-class="text-gray-500 dark:text-gray-400"
+        :model-value="rel.notes"
+        @update:model-value="(val) => $emit('update', { notes: val as string })"
+      />
     </div>
 
     <button @click="$emit('remove')" :title="deleteActionTitle"
@@ -82,6 +91,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Relationship } from '@/types'
+import Input from '@/components/common/Input.vue'
 
 const props = defineProps<{
   rel: any

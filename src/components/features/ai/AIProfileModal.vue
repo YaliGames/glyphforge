@@ -108,19 +108,16 @@
           <div class="space-y-6">
             <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b dark:border-[#333] pb-2">基础配置</div>
             <div class="grid grid-cols-2 gap-8">
+              <Input 
+                v-model="currentEditingProfile.name"
+                label="配置展示名称"
+                placeholder="例如：我的 ChatGPT"
+              />
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase">配置展示名称</label>
-                <input 
-                  type="text" 
-                  v-model="currentEditingProfile.name"
-                  class="w-full bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-500 transition-all font-bold"
-                />
-              </div>
-              <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase">接口兼容类型</label>
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">接口兼容类型</label>
                 <select 
                   v-model="currentEditingProfile.provider"
-                  class="w-full bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-500 transition-all font-bold"
+                  class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-500 transition-all shadow-sm"
                 >
                   <option value="openai">OpenAI</option>
                   <option value="anthropic">Anthropic</option>
@@ -129,25 +126,20 @@
               </div>
             </div>
 
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-400 uppercase">API Endpoint</label>
-              <input 
-                type="text" 
-                v-model="currentEditingProfile.endpoint"
-                placeholder="https://..."
-                class="w-full bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-500 transition-all font-mono"
-              />
-            </div>
+            <Input 
+              v-model="currentEditingProfile.endpoint"
+              label="API Endpoint"
+              placeholder="https://api.openai.com/v1/chat/completions"
+              icon-prefix="fa-solid fa-link"
+            />
 
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-400 uppercase">API Key</label>
-              <input 
-                type="password" 
-                v-model="currentEditingProfile.apiKey"
-                placeholder="sk-..."
-                class="w-full bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-500 transition-all font-mono"
-              />
-            </div>
+            <Input 
+              type="password"
+              v-model="currentEditingProfile.apiKey"
+              label="API Key"
+              placeholder="sk-..."
+              icon-prefix="fa-solid fa-key"
+            />
 
             <div class="space-y-3">
               <label class="text-[10px] font-bold text-gray-400 uppercase flex items-center justify-between">
@@ -157,11 +149,11 @@
               
               <div class="space-y-2">
                 <div v-for="(_, idx) in currentEditingProfile.models || []" :key="idx" class="flex gap-2">
-                  <input 
-                    type="text" 
+                  <Input 
                     v-model="currentEditingProfile.models[idx]"
                     placeholder="例如: gpt-4o"
-                    class="flex-1 bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded-lg px-4 py-1.5 text-xs outline-none focus:border-blue-500 transition-all font-mono"
+                    size="sm"
+                    class="flex-1 font-mono"
                   />
                   <button 
                     @click="removeModel(idx)"
@@ -190,23 +182,21 @@
           <!-- 高级选项 -->
           <div v-if="currentEditingProfile.provider === 'custom'" class="space-y-6">
             <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b dark:border-[#333] pb-2">自定义数据引擎 (高级)</div>
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-400 uppercase">请求 Payload 模板 (JSON)</label>
-              <div class="text-[9px] text-gray-400 mb-2 italic">可用变量: ${model}, ${messages}, ${prompt}</div>
-              <textarea 
-                v-model="currentEditingProfile.template"
-                class="w-full h-32 bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded-lg px-4 py-2 text-[11px] outline-none focus:border-blue-500 transition-all font-mono custom-scrollbar"
-              ></textarea>
-            </div>
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-400 uppercase">回复提取路径 (JSON Path)</label>
-              <input 
-                type="text" 
-                v-model="currentEditingProfile.responsePath"
-                placeholder="choices[0].message.content"
-                class="w-full bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-500 transition-all font-mono"
-              />
-            </div>
+            <Input
+              type="textarea"
+              v-model="currentEditingProfile.template"
+              label="请求 Payload 模板 (JSON)"
+              placeholder='{"model": "${model}", "messages": "${messages}"}'
+              hint="可用变量: ${model}, ${messages}, ${prompt}"
+              :rows="5"
+              auto-resize
+            />
+            <Input 
+              v-model="currentEditingProfile.responsePath"
+              label="回复提取路径 (JSON Path)"
+              placeholder="choices[0].message.content"
+              icon-prefix="fa-solid fa-code-branch"
+            />
           </div>
         </div>
         <EmptyState
@@ -235,6 +225,7 @@ import { AI_PROFILE_TEMPLATES, type AIProfile } from '@/config/settings.schema'
 import { v4 as uuidv4 } from 'uuid'
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
+import Input from '@/components/common/Input.vue'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 

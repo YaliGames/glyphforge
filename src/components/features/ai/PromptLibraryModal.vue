@@ -38,17 +38,18 @@
           </div>
 
           <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">模板名称</label>
-              <input v-model="activePrompt.label" placeholder="模板名称" 
-                :disabled="activePrompt.id?.startsWith('builtin-')"
-                class="w-full bg-gray-50 dark:bg-[#111] border dark:border-[#333] rounded-xl px-3 py-2 text-xs outline-none focus:ring-1 ring-purple-500/30 disabled:opacity-60 disabled:cursor-not-allowed" />
-            </div>
+            <Input
+              v-model="activePrompt.label"
+              label="模板名称"
+              placeholder="模板名称"
+              color="purple"
+              :disabled="activePrompt.id?.startsWith('builtin-')"
+            />
             <div class="space-y-2">
               <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">分类</label>
               <select v-model="activePrompt.category"
                 :disabled="activePrompt.id?.startsWith('builtin-')"
-                class="w-full bg-gray-50 dark:bg-[#111] border dark:border-[#333] rounded-xl px-3 py-2 text-xs outline-none focus:ring-1 ring-purple-500/30 disabled:opacity-60 disabled:cursor-not-allowed">
+                class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:border-purple-500 ring-purple-500/30 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition-all focus:ring-2">
                 <option value="general">通用</option>
                 <option value="writing">写作扩写</option>
                 <option value="character">角色设计</option>
@@ -58,23 +59,24 @@
             </div>
           </div>
 
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">简短描述</label>
-            <input v-model="activePrompt.description" placeholder="用于列表展示的描述..." 
-              :disabled="activePrompt.id?.startsWith('builtin-')"
-              class="w-full bg-gray-50 dark:bg-[#111] border dark:border-[#333] rounded-xl px-3 py-2 text-xs outline-none focus:ring-1 ring-purple-500/30 disabled:opacity-60 disabled:cursor-not-allowed" />
-          </div>
+          <Input
+            v-model="activePrompt.description"
+            label="简短描述"
+            placeholder="用于列表展示的描述..."
+            color="purple"
+            :disabled="activePrompt.id?.startsWith('builtin-')"
+          />
 
-          <div class="space-y-2 flex flex-col flex-1 min-h-[300px]">
-            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
-              Prompt 模板
-              <span class="text-[8px] normal-case text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded">使用 [REFERENCES] 和 [USER_INPUT] 占位</span>
-            </label>
-            <textarea v-model="activePrompt.content" 
-              :disabled="activePrompt.id?.startsWith('builtin-')"
-              class="flex-1 w-full bg-gray-50 dark:bg-[#111] border dark:border-[#333] rounded-xl px-4 py-3 text-[11px] leading-relaxed font-mono focus:ring-1 ring-purple-500/30 outline-none resize-none disabled:opacity-60 disabled:cursor-not-allowed"
-              placeholder="控制权完全交给你..."></textarea>
-          </div>
+          <Input
+            v-model="activePrompt.content"
+            type="textarea"
+            label="Prompt 模板"
+            :hint="'使用 [REFERENCES] 和 [USER_INPUT] 占位'"
+            placeholder="控制权完全交给你..."
+            color="purple"
+            input-class="font-mono leading-relaxed min-h-[300px]"
+            :disabled="activePrompt.id?.startsWith('builtin-')"
+          />
         </div>
 
         <EmptyState
@@ -103,6 +105,7 @@
 import { ref, onMounted } from 'vue'
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
+import Input from '@/components/common/Input.vue'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useAIStore } from '@/store/ai'

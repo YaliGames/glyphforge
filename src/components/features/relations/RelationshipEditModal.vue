@@ -1,29 +1,33 @@
 <template>
   <Modal v-if="modelValue" title="编辑关系" @close="close">
     <div class="space-y-4">
-      <div class="space-y-1.5">
-        <label class="text-[10px] font-bold text-gray-500 uppercase">关系名称</label>
-        <input v-model="internalLabel" ref="labelInput"
-          class="w-full bg-gray-50 dark:bg-[#252525] border dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition-all font-bold"
-          @keydown.enter="save" />
-      </div>
+      <Input
+        v-model="internalLabel"
+        ref="labelInput"
+        label="关系名称"
+        placeholder="例如：师徒、仇敌..."
+        @enter="save"
+      />
 
-      <div class="space-y-1.5">
-        <label class="text-[10px] font-bold text-gray-500 uppercase">备注</label>
-        <textarea v-model="internalNotes" rows="3"
-          class="w-full bg-gray-50 dark:bg-[#252525] border dark:border-[#333] rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-500 resize-none transition-all"></textarea>
-      </div>
+      <Input
+        v-model="internalNotes"
+        type="textarea"
+        label="备注"
+        placeholder="添加一些关于这段关系的详细说明..."
+        :rows="3"
+        auto-resize
+      />
     </div>
 
     <template #footer>
       <div class="flex justify-between items-center w-full">
-        <Button color="red" text size="xs" icon="fa-solid fa-trash-can" @click="emitDelete">
+        <Button color="red" text icon="fa-solid fa-trash-can" @click="emitDelete">
           删除
         </Button>
 
         <div class="flex gap-2">
-          <Button color="gray" text size="sm" @click="close">取消</Button>
-          <Button color="blue" size="sm" @click="save">保存更改</Button>
+          <Button color="gray" text @click="close">取消</Button>
+          <Button color="blue" @click="save">保存更改</Button>
         </div>
       </div>
     </template>
@@ -35,6 +39,7 @@ import { ref, watch, nextTick } from 'vue'
 import type { Relationship } from '@/types'
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
+import Input from '@/components/common/Input.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -49,7 +54,7 @@ const emit = defineEmits<{
 
 const internalLabel = ref('')
 const internalNotes = ref('')
-const labelInput = ref<HTMLInputElement | null>(null)
+const labelInput = ref<any>(null)
 
 watch(() => props.relationship, (newVal) => {
   if (newVal) {

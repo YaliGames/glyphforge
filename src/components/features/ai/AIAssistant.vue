@@ -530,17 +530,19 @@
 
         <!-- 第三行：输入区 -->
         <div class="relative group">
-          <textarea 
+          <Input 
             ref="inputAreaRef"
             v-model="input"
-            rows="4"
-            class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333] rounded-2xl pl-4 pr-12 py-3 text-[13px] leading-relaxed focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 transition-all resize-none shadow-sm dark:text-gray-200"
+            type="textarea"
+            :rows="4"
+            color="purple"
+            input-class="!rounded-2xl pl-4 pr-12 py-3 text-[13px] leading-relaxed shadow-sm"
             placeholder="输入任务描述，支持 @ 引用实体..."
             @input="handleAtInput"
             @blur="handleAtBlur"
             @keydown="handleAtKeydown"
             @keydown.enter.ctrl.exact="send"
-          ></textarea>
+          />
         </div>
 
         <!-- 第四行：执行控制区 -->
@@ -646,6 +648,7 @@ import { useSettingsStore } from '@/store/settings'
 import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall, type AIReference } from '@/types'
 import { AI_TOOLS, READ_ONLY_TOOLS, getTool } from '@/core/ai/tools'
 import EmptyState from '@/components/common/EmptyState.vue'
+import Input from '@/components/common/Input.vue'
 import { useRouter } from 'vue-router'
 
 const aiStore = useAIStore()
@@ -660,7 +663,7 @@ const router = useRouter()
 const input = ref('')
 const expandedToolCallIds = reactive(new Set<string>())
 const historyBox = ref<HTMLElement | null>(null)
-const inputAreaRef = ref<HTMLTextAreaElement | null>(null)
+const inputAreaRef = ref<any>(null)
 const activePanel = ref<'context' | 'prompts' | null>(null)
 
 // --- 工具解析辅助 ---
@@ -869,7 +872,7 @@ async function selectAtType(type: any) {
   atMenu.instances = aiStore.getContextOptions(type.value)
 
   // 在编辑区域追加类型名称
-  const textarea = inputAreaRef.value
+  const textarea = inputAreaRef.value?.el
   if (textarea) {
     const cursor = textarea.selectionStart
     const textBefore = textarea.value.substring(0, cursor)
@@ -922,7 +925,7 @@ function confirmAtReference(instance: any) {
     syncCategorySelection(type)
   }
   
-  const textarea = inputAreaRef.value
+  const textarea = inputAreaRef.value?.el
   if (textarea) {
     const cursor = textarea.selectionStart
     const textBefore = textarea.value.substring(0, cursor)

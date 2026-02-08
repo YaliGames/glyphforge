@@ -63,33 +63,27 @@
       <div v-if="activeChapter" class="p-5 space-y-6">
         <!-- 章节基本属性 -->
         <div class="space-y-4">
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">章节名称</label>
-            <input 
-              :value="activeChapter.title"
-              @input="(e: any) => chapterStore.updateChapter(activeChapter.id, { title: e.target.value })"
-              @focus="startEdit()"
-              @blur="endEdit()"
-              class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-              placeholder="正文标题行会自动同步至此..."
-            />
-          </div>
+          <Input 
+            :model-value="activeChapter.title"
+            label="章节名称"
+            placeholder="正文标题行会自动同步至此..."
+            @update:model-value="(val) => chapterStore.updateChapter(activeChapter.id, { title: val })"
+            @focus="startEdit()"
+            @blur="endEdit()"
+          />
 
           <!-- 章节标签 (用于判定角色阶段, 规范 2.3.2) -->
           <div class="space-y-2">
-            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <i class="fa-solid fa-tags text-[9px]"></i>
-              章节标签
-            </label>
-            <input 
-              :value="activeChapter.tags?.join(', ')"
+            <Input 
+              :model-value="activeChapter.tags?.join(', ')"
+              label="章节标签"
+              icon-prefix="fa-solid fa-tags"
+              placeholder="输入标签，用逗号分隔..."
+              hint="用于自动判定该章节下角色所处的“叙事阶段”"
               @focus="startEdit()"
               @blur="endEdit()"
               @change="(e: any) => chapterStore.updateChapter(activeChapter.id, { tags: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) })"
-              class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 shadow-sm font-mono"
-              placeholder="输入标签，用逗号分隔..."
             />
-            <p class="text-[9px] text-gray-400 italic">用于自动判定该章节下角色所处的“叙事阶段”</p>
           </div>
           
           <div class="grid grid-cols-2 gap-3">
@@ -172,6 +166,8 @@ import { useSettingsStore } from '@/store/settings'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import ChapterTreeItem from '@/components/features/editor/ChapterTreeItem.vue'
 import MonacoEditor from '@/components/features/editor/MonacoEditor.vue'
+import Button from '@/components/common/Button.vue'
+import Input from '@/components/common/Input.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const chapterStore = useChapterStore()
