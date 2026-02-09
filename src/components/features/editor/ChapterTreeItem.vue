@@ -1,8 +1,8 @@
 <template>
   <div class="chapter-node">
     <div 
-      class="group flex items-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all duration-200 hover:translate-x-0.5 hover:bg-gray-100 dark:hover:bg-[#2d2d2d]"
-      :class="active ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400'"
+      class="group flex items-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all duration-200 hover:translate-x-0.5"
+      :class="active ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2d2d2d]'"
       :style="{ paddingLeft: `${depth * 12 + 8}px` }"
       @click="$emit('select', node.id)"
     >

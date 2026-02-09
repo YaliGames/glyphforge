@@ -36,7 +36,7 @@
                   class="group-hover:hidden px-1.5 py-0.5 rounded-[4px] bg-gray-100 dark:bg-[#333333] text-gray-400 text-[9px] whitespace-nowrap">
                   未绑定
                 </span>
-                <Button size="sm" class="hidden group-hover:flex !px-2 !py-0.5 !rounded-[4px]"
+                <Button size="xs" :rounded="false" class="hidden group-hover:flex !px-2 !py-0.5"
                   @click.stop="bindSelectionToAct(item.id)">
                   绑定
                 </Button>
