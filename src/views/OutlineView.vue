@@ -3,7 +3,13 @@
     <!-- 左栏：大纲树 -->
     <SidePanel title="大纲结构" width="w-64" side="left">
       <template #actions>
-        <Button size="xs" text icon="fa-solid fa-plus text-xs" @click="createNewAct" title="创建新幕" />
+        <IconButton
+          icon="fa-solid fa-plus"
+          size="sm"
+          variant="primary"
+          title="创建新幕"
+          @click="createNewAct"
+        />
       </template>
 
       <div class="p-2 space-y-1">
@@ -133,6 +139,7 @@ import { useFieldHistory } from '@/composables/useFieldHistory'
 import OutlineEditor from '@/components/features/editor/OutlineEditor.vue'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import Button from '@/components/common/Button.vue'
+import IconButton from '@/components/common/IconButton.vue'
 import Input from '@/components/common/Input.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import * as monaco from 'monaco-editor'

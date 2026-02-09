@@ -3,26 +3,27 @@
     <!-- 目录树顶部操作栏 (规范 6.1) -->
     <SidePanel title="目录结构" width="w-64" side="left">
       <template #actions>
-        <div class="flex items-center gap-1">
-          <button v-if="settingsStore.getSettings()['ai.enabled']" @click="uiStore.openModal('recognition')"
-            class="p-1.5 hover:bg-gray-200 dark:hover:bg-[#333] rounded text-gray-500 hover:text-blue-500 transition-colors"
-            title="自动识别目录">
-            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
-          </button>
-                  <button 
-          @click="uiStore.openModal('hierarchy-editor')"
-          class="p-1 hover:bg-gray-200 dark:hover:bg-[#333333] rounded text-gray-500"
-          title="编辑层级配置"
-        >
-          <i class="fa-solid fa-sliders text-xs"></i>
-        </button>
-        <button 
-          @click="setSelectionAsChapter" 
-          class="p-1 hover:bg-gray-200 dark:hover:bg-[#333333] rounded text-blue-600 dark:text-blue-400"
-          title="将当前行设为章节标题"
-        >
-          <i class="fa-solid fa-plus text-xs"></i>
-        </button>
+        <div class="flex items-center gap-0.5">
+          <IconButton
+            v-if="settingsStore.getSettings()['ai.enabled']"
+            icon="fa-solid fa-wand-magic-sparkles"
+            title="自动识别目录"
+            size="sm"
+            @click="uiStore.openModal('recognition')"
+          />
+          <IconButton
+            icon="fa-solid fa-sliders"
+            title="编辑层级配置"
+            size="sm"
+            @click="uiStore.openModal('hierarchy-editor')"
+          />
+          <IconButton
+            icon="fa-solid fa-plus"
+            title="将当前行设为章节标题"
+            size="sm"
+            variant="primary"
+            @click="setSelectionAsChapter"
+          />
         </div>
       </template>
 
@@ -96,20 +97,20 @@
             <div class="space-y-2">
               <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">逻辑深度</label>
               <div class="flex items-center gap-2">
-                <button 
-                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: Math.max(0, activeChapter.depth - 1) })" 
-                  class="p-1 border rounded hover:bg-gray-100 dark:hover:bg-[#333333]"
+                <IconButton
+                  icon="fa-solid fa-minus"
+                  size="xs"
+                  class="border dark:border-[#333333]"
                   :disabled="activeChapter.depth <= 0"
-                >
-                  <i class="fa-solid fa-minus text-[10px]"></i>
-                </button>
+                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: Math.max(0, activeChapter.depth - 1) })"
+                />
                 <span class="text-xs font-mono">{{ activeChapter.depth }}</span>
-                <button 
-                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: activeChapter.depth + 1 })" 
-                  class="p-1 border rounded hover:bg-gray-100 dark:hover:bg-[#333333]"
-                >
-                  <i class="fa-solid fa-plus text-[10px]"></i>
-                </button>
+                <IconButton
+                  icon="fa-solid fa-plus"
+                  size="xs"
+                  class="border dark:border-[#333333]"
+                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: activeChapter.depth + 1 })"
+                />
               </div>
             </div>
           </div>
@@ -167,6 +168,7 @@ import SidePanel from '@/components/layout/SidePanel.vue'
 import ChapterTreeItem from '@/components/features/editor/ChapterTreeItem.vue'
 import MonacoEditor from '@/components/features/editor/MonacoEditor.vue'
 import Button from '@/components/common/Button.vue'
+import IconButton from '@/components/common/IconButton.vue'
 import Input from '@/components/common/Input.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 

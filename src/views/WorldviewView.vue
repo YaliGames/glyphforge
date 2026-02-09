@@ -3,7 +3,13 @@
     <!-- 左侧目录：仅显示分类 -->
     <SidePanel title="设定维度" width="w-64" side="left">
       <template #actions>
-        <Button size="xs" text icon="fa-solid fa-plus text-xs" @click="createNewCategory" title="添加新维度" />
+        <IconButton
+          icon="fa-solid fa-plus"
+          size="sm"
+          variant="primary"
+          title="添加新维度"
+          @click="createNewCategory"
+        />
       </template>
 
       <div class="p-2 space-y-2">
@@ -26,7 +32,7 @@
                   class="text-[10px] opacity-70 group-hover:text-blue-500 transition-colors mr-2"></i>
                 <span class="text-xs font-bold truncate pr-1">{{ cat.name }}</span>
               </div>
-              <div class="flex items-center w-[60px] shrink-0">
+              <div class="flex items-center w-[60px] justify-end shrink-0">
                 <SidebarActionGroup :can-move-up="worldviewStore.worldview.categories.indexOf(cat) !== 0"
                   :can-move-down="worldviewStore.worldview.categories.indexOf(cat) !== worldviewStore.worldview.categories.length - 1"
                   @move-up="worldviewStore.moveCategory(cat.type, 'up')"
@@ -99,10 +105,14 @@
                   @focus="startEdit()"
                   @blur="endEdit()"
                 />
-                <button @click="removeDetailItem(activeCategory, index)"
-                  class="absolute top-4 right-4 opacity-0 group-hover/item:opacity-100 text-gray-300 hover:text-red-500 transition-all z-10">
-                  <i class="fa-solid fa-trash-can text-[10px]"></i>
-                </button>
+                <IconButton
+                  icon="fa-solid fa-trash-can"
+                  size="sm"
+                  variant="danger"
+                  title="删除条目"
+                  class="absolute top-4 right-4 opacity-0 group-hover/item:opacity-100 z-10"
+                  @click="removeDetailItem(activeCategory, index)"
+                />
               </div>
 
               <div v-if="activeCategory.details.length === 0"
@@ -136,6 +146,7 @@ import { WORLDVIEW_PRESET_CATEGORIES } from '@/config'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import AIButton from '@/components/common/AIButton.vue'
 import Button from '@/components/common/Button.vue'
+import IconButton from '@/components/common/IconButton.vue'
 import Input from '@/components/common/Input.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import SidebarActionGroup from '@/components/layout/SidebarActionGroup.vue'

@@ -22,25 +22,30 @@
     <div class="flex items-center h-full shrink-0 gap-1 pr-2">
       <!-- 撤销/重做快捷按钮 -->
       <div class="flex items-center border-r dark:border-[#333333] pr-2 mr-1 gap-0.5 no-drag">
-        <button @click="projectStore.undo()" :disabled="!projectStore.canUndo"
-          class="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#37373d] rounded disabled:opacity-30 transition-colors"
-          title="撤销 (Ctrl+Z)">
-          <i class="fa-solid fa-rotate-left text-sm"></i>
-        </button>
-        <button @click="projectStore.redo()" :disabled="!projectStore.canRedo"
-          class="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#37373d] rounded disabled:opacity-30 transition-colors"
-          title="重做 (Ctrl+Y)">
-          <i class="fa-solid fa-rotate-right text-sm"></i>
-        </button>
-
-        <button v-if="settingsStore.getSettings()['ai.enabled']" @click="aiStore.toggle()" :disabled="!projectStore.isLoaded"
-          class="p-1.5 transition-all rounded disabled:opacity-30 hover:text-purple-600 hover:bg-gray-100 dark:hover:bg-[#37373d]"
-          :class="aiStore.isVisible 
-            ? 'text-purple-600' 
-            : 'text-gray-500 dark:text-gray-400'"
-          title="AI 创作助手">
-          <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
-        </button>
+        <IconButton
+          icon="fa-solid fa-rotate-left"
+          title="撤销 (Ctrl+Z)"
+          size="sm"
+          :disabled="!projectStore.canUndo"
+          @click="projectStore.undo()"
+        />
+        <IconButton
+          icon="fa-solid fa-rotate-right"
+          title="重做 (Ctrl+Y)"
+          size="sm"
+          :disabled="!projectStore.canRedo"
+          @click="projectStore.redo()"
+        />
+        <IconButton
+          v-if="settingsStore.getSettings()['ai.enabled']"
+          icon="fa-solid fa-wand-magic-sparkles"
+          title="AI 创作助手"
+          size="sm"
+          :disabled="!projectStore.isLoaded"
+          :active="aiStore.isVisible"
+          @click="aiStore.toggle()"
+          :class="aiStore.isVisible ? '!text-purple-600' : 'hover:!text-purple-600'"
+        />
       </div>
 
       <!-- 窗口控制按钮组 -->
@@ -57,6 +62,7 @@ import { useSettingsStore } from '@/store/settings'
 import { useAIStore } from '@/store/ai'
 import { useActions } from '@/composables/useActions'
 import { isElectron } from '@/utils/env'
+import IconButton from '@/components/common/IconButton.vue'
 import MenuBar from './MenuBar.vue'
 import WindowControls from './WindowControls.vue'
 import type { AppAction } from '@/types'

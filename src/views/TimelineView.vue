@@ -3,7 +3,13 @@
     <!-- 左侧：快速跳转 -->
     <SidePanel title="历史轨迹" width="w-64" side="left">
       <template #actions>
-        <Button size="xs" text icon="fa-solid fa-plus text-xs" @click="addTimelineEvent" title="新建时间点" />
+        <IconButton
+          icon="fa-solid fa-plus"
+          size="sm"
+          variant="primary"
+          title="新建时间点"
+          @click="addTimelineEvent"
+        />
       </template>
 
       <div class="p-2 space-y-2">
@@ -23,7 +29,7 @@
                 <div class="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0"></div>
                 <span class="text-xs font-bold truncate pr-1">{{ event.title || '未命名事件' }}</span>
               </div>
-              <div class="flex items-center w-[60px] shrink-0">
+              <div class="flex items-center w-[60px] justify-end shrink-0">
                 <SidebarActionGroup :can-move-up="worldviewStore.worldview?.timeline.indexOf(event) !== 0"
                   :can-move-down="worldviewStore.worldview?.timeline.indexOf(event) !== (worldviewStore.worldview?.timeline.length ?? 0) - 1"
                   @move-up="worldviewStore.moveTimelineEvent(event.id, 'up')"
@@ -103,10 +109,14 @@
                       @blur="endEdit()"
                     />
                   </div>
-                  <button @click="removeTimelineEvent(event.id)"
-                    class="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all p-2">
-                    <i class="fa-solid fa-trash-can text-[10px]"></i>
-                  </button>
+                    <IconButton
+                      icon="fa-solid fa-trash-can"
+                      size="sm"
+                      variant="danger"
+                      title="删除事件"
+                      class="opacity-0 group-hover:opacity-100"
+                      @click="removeTimelineEvent(event.id)"
+                    />
                 </div>
 
                 <div class="flex flex-wrap gap-4 pt-2 border-t dark:border-[#2d2d2d]">
@@ -146,6 +156,7 @@ import { useFieldHistory } from '@/composables/useFieldHistory'
 import { useUIStore } from '@/store/ui'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import Button from '@/components/common/Button.vue'
+import IconButton from '@/components/common/IconButton.vue'
 import Input from '@/components/common/Input.vue'
 import SidebarActionGroup from '@/components/layout/SidebarActionGroup.vue'
 import EmptyState from '@/components/common/EmptyState.vue'

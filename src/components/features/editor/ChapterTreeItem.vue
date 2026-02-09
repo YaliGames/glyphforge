@@ -36,7 +36,7 @@
 
         <!-- Actions: Shared space, fades in on hover -->
         <SidebarActionGroup 
-          class="absolute right-0 top-0"
+          class="absolute right-0 top-1/2 -translate-y-1/2"
           :can-move-up="node.depth > 0"
           :can-move-down="node.depth < maxDepth"
           move-up-title="提升层级"

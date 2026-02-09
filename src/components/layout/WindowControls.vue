@@ -4,14 +4,14 @@
     <div class="flex items-center h-full">
       <button 
         @click="minimize"
-        class="h-10 w-12 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#37373d] transition-colors text-gray-500 dark:text-gray-400" 
+        class="h-10 w-12 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#37373d] transition-colors text-gray-500 dark:text-gray-400" 
         title="最小化"
       >
         <i class="fa-solid fa-minus text-xs"></i>
       </button>
       <button 
         @click="maximize"
-        class="h-10 w-12 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#37373d] transition-colors text-gray-500 dark:text-gray-400 group" 
+        class="h-10 w-12 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#37373d] transition-colors text-gray-500 dark:text-gray-400 group" 
         title="最大化/还原"
       >
         <i class="fa-regular fa-square text-[10px]"></i>

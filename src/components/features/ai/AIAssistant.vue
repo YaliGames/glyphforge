@@ -13,16 +13,17 @@
           </div>
         </div>
         <div class="flex items-center gap-1">
-          <button 
-            @click="goToSettings('ai')" 
-            class="p-2 hover:bg-gray-200 dark:hover:bg-[#333] rounded-lg transition-all text-gray-400 group"
+          <IconButton
+            icon="fa-solid fa-gear"
+            icon-class="group-hover:rotate-45 transition-transform"
             title="AI 设置"
-          >
-            <i class="fa-solid fa-gear text-sm group-hover:rotate-45 transition-transform"></i>
-          </button>
-          <button @click="aiStore.toggle" class="p-2 hover:bg-gray-200 dark:hover:bg-[#333] rounded-lg transition-all text-gray-400">
-            <i class="fa-solid fa-xmark text-sm"></i>
-          </button>
+            @click="goToSettings('ai')"
+            class="group"
+          />
+          <IconButton
+            icon="fa-solid fa-xmark"
+            @click="aiStore.toggle()"
+          />
         </div>
       </header>
 
@@ -52,14 +53,14 @@
                 </div>
 
                 <!-- 复制按钮：显示在发送人标记的另一侧 -->
-                <button 
+                <IconButton
                   v-if="msg.content"
-                  @click="copyContent(msg.content)"
-                  class="opacity-0 group-hover/msg:opacity-100 transition-opacity hover:text-purple-600 p-1"
+                  icon="fa-regular fa-copy"
+                  size="xs"
                   title="复制原始 MD 内容"
-                >
-                  <i class="fa-regular fa-copy"></i>
-                </button>
+                  class="opacity-0 group-hover/msg:opacity-100 transition-opacity hover:!text-purple-600"
+                  @click="copyContent(msg.content)"
+                />
             </div>
             
             <div 
@@ -649,6 +650,7 @@ import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall, type AIRef
 import { AI_TOOLS, READ_ONLY_TOOLS, getTool } from '@/core/ai/tools'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Input from '@/components/common/Input.vue'
+import IconButton from '@/components/common/IconButton.vue'
 import { useRouter } from 'vue-router'
 
 const aiStore = useAIStore()

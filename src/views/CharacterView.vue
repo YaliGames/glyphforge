@@ -3,19 +3,11 @@
     <!-- 角色列表 -->
     <SidePanel title="角色库" width="w-64" side="left">
       <template #actions>
-        <button @click="addCharacter"
-          class="p-1.5 hover:bg-gray-200 dark:hover:bg-[#333333] rounded text-blue-600 dark:text-blue-400 transition-colors"
-          title="新建角色">
-          <i class="fa-solid fa-plus text-xs"></i>
-        </button>
+        <IconButton icon="fa-solid fa-plus" title="新建角色" size="sm" variant="primary" @click="addCharacter" />
       </template>
 
       <div class="p-2 space-y-2">
-        <Input
-          v-model="searchQuery"
-          icon-prefix="fa-solid fa-search"
-          placeholder="搜索姓名 / 标签..."
-        />
+        <Input v-model="searchQuery" icon-prefix="fa-solid fa-search" placeholder="搜索姓名 / 标签..." />
 
         <div class="space-y-1 mt-2">
           <div v-for="char in filteredCharacters" :key="char.id" @click="activeCharacterId = char.id" :class="[
@@ -33,7 +25,7 @@
                 <i v-if="currentPhaseId && hasOverride(char, currentPhaseId)"
                   class="fa-solid fa-pen-nib text-[10px] text-orange-400" title="此阶段有特定变更"></i>
               </div>
-              <div class="flex items-center w-[60px] shrink-0">
+              <div class="flex items-center w-[60px] justify-end shrink-0">
                 <SidebarActionGroup :can-move-up="characterStore.rawCharacters.indexOf(char._original) !== 0"
                   :can-move-down="characterStore.rawCharacters.indexOf(char._original) !== characterStore.rawCharacters.length - 1"
                   @move-up="characterStore.moveCharacter(char.id, 'up')"
@@ -98,36 +90,21 @@
             <div class="space-y-4">
               <div class="space-y-2">
                 <CharacterFieldLabel label="姓名" :is-overridden="isOverridden('name')" @restore="restoreField('name')" />
-                <Input
-                  :model-value="activeCharacter.name"
-                  placeholder="角色姓名或核心称谓"
-                  @update:model-value="(val) => updateField('name', val)"
-                  @focus="startEdit()"
-                  @blur="endEdit()"
-                />
+                <Input :model-value="activeCharacter.name" placeholder="角色姓名或核心称谓"
+                  @update:model-value="(val) => updateField('name', val)" @focus="startEdit()" @blur="endEdit()" />
               </div>
 
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <CharacterFieldLabel label="性别" :is-overridden="isOverridden('gender')"
                     @restore="restoreField('gender')" />
-                  <Input
-                    :model-value="activeCharacter.gender"
-                    placeholder="角色性别"
-                    @update:model-value="(val) => updateField('gender', val)"
-                    @focus="startEdit()"
-                    @blur="endEdit()"
-                  />
+                  <Input :model-value="activeCharacter.gender" placeholder="角色性别"
+                    @update:model-value="(val) => updateField('gender', val)" @focus="startEdit()" @blur="endEdit()" />
                 </div>
                 <div class="space-y-2">
                   <CharacterFieldLabel label="年龄" :is-overridden="isOverridden('age')" @restore="restoreField('age')" />
-                  <Input
-                    :model-value="activeCharacter.age"
-                    placeholder="角色年龄"
-                    @update:model-value="(val) => updateField('age', val)"
-                    @focus="startEdit()"
-                    @blur="endEdit()"
-                  />
+                  <Input :model-value="activeCharacter.age" placeholder="角色年龄"
+                    @update:model-value="(val) => updateField('age', val)" @focus="startEdit()" @blur="endEdit()" />
                 </div>
               </div>
 
@@ -159,73 +136,41 @@
               <div class="space-y-2">
                 <CharacterFieldLabel label="角色定位" :is-overridden="isOverridden('positioning')"
                   @restore="restoreField('positioning')" />
-                <Input
-                  :model-value="activeCharacter.positioning"
-                  placeholder="角色在故事中的定位，如主角、核心配角、对立角色等"
-                  @update:model-value="(val) => updateField('positioning', val)"
-                  @focus="startEdit()"
-                  @blur="endEdit()"
-                />
+                <Input :model-value="activeCharacter.positioning" placeholder="角色在故事中的定位，如主角、核心配角、对立角色等"
+                  @update:model-value="(val) => updateField('positioning', val)" @focus="startEdit()"
+                  @blur="endEdit()" />
               </div>
 
               <div class="space-y-2">
                 <CharacterFieldLabel label="动机目标" :is-overridden="isOverridden('motivation')"
                   @restore="restoreField('motivation')" />
-                <Input
-                  type="textarea"
-                  :model-value="activeCharacter.motivation"
-                  placeholder="角色的核心目标与行动理由"
-                  auto-resize
-                  :rows="2"
-                  @update:model-value="(val) => updateField('motivation', val)"
-                  @focus="startEdit()"
-                  @blur="endEdit()"
-                />
+                <Input type="textarea" :model-value="activeCharacter.motivation" placeholder="角色的核心目标与行动理由" auto-resize
+                  :rows="2" @update:model-value="(val) => updateField('motivation', val)" @focus="startEdit()"
+                  @blur="endEdit()" />
               </div>
 
               <div class="space-y-2">
                 <CharacterFieldLabel label="外貌着装" :is-overridden="isOverridden('appearance')"
                   @restore="restoreField('appearance')" />
-                <Input
-                  type="textarea"
-                  :model-value="activeCharacter.appearance"
-                  placeholder="角色的体貌特征、惯常穿着"
-                  auto-resize
-                  :rows="3"
-                  @update:model-value="(val) => updateField('appearance', val)"
-                  @focus="startEdit()"
-                  @blur="endEdit()"
-                />
+                <Input type="textarea" :model-value="activeCharacter.appearance" placeholder="角色的体貌特征、惯常穿着" auto-resize
+                  :rows="3" @update:model-value="(val) => updateField('appearance', val)" @focus="startEdit()"
+                  @blur="endEdit()" />
               </div>
 
               <div class="space-y-2">
                 <CharacterFieldLabel label="性格特征" :is-overridden="isOverridden('personality')"
                   @restore="restoreField('personality')" />
-                <Input
-                  type="textarea"
-                  :model-value="activeCharacter.personality"
-                  placeholder="角色的核心性格、行事逻辑"
-                  auto-resize
-                  :rows="3"
-                  @update:model-value="(val) => updateField('personality', val)"
-                  @focus="startEdit()"
-                  @blur="endEdit()"
-                />
+                <Input type="textarea" :model-value="activeCharacter.personality" placeholder="角色的核心性格、行事逻辑" auto-resize
+                  :rows="3" @update:model-value="(val) => updateField('personality', val)" @focus="startEdit()"
+                  @blur="endEdit()" />
               </div>
 
               <div class="space-y-2">
                 <CharacterFieldLabel label="身份背景" :is-overridden="isOverridden('background')"
                   @restore="restoreField('background')" />
-                <Input
-                  type="textarea"
-                  :model-value="activeCharacter.background"
-                  placeholder="角色的出身、过往经历、关键转折点"
-                  auto-resize
-                  :rows="8"
-                  @update:model-value="(val) => updateField('background', val)"
-                  @focus="startEdit()"
-                  @blur="endEdit()"
-                />
+                <Input type="textarea" :model-value="activeCharacter.background" placeholder="角色的出身、过往经历、关键转折点"
+                  auto-resize :rows="8" @update:model-value="(val) => updateField('background', val)"
+                  @focus="startEdit()" @blur="endEdit()" />
               </div>
             </div>
           </div>
@@ -297,27 +242,13 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div class="space-y-2">
               <label class="text-[10px] font-bold text-gray-500 uppercase">作者私语</label>
-              <Input
-                type="textarea"
-                v-model="activeCharacter.notes.authorNotes"
-                placeholder="灵感或计划..."
-                auto-resize
-                :rows="4"
-                @focus="startEdit()"
-                @blur="endEdit()"
-              />
+              <Input type="textarea" v-model="activeCharacter.notes.authorNotes" placeholder="灵感或计划..." auto-resize
+                :rows="4" @focus="startEdit()" @blur="endEdit()" />
             </div>
             <div class="space-y-2">
               <label class="text-[10px] font-bold text-gray-500 uppercase">待解悬念</label>
-              <Input
-                type="textarea"
-                v-model="activeCharacter.notes.openQuestions"
-                placeholder="未解之谜..."
-                auto-resize
-                :rows="4"
-                @focus="startEdit()"
-                @blur="endEdit()"
-              />
+              <Input type="textarea" v-model="activeCharacter.notes.openQuestions" placeholder="未解之谜..." auto-resize
+                :rows="4" @focus="startEdit()" @blur="endEdit()" />
             </div>
           </div>
         </section>
@@ -330,11 +261,8 @@
     <!-- 右侧：阶段管理 -->
     <SidePanel title="剧情阶段" width="w-64" side="right">
       <template #actions>
-        <button @click="characterStore.addPhase()"
-          class="p-1.5 hover:bg-gray-200 dark:hover:bg-[#333333] rounded text-blue-600 dark:text-blue-400 transition-colors"
-          title="添加阶段">
-          <i class="fa-solid fa-plus text-xs"></i>
-        </button>
+        <IconButton icon="fa-solid fa-plus" title="添加阶段" size="sm" variant="primary"
+          @click="characterStore.addPhase()" />
       </template>
 
       <div class="p-2 space-y-1">
@@ -353,25 +281,14 @@
             <i class="fa-solid fa-flag text-[10px] opacity-70"></i>
 
             <div v-if="editingPhaseId === phase.id" class="flex-1 mr-2">
-              <Input 
-                v-model="editingPhaseLabel" 
-                size="sm"
-                @blur="savePhaseEdit" 
-                @enter="savePhaseEdit"
-                @click.stop 
-              />
+              <Input v-model="editingPhaseLabel" size="sm" @blur="savePhaseEdit" @enter="savePhaseEdit" @click.stop />
             </div>
             <span v-else class="text-xs font-bold truncate" @dblclick="startEditPhase(phase)">{{ phase.label }}</span>
           </div>
 
-          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity"
             v-if="editingPhaseId !== phase.id">
-            <button @click.stop="startEditPhase(phase)"
-              class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-blue-500 rounded hover:bg-black/5 dark:hover:bg-white/10"
-              title="重命名">
-              <i class="fa-solid fa-pen text-[10px]"></i>
-            </button>
-
+            <IconButton icon="fa-solid fa-pen" size="xs" title="重命名" @click.stop="startEditPhase(phase)" />
             <SidebarActionGroup :can-move-up="index > 0" :can-move-down="index < phases.length - 1"
               @move-up="characterStore.movePhase(phase.id, 'up')"
               @move-down="characterStore.movePhase(phase.id, 'down')" @delete="characterStore.deletePhase(phase.id)" />
@@ -395,6 +312,7 @@ import ChipInput from '@/components/common/ChipInput.vue'
 import SidebarActionGroup from '@/components/layout/SidebarActionGroup.vue'
 import AIButton from '@/components/common/AIButton.vue'
 import Button from '@/components/common/Button.vue'
+import IconButton from '@/components/common/IconButton.vue'
 import Input from '@/components/common/Input.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import CharacterFieldLabel from '@/components/features/relations/CharacterFieldLabel.vue'

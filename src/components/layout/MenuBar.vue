@@ -2,7 +2,7 @@
   <div class="flex items-center h-full select-none">
     <div v-for="menu in menus" :key="menu.label" class="relative h-full flex items-center">
       <button 
-        class="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#37373d] rounded transition-colors"
+        class="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#37373d] rounded transition-colors"
         :class="{ 'bg-gray-100 dark:bg-[#37373d]': activeMenu === menu.label }"
         @click.stop="toggleMenu(menu.label)"
         @mouseenter="onMouseEnter(menu.label)"

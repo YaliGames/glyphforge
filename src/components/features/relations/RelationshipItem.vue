@@ -30,12 +30,15 @@
       </template>
     </div>
 
-    <div class="relative w-6 h-6 flex items-center justify-center shrink-0">
+    <div class="relative w-7 h-7 flex items-center justify-center shrink-0">
       <span class="text-[10px] text-gray-400 group-hover:opacity-0 transition-opacity">是</span>
-      <button @click="$emit('swap')" title="切换方向"
-        class="absolute inset-0 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100">
-        <i class="fa-solid fa-right-left text-[10px] text-gray-400"></i>
-      </button>
+      <IconButton
+        icon="fa-solid fa-right-left"
+        size="xs"
+        title="切换方向"
+        class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        @click="$emit('swap')"
+      />
     </div>
 
     <div class="w-24 shrink-0">
@@ -81,10 +84,14 @@
       />
     </div>
 
-    <button @click="$emit('remove')" :title="deleteActionTitle"
-      class="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all opacity-0 group-hover:opacity-100">
-      <i :class="deleteIconClass" class="text-[10px]"></i>
-    </button>
+    <IconButton
+      :icon="deleteIconClass"
+      size="sm"
+      :variant="isLogicalDelete ? 'ghost' : 'danger'"
+      :title="deleteActionTitle"
+      class="opacity-0 group-hover:opacity-100"
+      @click="$emit('remove')"
+    />
   </div>
 </template>
 
@@ -92,6 +99,7 @@
 import { computed } from 'vue'
 import type { Relationship } from '@/types'
 import Input from '@/components/common/Input.vue'
+import IconButton from '@/components/common/IconButton.vue'
 
 const props = defineProps<{
   rel: any
