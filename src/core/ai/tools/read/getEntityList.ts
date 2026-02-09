@@ -35,6 +35,13 @@ export const getEntityListTool: DecoupledTool = {
         delete source.base;
       }
 
+      // 特殊处理时间线字段映射，确保 getEntityList 也能获取到
+      if (type === 'timeline') {
+        source.date = source.time?.label;
+        source.content = source.description;
+        source.tags = source.impact;
+      }
+
       const result: any = { id: source.id || source.type };
       
       // 确定显示名称字段

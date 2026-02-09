@@ -10,7 +10,7 @@ export const getEntitySchemaTool: DecoupledTool = {
     properties: {
       type: { 
         type: 'string', 
-        enum: ['character', 'worldview', 'relationship', 'outline', 'chapters', 'manuscript'],
+        enum: ['character', 'worldview', 'relationship', 'outline', 'chapters', 'manuscript', 'timeline'],
         description: '目标实体分类。'
       }
     },

@@ -121,6 +121,19 @@ export const SCHEMA_REGISTRY: Record<string, EntitySchema> = {
       { key: 'title', label: '标题', type: 'string', description: '章节标题', aiExport: true, aiImport: false },
       { key: 'content', label: '正文内容', type: 'string', description: '该章节的原始叙述文本', aiExport: true, aiImport: false }
     ]
+  },
+  timeline: {
+    type: 'timeline',
+    label: '时间线',
+    description: '描述项目中的重大历史事件、剧情转折点及其发生的时间顺序。',
+    fields: [
+      { key: 'id', label: 'ID', type: 'string', description: '唯一标识', aiExport: true, aiImport: true, isIdentity: true },
+      { key: 'title', label: '事件标题', type: 'string', description: '简明扼要的事件名称', aiExport: true, aiImport: true, required: true },
+      { key: 'date', label: '发生时间', type: 'string', description: '描述事件发生的时间，如“王历100年”或“序章之后”', aiExport: true, aiImport: true },
+      { key: 'content', label: '事件详述', type: 'string', description: '该事件的详细经过与叙事内容', aiExport: true, aiImport: true },
+      { key: 'participants', label: '相关角色', type: 'array', description: '参与该事件的角色 ID 列表', aiExport: true, aiImport: true },
+      { key: 'tags', label: '影响/标签', type: 'array', description: '事件的关键词、标签或涉及领域', aiExport: true, aiImport: true },
+    ]
   }
 };
 

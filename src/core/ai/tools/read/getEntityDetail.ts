@@ -10,7 +10,7 @@ export const getEntityDetailTool: DecoupledTool = {
     properties: {
       type: { 
         type: 'string', 
-        enum: ['character', 'worldview', 'relationship', 'outline', 'chapters', 'manuscript'], 
+        enum: ['character', 'worldview', 'relationship', 'outline', 'chapters', 'manuscript', 'timeline'], 
         description: '实体类型。' 
       },
       ids: { 
@@ -77,7 +77,8 @@ export const getEntityDetailTool: DecoupledTool = {
       const list = bundle.worldview?.categories || [];
       details = isSelectAll ? list : list.filter((c: any) => ids.includes(c.type));
     } else if (type === 'timeline') {
-      details = bundle.worldview?.timeline || [];
+      const list = bundle.worldview?.timeline || [];
+      details = isSelectAll ? list : list.filter((e: any) => ids.includes(e.id));
     } else if (type === 'chapters') {
       const all: any[] = [];
       const flatten = (items: any[]) => {
@@ -129,6 +130,14 @@ export const getEntityDetailTool: DecoupledTool = {
     return details.map((item: any) => {
       let source = { ...item };
       if (source.base) { Object.assign(source, source.base); delete source.base; }
+      
+      // 特殊处理时间线字段映射
+      if (type === 'timeline') {
+        source.date = source.time?.label;
+        source.content = source.description;
+        source.tags = source.impact;
+      }
+
       const exportKeys = getAIExportKeys(type);
       const identityKeys = getIdentityKeys();
       const technicalKeys = getTechnicalKeys();

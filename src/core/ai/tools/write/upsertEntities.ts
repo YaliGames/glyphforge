@@ -22,7 +22,7 @@ export const upsertEntitiesTool: DecoupledTool = {
           properties: {
             type: { 
               type: 'string', 
-              enum: ['character', 'worldview', 'relationship', 'outline'],
+              enum: ['character', 'worldview', 'relationship', 'outline', 'timeline'],
               description: '待操作的实体分类。' 
             },
             id: { type: 'string', description: '变更已有实体时必填的物理 ID。新建项严禁包含此字段。' }
@@ -113,6 +113,28 @@ export const upsertEntitiesTool: DecoupledTool = {
           worldviewStore.addCategory(displayName, categoryId);
           worldviewStore.updateCategory(categoryId, sanitizedData);
           results.push(`新建世界观分类: ${displayName}`);
+        }
+      } else if (type === 'timeline') {
+        const eventData = {
+          title: sanitizedData.title,
+          description: sanitizedData.content,
+          participants: sanitizedData.participants,
+          impact: sanitizedData.tags,
+          time: {
+            label: sanitizedData.date || '',
+            order: 0 
+          }
+        };
+
+        if (id) {
+          worldviewStore.updateTimelineEvent(id, eventData);
+          results.push(`更新时间线事件: ${id}`);
+        } else {
+          const newEvent = worldviewStore.addTimelineEvent(sanitizedData.title || '新事件');
+          if (newEvent) {
+            worldviewStore.updateTimelineEvent(newEvent.id, eventData);
+            results.push(`创建时间线事件: ${sanitizedData.title}`);
+          }
         }
       }
     }

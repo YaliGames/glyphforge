@@ -14,7 +14,7 @@ export const deleteEntitiesTool: DecoupledTool = {
           properties: {
             type: { 
               type: 'string', 
-              enum: ['character', 'worldview', 'relationship', 'outline'],
+              enum: ['character', 'worldview', 'relationship', 'outline', 'timeline'],
               description: '待删除的实体分类。'
             },
             id: { type: 'string', description: '目标实体的物理 ID（UUID）。' },
@@ -29,13 +29,14 @@ export const deleteEntitiesTool: DecoupledTool = {
   },
   async execute(args: any, context: ToolContext) {
     const { entities } = args;
-    const { characterStore, outlineStore } = context;
+    const { characterStore, outlineStore, worldviewStore } = context;
     if (!Array.isArray(entities)) throw new Error('Entities must be an array');
 
     entities.forEach((e: any) => {
       if (e.type === 'character') characterStore.removeCharacter(e.id);
       else if (e.type === 'outline') outlineStore.removeAct(e.id);
       else if (e.type === 'relationship') characterStore.removeRelationship(e.id);
+      else if (e.type === 'timeline') worldviewStore.removeTimelineEvent(e.id);
     });
 
     return `成功删除了 ${entities.length} 个实体`;
