@@ -3,9 +3,11 @@
     <div class="max-w-5xl mx-auto px-8 py-12">
       <!-- Header / Logo Area -->
       <header class="flex flex-col items-center text-center mb-16">
-        <div class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-4xl font-black shadow-xl shadow-blue-500/20 mb-6 group transition-transform hover:scale-105">
-          G
-        </div>
+        <img 
+          src="/logo.svg" 
+          alt="Logo" 
+          class="w-20 h-20 mb-6 group transition-transform hover:scale-105 drop-shadow-xl"
+        />
         <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2 tracking-tight">{{ APP_CONFIG.name }}</h1>
         <div class="flex items-center gap-2">
           <span 
@@ -18,7 +20,7 @@
         </div>
       </header>
 
-      <!-- Main Grid Sections -->
+      <!-- Main Grid Sections --> 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
         <!-- Left: Resources -->
         <section class="space-y-8">
@@ -55,10 +57,18 @@
               快速上手
             </h3>
             <div class="space-y-6">
-              <div v-for="tip in tips" :key="tip.title" class="flex gap-4">
-                <div class="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5"></div>
+              <div 
+                v-for="tip in tips" 
+                :key="tip.title" 
+                @click="openExternalLink(tip.url)"
+                class="flex gap-4 p-2 -m-2 rounded-xl hover:bg-gray-50 dark:hover:bg-[#252526] transition-all cursor-pointer group"
+              >
+                <div class="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 group-hover:scale-125 transition-transform"></div>
                 <div>
-                  <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{{ tip.title }}</h4>
+                  <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                    {{ tip.title }}
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                  </h4>
                   <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{{ tip.content }}</p>
                 </div>
               </div>
@@ -82,21 +92,13 @@
 </template>
 
 <script setup lang="ts">
-import { APP_CONFIG } from '@/config'
+import { APP_CONFIG, QUICK_START_GUIDE, DESCRIPTIVE_LINKS } from '@/config'
 import { useActions } from '@/composables/useActions'
 
 const { openExternalLink } = useActions()
 
-const commonLinks = [
-  { title: '官方文档', desc: '学习如何使用大纲与实体交互', icon: 'fa-solid fa-book', url: APP_CONFIG.links.docs },
-  { title: 'GitHub', desc: '参与开发、报告 Bug 或提出建议', icon: 'fa-brands fa-github', url: APP_CONFIG.links.github },
-  { title: '更新日志', desc: '查看 Alpha 阶段的每一项改进', icon: 'fa-solid fa-clock-rotate-left', url: APP_CONFIG.links.releases },
-  { title: '反馈社区', desc: '与其他创作者交流使用心得', icon: 'fa-solid fa-comment-dots', url: APP_CONFIG.links.feedback },
-]
-
-const tips = [
-  { title: '', content: '' },
-]
+const commonLinks = DESCRIPTIVE_LINKS
+const tips = QUICK_START_GUIDE
 </script>
 
 <style scoped>

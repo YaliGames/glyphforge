@@ -1,19 +1,59 @@
 export const APP_CONFIG = {
   name: 'GlyphForge',
-  version: '0.1.2',
-  tag: 'Beta',
+  version: '0.2.0',
+  tag: null,
   projectExtension: '.gfp',
   author: 'GlyphForge Project',
   copyright: '2025-2026 GlyphForge Project. 保留所有权利。',
   links: {
-    github: 'https://github.com/glyphforge/app',
-    docs: 'https://github.com/glyphforge/app/wiki',
-    releases: 'https://github.com/glyphforge/app/releases',
-    feedback: 'https://github.com/glyphforge/app/issues',
-    license: 'https://github.com/glyphforge/app/blob/main/LICENSE',
-    privacy: 'https://github.com/glyphforge/app/wiki/Privacy-Policy'
+    github: 'https://github.com/YaliGames/glyphforge',
+    docs: 'https://github.com/YaliGames/glyphforge/wiki',
+    releases: 'https://github.com/YaliGames/glyphforge/releases',
+    feedback: 'https://github.com/YaliGames/glyphforge/issues',
+    license: 'https://github.com/YaliGames/glyphforge/blob/main/LICENSE',
+    privacy: 'https://github.com/YaliGames/glyphforge/wiki/Privacy-Policy'
   }
 } as const
+
+/**
+ * 快速入门与提示信息
+ */
+export const QUICK_START_GUIDE = [
+  {
+    title: '创建第一个故事',
+    content: '学习如何使用 Glyphforge 开始创作您的小说。',
+    url: 'https://example.com/#/topic/quick-start'
+  },
+  {
+    title: '开发新的 AI 工具',
+    content: '了解如何为 Glyphforge 开发和集成新的 AI 工具。',
+    url: 'https://example.com/#/topic/ai-tools'
+  }
+] as const
+
+/**
+ * 带有描述的常用链接
+ */
+export const DESCRIPTIVE_LINKS = [
+  { 
+    title: '官方文档', 
+    desc: '全面了解 GlyphForge 的功能与使用方法', 
+    icon: 'fa-solid fa-book', 
+    url: APP_CONFIG.links.docs 
+  },
+  { 
+    title: 'GitHub 源代码', 
+    desc: '查看或贡献项目代码', 
+    icon: 'fa-brands fa-github', 
+    url: APP_CONFIG.links.github 
+  },
+  { 
+    title: '更新日志', 
+    desc: '查看每次版本更新的详细内容', 
+    icon: 'fa-solid fa-clock-rotate-left', 
+    url: APP_CONFIG.links.releases 
+  }
+] as const
 
 /**
  * 存储相关的 Key

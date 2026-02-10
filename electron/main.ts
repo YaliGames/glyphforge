@@ -40,6 +40,7 @@ if (!gotTheLock) {
             frame: false,
             titleBarStyle: 'hidden',
             backgroundColor: '#ffffff',
+            icon: path.join(__dirname, '../public/logo.svg'),
             webPreferences: {
                 preload: path.join(__dirname, 'preload.js'),
                 nodeIntegration: false,

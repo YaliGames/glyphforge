@@ -4,8 +4,8 @@
     <div class="flex-1 h-full min-w-0 flex items-center pointer-events-none">
       <div class="flex items-center h-full shrink-0 pointer-events-auto no-drag">
         <div class="flex items-center gap-2 mx-4 cursor-pointer" @click="router.push('/')">
-          <div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">G</div>
-          <h1 class="font-bold text-sm tracking-tight hidden sm:block dark:text-gray-200">GlyphForge</h1>
+          <img src="/logo.svg" alt="Logo" class="w-6 h-6" />
+          <h1 class="font-bold text-sm tracking-tight hidden lg:block dark:text-gray-200">GlyphForge</h1>
         </div>
 
         <MenuBar :menus="menus" @action="handleMenuAction" class="no-drag" />

@@ -349,10 +349,6 @@ const { activeCharacterId, currentPhaseId, phases } = storeToRefs(characterStore
 
 const searchQuery = ref('')
 
-const vFocus = {
-  mounted: (el: HTMLElement) => el.focus()
-}
-
 const filteredCharacters = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return characterStore.charactersInPhase
