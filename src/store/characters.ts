@@ -189,8 +189,12 @@ export const useCharacterStore = defineStore('characters', () => {
         base: {
           name,
           aliases: [],
+          gender: '',
+          age: '',
           factions: [],
           identities: [],
+          positioning: '',
+          motivation: '',
           appearance: '',
           personality: '',
           background: '',
@@ -215,6 +219,27 @@ export const useCharacterStore = defineStore('characters', () => {
     if (char) {
       projectStore.takeSnapshot()
       Object.assign(char.base, updates)
+      projectStore.markDirty()
+    }
+  }
+
+  function moveCharacter(id: string, direction: 'up' | 'down') {
+    if (!projectStore.bundle) return
+    const characters = projectStore.bundle.characters
+    const index = characters.findIndex(c => c.id === id)
+    if (index === -1) return
+
+    if (direction === 'up' && index > 0) {
+      projectStore.takeSnapshot()
+      const temp = characters[index]
+      characters[index] = characters[index - 1]
+      characters[index - 1] = temp
+      projectStore.markDirty()
+    } else if (direction === 'down' && index < characters.length - 1) {
+      projectStore.takeSnapshot()
+      const temp = characters[index]
+      characters[index] = characters[index + 1]
+      characters[index + 1] = temp
       projectStore.markDirty()
     }
   }
@@ -253,23 +278,24 @@ export const useCharacterStore = defineStore('characters', () => {
   // 删除角色及相关关系
   function removeCharacter(id: string) {
     if (!projectStore.bundle) return
-    const index = projectStore.bundle.characters.findIndex(c => c.id === id)
+    const bundle = projectStore.bundle
+    const index = bundle.characters.findIndex(c => c.id === id)
     if (index !== -1) {
       projectStore.takeSnapshot()
       
       // 清理关联关系
-      if (projectStore.bundle.relationships) {
-          const toRemove = projectStore.bundle.relationships
+      if (bundle.relationships) {
+          const toRemove = bundle.relationships
               .filter(r => r.sourceId === id || r.targetId === id)
               .map(r => r.id)
           
           toRemove.forEach(relId => {
-              const rIndex = projectStore.bundle.relationships.findIndex(r => r.id === relId)
-              if (rIndex !== -1) projectStore.bundle.relationships.splice(rIndex, 1)
+              const rIndex = bundle.relationships.findIndex(r => r.id === relId)
+              if (rIndex !== -1) bundle.relationships.splice(rIndex, 1)
           })
       }
       
-      projectStore.bundle.characters.splice(index, 1)
+      bundle.characters.splice(index, 1)
       projectStore.markDirty()
     }
   }
@@ -299,8 +325,7 @@ export const useCharacterStore = defineStore('characters', () => {
     return newRel
   }
 
-  // 更新关系基础数据
-  function updateRelationshipBase(id: string, updates: Partial<RelationshipData>) {
+  function updateRelationshipBase(id: string, updates: Partial<Relationship>) {
     if (!projectStore.bundle?.relationships) return
     const rel = projectStore.bundle.relationships.find(r => r.id === id)
     if (rel) {
@@ -390,10 +415,20 @@ export const useCharacterStore = defineStore('characters', () => {
     }
   }
 
-  function smartUpdateRelationship(id: string, updates: Partial<RelationshipData>) {
+  function smartUpdateRelationship(id: string, updates: Partial<Relationship>) {
+    const { sourceId, targetId, ...dataUpdates } = updates as any;
+
     if (currentPhaseId.value) {
-      updateRelationshipOverride(id, currentPhaseId.value, updates)
+      // 1. sourceId 和 targetId 属于结构性字段，目前不支持阶段覆盖，统一更新到 Base
+      if (sourceId !== undefined || targetId !== undefined) {
+        updateRelationshipBase(id, { sourceId, targetId } as any)
+      }
+      // 2. 其他属性更新到当前阶段的 Override
+      if (Object.keys(dataUpdates).length > 0) {
+        updateRelationshipOverride(id, currentPhaseId.value, dataUpdates)
+      }
     } else {
+      // 全局模式下，直接更新 Base
       updateRelationshipBase(id, updates)
     }
   }
@@ -438,6 +473,7 @@ export const useCharacterStore = defineStore('characters', () => {
     updateCharacterBase,
     updateCharacterOverride,
     smartUpdateCharacter,
+    moveCharacter,
     
     addRelationship,
     removeRelationship,

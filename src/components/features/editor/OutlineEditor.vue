@@ -27,6 +27,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', val: string): void
   (e: 'cursor-change', payload: { activeActId: string | null }): void
+  (e: 'selection-change', selection: monaco.IRange): void
 }>()
 
 const outlineStore = useOutlineStore()
@@ -61,6 +62,10 @@ function onEditorMounted(e: monaco.editor.IStandaloneCodeEditor) {
         linesDiff
       )
     })
+  })
+
+  editor.onDidChangeCursorSelection((e) => {
+    emit('selection-change', e.selection)
   })
 
   updateDecorations()

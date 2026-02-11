@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
-import { EdgeProps, getBezierPath, EdgeLabelRenderer, useVueFlow } from '@vue-flow/core'
-import { BaseEdge } from '@vue-flow/core'
+import { EdgeProps, EdgeLabelRenderer, BaseEdge } from '@vue-flow/core'
 
 const props = defineProps<EdgeProps>()
 

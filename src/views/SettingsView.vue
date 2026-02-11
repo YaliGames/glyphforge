@@ -8,15 +8,11 @@
 
       <!-- 搜索栏 -->
       <div class="px-3 mb-6">
-        <div class="relative">
-          <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400"></i>
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="搜索设置..."
-            class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333] rounded-md pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-blue-500 transition-all font-medium"
-          />
-        </div>
+        <Input 
+          v-model="searchQuery" 
+          placeholder="搜索设置..."
+          icon-prefix="fa-solid fa-search"
+        />
       </div>
 
       <nav class="flex-1 space-y-1 px-3 overflow-y-auto custom-scrollbar">
@@ -75,12 +71,13 @@
                     </label>
 
                     <!-- Number Input -->
-                    <input 
+                    <Input 
                       v-else-if="item.type === 'number'"
                       type="number"
-                      :value="settingsStore.getSettings()[item.key]"
-                      @input="(e: any) => settingsStore.updateSetting(item.key, Number(e.target.value))"
-                      class="w-24 bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded px-3 py-1.5 text-xs outline-none focus:border-blue-500 transition-all font-mono"
+                      :model-value="settingsStore.getSettings()[item.key]"
+                      @update:model-value="(val) => settingsStore.updateSetting(item.key, Number(val))"
+                      class="w-24 font-mono"
+                      size="sm"
                     />
 
                   <!-- Select Input -->
@@ -88,7 +85,7 @@
                     v-else-if="item.type === 'select'"
                     :value="settingsStore.getSettings()[item.key]"
                     @change="(e: any) => settingsStore.updateSetting(item.key, e.target.value)"
-                    class="bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded px-3 py-1.5 text-xs outline-none focus:border-blue-500 transition-all min-w-[120px]"
+                    class="bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500 transition-all min-w-[120px]"
                   >
                     <option v-for="opt in item.options" :key="opt.value" :value="opt.value">
                       {{ opt.label }}
@@ -108,12 +105,12 @@
                   </div>
 
                   <!-- String Input -->
-                  <input 
+                  <Input 
                     v-else-if="item.type === 'string'"
-                    type="text"
-                    :value="settingsStore.getSettings()[item.key]"
-                    @input="(e: any) => settingsStore.updateSetting(item.key, e.target.value)"
-                    class="w-64 bg-gray-50 dark:bg-[#252526] border dark:border-[#333] rounded px-3 py-1.5 text-xs outline-none focus:border-blue-500 transition-all"
+                    :model-value="settingsStore.getSettings()[item.key]"
+                    @update:model-value="(val) => settingsStore.updateSetting(item.key, val)"
+                    class="w-64"
+                    size="sm"
                     placeholder="请输入内容..."
                   />
                 </div>
@@ -133,6 +130,7 @@ import { useSettingsStore } from '@/store/settings'
 import { useActions } from '@/composables/useActions'
 import { SETTINGS_SCHEMA, type SettingItem, type SettingSection } from '@/config/settings.schema'
 import { useRoute } from 'vue-router'
+import Input from '@/components/common/Input.vue'
 
 const settingsStore = useSettingsStore()
 const { handleAction } = useActions()

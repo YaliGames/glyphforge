@@ -1,3 +1,5 @@
+import type { AppAction } from '@/types/project';
+
 export interface SettingOption {
   label: string;
   value: any;
@@ -9,7 +11,7 @@ export interface AIProfile {
   provider: 'openai' | 'anthropic' | 'custom';
   apiKey: string;
   endpoint: string;
-  model: string;
+  models: string[];
   template?: string;
   responsePath?: string;
 }
@@ -43,19 +45,19 @@ export interface SettingSection {
 export const AI_PROFILE_TEMPLATES = [
   {
     id: 'openai',
-    name: 'OpenAI (Standard)',
+    name: 'OpenAI',
     provider: 'openai',
     endpoint: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-4o',
+    models: ['gpt-4o', 'gpt-4-turbo', 'gpt-4o-mini'],
     template: '',
     responsePath: ''
   },
   {
     id: 'gemini',
-    name: 'Google Gemini (OpenAI API)',
+    name: 'Google Gemini',
     provider: 'openai',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-    model: 'gemini-1.5-pro',
+    models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'],
     template: '',
     responsePath: ''
   },
@@ -64,43 +66,52 @@ export const AI_PROFILE_TEMPLATES = [
     name: 'Anthropic Claude',
     provider: 'openai',
     endpoint: 'https://api.anthropic.com/v1/messages',
-    model: 'claude-3-5-sonnet-20240620',
+    models: ['claude-3-5-sonnet-20240620', 'claude-3-opus-20240229'],
     template: '',
     responsePath: ''
-  },
-  {
-    id: 'aliyun-openai',
-    name: 'Aliyun DashScope (OpenAI Compatible)',
-    provider: 'openai',
-    endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-    model: 'qwen-plus',
-    template: '',
-    responsePath: ''
-  },
-  {
-    id: 'aliyun-native',
-    name: 'Aliyun DashScope (Native)',
-    provider: 'custom',
-    endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
-    model: 'qwen-plus',
-    template: '{"model": "${model}", "input": {"messages": ${messages}}, "parameters": {"result_format": "message"}}',
-    responsePath: 'output.choices[0].message.content'
   },
   {
     id: 'deepseek',
     name: 'DeepSeek',
     provider: 'openai',
     endpoint: 'https://api.deepseek.com/chat/completions',
-    model: 'deepseek-chat',
+    models: ['deepseek-chat', 'deepseek-reasoner'],
     template: '',
     responsePath: ''
   },
   {
+    id: 'nvidia',
+    name: 'NVIDIA NIM',
+    provider: 'openai',
+    endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    models: ['deepseek-ai/deepseek-v3', 'qwen/qwen2.5-72b-instruct', 'meta/llama-3.1-405b-instruct', 'mistralai/mixtral-8x22b-instruct-v0.1'],
+    template: '',
+    responsePath: ''
+  },
+  {
+    id: 'aliyun-openai',
+    name: 'Aliyun (OpenAI)',
+    provider: 'openai',
+    endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    models: ['qwen-plus', 'qwen-max', 'qwen-turbo'],
+    template: '',
+    responsePath: ''
+  },
+  {
+    id: 'aliyun-native',
+    name: 'Aliyun (Native)',
+    provider: 'custom',
+    endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
+    models: ['qwen-plus'],
+    template: '{"model": "${model}", "input": {"messages": ${messages}}, "parameters": {"result_format": "message"}}',
+    responsePath: 'output.choices[0].message.content'
+  },
+  {
     id: 'custom',
-    name: 'Custom (自定义)',
+    name: '自定义',
     provider: 'custom',
     endpoint: '',
-    model: '',
+    models: [],
     template: '{\n  "model": "${model}",\n  "messages": ${messages}\n}',
     responsePath: 'choices[0].message.content'
   }
@@ -193,7 +204,18 @@ export const SETTINGS_SCHEMA: SettingSection[] = [
         type: 'action',
         action: 'open-ai-profiles',
         buttonLabel: '管理模型配置',
-        default: null,
+        default: [
+          {
+            id: 'default-openai',
+            name: 'OpenAI',
+            provider: 'openai',
+            apiKey: '',
+            endpoint: 'https://api.openai.com/v1/chat/completions',
+            models: ['gpt-4o', 'gpt-4o-mini'],
+            template: '',
+            responsePath: ''
+          }
+        ],
         dependsOn: { key: 'ai.enabled', value: true }
       }
     ]

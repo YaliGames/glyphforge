@@ -17,6 +17,7 @@
     "directories": {
       "output": "release"
     },
+    "icon": "public/logo.ico",
     "fileAssociations": [
       {
         "ext": "gfp",

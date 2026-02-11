@@ -28,5 +28,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onRequestClose: (callback: () => void) => {
     ipcRenderer.on('request-close', () => callback());
+  },
+  
+  // AI 网络请求桥接
+  aiRequest: (endpoint: string, options: any) => ipcRenderer.invoke('ai-request', endpoint, options),
+  aiAbort: () => ipcRenderer.send('ai-abort'),
+  
+  // 流式请求监听
+  onAIChunk: (callback: (data: any) => void) => {
+    const listener = (_event: any, data: any) => callback(data);
+    ipcRenderer.on('ai-chunk', listener);
+    return () => ipcRenderer.removeListener('ai-chunk', listener);
+  },
+
+  // 调试日志监听
+  onAIDebug: (callback: (data: any) => void) => {
+    ipcRenderer.on('ai-debug', (_event, data) => callback(data));
   }
 });

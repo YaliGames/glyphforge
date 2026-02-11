@@ -1,15 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { SETTINGS_SCHEMA, type AIProfile } from '@/config/settings.schema'
+import { STORAGE_KEYS } from '@/config'
 
-export const useSettingsStore = defineStore('settings', () => {
-  const settings = ref<Record<string, any>>({})
+export const useSettingsStore = defineStore('settings', () => {const settings = ref<Record<string, any>>({})
 
   // 初始化设置
   function initSettings() {
-    const saved = localStorage.getItem('glyphforge-settings')
+    const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS)
     const initial: Record<string, any> = {}
-    
+
     // 注入默认值
     SETTINGS_SCHEMA.forEach(section => {
       section.items.forEach(item => {
@@ -22,7 +22,7 @@ export const useSettingsStore = defineStore('settings', () => {
         const parsed = JSON.parse(saved)
         // 合并已保存的值
         Object.assign(initial, parsed)
-        
+
         // 特殊检查：如果 ai.profiles 为空，重新注入默认值
         if (!initial['ai.profiles'] || (Array.isArray(initial['ai.profiles']) && initial['ai.profiles'].length === 0)) {
           const aiProfileItem = SETTINGS_SCHEMA.find(s => s.id === 'ai')?.items.find(i => i.key === 'ai.profiles')
@@ -39,7 +39,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function updateSetting(key: string, value: any) {
     settings.value[key] = value
-    localStorage.setItem('glyphforge-settings', JSON.stringify(settings.value))
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings.value))
   }
 
   /**
@@ -51,19 +51,41 @@ export const useSettingsStore = defineStore('settings', () => {
 
   /**
    * AI 多配置扩展
+   * 返回包含具体 model 字段的活动配置对象
    */
   const activeAIProfile = computed(() => {
     const profiles = (settings.value['ai.profiles'] || []) as AIProfile[]
-    const activeId = settings.value['ai.activeProfileId']
-    return profiles.find(p => p.id === activeId) || profiles[0]
+    const activeKey = settings.value['ai.activeProfileId'] as string
+
+    if (!activeKey || !activeKey.includes(':')) return null
+
+    const [profileId, modelName] = activeKey.split(':')
+    const profile = profiles.find(p => p.id === profileId)
+
+    if (!profile) return null
+
+    return {
+      ...profile,
+      model: modelName
+    }
   })
 
   const availableAIProfiles = computed(() => {
     const profiles = (settings.value['ai.profiles'] || []) as AIProfile[]
-    return profiles.map(p => ({
-      label: p.name,
-      value: p.id
-    }))
+    const options: { label: string; value: string }[] = []
+
+    profiles.forEach(p => {
+      if (p.models && p.models.length > 0) {
+        p.models.forEach(m => {
+          options.push({
+            label: `${p.name} (${m})`,
+            value: `${p.id}:${m}`
+          })
+        })
+      }
+    })
+
+    return options
   })
 
   /**

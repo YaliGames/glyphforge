@@ -42,6 +42,7 @@ export class BundleManager {
         ],
         timeline: []
       },
+      phases: [],
       outline: {
         id: uuidv4(),
         projectId,

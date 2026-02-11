@@ -6,17 +6,71 @@ export interface AIPrompt {
   id: string
   label: string
   description: string // 简短描述，用于列表展示
-  content: string // 模板字符串，包含 [JSON] 和 [USER_INPUT]
+  content: string // 模板字符串，包含 [REFERENCES] 和 [USER_INPUT]
   category: 'outline' | 'writing' | 'character' | 'world' | 'general'
+}
+
+export type AIExecutionMode = 'chat' | 'agent'
+
+export interface AIReference {
+  type: string
+  id: string | 'all'
+  label: string
+  range?: { start: number; end: number }
 }
 
 export interface AIHistoryItem {
   id: string
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'tool' | 'system'
   content: string
-  type: 'text' | 'json'
+  type: 'text' | 'json' | 'tool_call' | 'error'
+  isError?: boolean // 标记该消息是否为错误信息
+  retryParams?: { // 用于失败后的重试逻辑
+    displayContent: string
+    fullPrompt: string
+    references?: Record<string, any>
+  }
   references?: Record<string, any> // 对话时引用的具体原始数据副本
+  selectedReferences?: AIReference[] // 用户显式通过 @ 选中的引用
+  toolCalls?: AIToolCall[] // assistant 发出的工具调用指令
+  toolCallId?: string      // role='tool' 时关联的调用 ID
+  toolResults?: AIToolResult[] // 批量操作时的工具执行结果
   timestamp: number
+}
+
+/**
+ * AI 工具 (Function Calling) 定义
+ */
+export interface AITool {
+  name: string
+  description: string
+  parameters: {
+    type: 'object'
+    properties: Record<string, any>
+    required?: string[]
+  }
+}
+
+/**
+ * 工具调用指令内容
+ */
+export interface AIToolCall {
+  id: string
+  type: 'function'
+  index?: number // 用于流式处理中的 chunk 合并
+  function: {
+    name: string
+    arguments: string // JSON 字符串
+  }
+  status?: 'pending' | 'applied' | 'rejected' // 本地 UI 状态
+}
+
+/**
+ * 工具执行结果
+ */
+export interface AIToolResult {
+  toolCallId: string
+  content: string // 通常是 JSON 字符串，表示成功或错误信息
 }
 
 /**
@@ -50,18 +104,21 @@ export const PROJECT_REFERENCE_TREE: ReferenceNode[] = [
     ]
   },
   {
-    value: 'manuscript',
-    label: '写作正文',
-    description: '作品的实时文本手稿内容。',
-    path: 'manuscript',
-    isGranular: true,
-    children: [
-      { value: 'content', label: '文本行', description: '分行存储的正文数组，每一项代表一行文本' },
-      { value: 'lastUpdated', label: '最后更新', description: '手稿内容最后同步的时间' }
-    ]
+    value: 'chapters',
+    label: '目录结构',
+    description: '小说的层级目录树（卷、章、节节点列表）。',
+    path: 'chapters',
+    isGranular: true
   },
   {
-    value: 'worldview_categories',
+    value: 'manuscript',
+    label: '写作正文',
+    description: '作品的实时文本手稿内容。引用特定章节会导出其对应的正文文本。',
+    path: 'manuscript',
+    isGranular: true
+  },
+  {
+    value: 'worldview',
     label: '设定分类',
     description: '具体的规则模块（如地理、科技、种族、势力、魔法体系等）。',
     path: 'worldview.categories',
@@ -74,7 +131,7 @@ export const PROJECT_REFERENCE_TREE: ReferenceNode[] = [
     ]
   },
   {
-    value: 'worldview_timeline',
+    value: 'timeline',
     label: '历史年表',
     description: '作品世界观的大事件轴线。',
     path: 'worldview.timeline',
@@ -82,7 +139,7 @@ export const PROJECT_REFERENCE_TREE: ReferenceNode[] = [
     children: [
       { value: 'time', label: '发生时间', description: '事件发生的时间点信息 (包含展示标签和排序 order)' },
       { value: 'title', label: '事件主题', description: '事件的主题名称' },
-      { value: 'description', label: '事件详情', description: '事件发生的具体起因、经过和结果' },
+      { value: 'description', label: '事件详情', description: '事件发生的具体起因、经过 and 结果' },
       { value: 'participants', label: '参与者', description: '参与该历史事件的实体 ID 列表' },
       { value: 'impact', label: '影响范围', description: '受该事件影响的世界观分类类型' }
     ]
@@ -121,7 +178,7 @@ export const PROJECT_REFERENCE_TREE: ReferenceNode[] = [
     ]
   },
   {
-    value: 'characters',
+    value: 'character',
     label: '人物档案',
     description: '全量角色的多维度设定体系。',
     path: 'characters',

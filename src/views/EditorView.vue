@@ -3,26 +3,27 @@
     <!-- 目录树顶部操作栏 (规范 6.1) -->
     <SidePanel title="目录结构" width="w-64" side="left">
       <template #actions>
-        <div class="flex items-center gap-1">
-          <button v-if="settingsStore.getSettings()['ai.enabled']" @click="uiStore.openModal('recognition')"
-            class="p-1.5 hover:bg-gray-200 dark:hover:bg-[#333] rounded text-gray-500 hover:text-blue-500 transition-colors"
-            title="自动识别目录">
-            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
-          </button>
-                  <button 
-          @click="uiStore.openModal('hierarchy-editor')"
-          class="p-1 hover:bg-gray-200 dark:hover:bg-[#333333] rounded text-gray-500"
-          title="编辑层级配置"
-        >
-          <i class="fa-solid fa-sliders text-xs"></i>
-        </button>
-        <button 
-          @click="setSelectionAsChapter" 
-          class="p-1 hover:bg-gray-200 dark:hover:bg-[#333333] rounded text-blue-600 dark:text-blue-400"
-          title="将当前行设为章节标题"
-        >
-          <i class="fa-solid fa-plus text-xs"></i>
-        </button>
+        <div class="flex items-center gap-0.5">
+          <IconButton
+            v-if="settingsStore.getSettings()['ai.enabled']"
+            icon="fa-solid fa-wand-magic-sparkles"
+            title="自动识别目录"
+            size="sm"
+            @click="uiStore.openModal('recognition')"
+          />
+          <IconButton
+            icon="fa-solid fa-sliders"
+            title="编辑层级配置"
+            size="sm"
+            @click="uiStore.openModal('hierarchy-editor')"
+          />
+          <IconButton
+            icon="fa-solid fa-plus"
+            title="将当前行设为章节标题"
+            size="sm"
+            variant="primary"
+            @click="setSelectionAsChapter"
+          />
         </div>
       </template>
 
@@ -52,6 +53,7 @@
           @update:model-value="debouncedContentUpdate"
           @mounted="onEditorMounted"
           @cursor-change="handleCursorChange"
+          @selection-change="handleSelectionChange"
           @blur="projectStore.endEditSession()"
         />
       </div>
@@ -62,33 +64,27 @@
       <div v-if="activeChapter" class="p-5 space-y-6">
         <!-- 章节基本属性 -->
         <div class="space-y-4">
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">章节名称</label>
-            <input 
-              :value="activeChapter.title"
-              @input="(e: any) => chapterStore.updateChapter(activeChapter.id, { title: e.target.value })"
-              @focus="startEdit()"
-              @blur="endEdit()"
-              class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-              placeholder="正文标题行会自动同步至此..."
-            />
-          </div>
+          <Input 
+            :model-value="activeChapter.title"
+            label="章节名称"
+            placeholder="正文标题行会自动同步至此..."
+            @update:model-value="(val) => chapterStore.updateChapter(activeChapter.id, { title: val })"
+            @focus="startEdit()"
+            @blur="endEdit()"
+          />
 
           <!-- 章节标签 (用于判定角色阶段, 规范 2.3.2) -->
           <div class="space-y-2">
-            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <i class="fa-solid fa-tags text-[9px]"></i>
-              章节标签
-            </label>
-            <input 
-              :value="activeChapter.tags?.join(', ')"
+            <Input 
+              :model-value="activeChapter.tags?.join(', ')"
+              label="章节标签"
+              icon-prefix="fa-solid fa-tags"
+              placeholder="输入标签，用逗号分隔..."
+              hint="用于自动判定该章节下角色所处的“叙事阶段”"
               @focus="startEdit()"
               @blur="endEdit()"
               @change="(e: any) => chapterStore.updateChapter(activeChapter.id, { tags: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) })"
-              class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 shadow-sm font-mono"
-              placeholder="输入标签，用逗号分隔..."
             />
-            <p class="text-[9px] text-gray-400 italic">用于自动判定该章节下角色所处的“叙事阶段”</p>
           </div>
           
           <div class="grid grid-cols-2 gap-3">
@@ -101,20 +97,20 @@
             <div class="space-y-2">
               <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">逻辑深度</label>
               <div class="flex items-center gap-2">
-                <button 
-                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: Math.max(0, activeChapter.depth - 1) })" 
-                  class="p-1 border rounded hover:bg-gray-100 dark:hover:bg-[#333333]"
+                <IconButton
+                  icon="fa-solid fa-minus"
+                  size="xs"
+                  class="border dark:border-[#333333]"
                   :disabled="activeChapter.depth <= 0"
-                >
-                  <i class="fa-solid fa-minus text-[10px]"></i>
-                </button>
+                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: Math.max(0, activeChapter.depth - 1) })"
+                />
                 <span class="text-xs font-mono">{{ activeChapter.depth }}</span>
-                <button 
-                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: activeChapter.depth + 1 })" 
-                  class="p-1 border rounded hover:bg-gray-100 dark:hover:bg-[#333333]"
-                >
-                  <i class="fa-solid fa-plus text-[10px]"></i>
-                </button>
+                <IconButton
+                  icon="fa-solid fa-plus"
+                  size="xs"
+                  class="border dark:border-[#333333]"
+                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: activeChapter.depth + 1 })"
+                />
               </div>
             </div>
           </div>
@@ -171,6 +167,8 @@ import { useSettingsStore } from '@/store/settings'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import ChapterTreeItem from '@/components/features/editor/ChapterTreeItem.vue'
 import MonacoEditor from '@/components/features/editor/MonacoEditor.vue'
+import IconButton from '@/components/common/IconButton.vue'
+import Input from '@/components/common/Input.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const chapterStore = useChapterStore()
@@ -441,6 +439,23 @@ function handleCursorChange(position: monaco.IPosition) {
   const currentChapter = chapters.find(c => c.anchorLineNumber <= position.lineNumber)
   if (currentChapter && currentChapter.id !== activeChapterId.value) {
     activeChapterId.value = currentChapter.id
+  }
+}
+
+function handleSelectionChange(selection: monaco.IRange) {
+  if (!editor) return
+  const model = editor.getModel()
+  if (!model) return
+
+  const text = model.getValueInRange(selection)
+  if (text.trim()) {
+    uiStore.editorSelection = {
+      startLine: selection.startLineNumber,
+      endLine: selection.endLineNumber,
+      text: text.length > 50 ? text.slice(0, 50) + '...' : text
+    }
+  } else {
+    uiStore.editorSelection = null
   }
 }
 

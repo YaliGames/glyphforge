@@ -30,10 +30,9 @@ import { Handle } from '@vue-flow/core'
 
 defineProps<{
   id: string
-  label: string
   data: { character: any } // Character (flattened view)
   selected?: boolean
-  connectable?: boolean
+  connectable?: any
 }>()
 </script>
 

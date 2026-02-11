@@ -7,7 +7,7 @@
       // Color and variant classes
       typeClasses,
       // Rounded
-      rounded ? 'rounded-xl' : 'rounded-lg'
+      rounded ? 'rounded-lg' : 'rounded'
     ]"
     :disabled="disabled || loading"
     @click="$emit('click', $event)"
@@ -29,10 +29,10 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
   loading?: boolean
   icon?: string
-  rounded?: boolean // To support rounded-xl vs rounded-lg preference if needed, defaulting to rounded-xl mostly
+  rounded?: boolean
 }>(), {
   color: 'blue',
-  size: 'sm',
+  size: 'md',
   outline: false,
   text: false,
   disabled: false,
@@ -43,10 +43,10 @@ const props = withDefaults(defineProps<{
 defineEmits(['click'])
 
 const sizeClasses = {
-  xs: 'px-3 py-1.5 text-[10px]',
-  sm: 'px-5 py-2 text-xs',
-  md: 'px-6 py-2.5 text-sm',
-  lg: 'px-8 py-3 text-base'
+  xs: 'px-2 py-1 text-[10px]',
+  sm: 'px-3 py-1.5 text-xs', 
+  md: 'px-5 py-2 text-xs',
+  lg: 'px-6 py-2.5 text-sm'
 }
 
 const typeClasses = computed(() => {

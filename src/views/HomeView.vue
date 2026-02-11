@@ -9,7 +9,7 @@
       <div class="shrink-0 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
         <div>
           <h1 class="text-4xl font-light text-gray-900 dark:text-white mb-2">欢迎使用 GlyphForge</h1>
-          <p class="text-gray-500 dark:text-gray-400">构建您的文字世界，从逻辑开始</p>
+          <p class="text-gray-500 dark:text-gray-400">AI 赋能的写作工具</p>
         </div>
         <div class="flex gap-4">
           <button 
@@ -70,8 +70,12 @@
                   <div class="text-[10px] text-gray-400 dark:text-gray-500">{{ formatDate(file.date) }}</div>
                 </div>
               </div>
-              <div class="text-[10px] text-blue-600 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                点击打开
+              <div 
+                class="text-[10px] text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all flex items-center gap-1"
+                @click.stop="removeRecentFile(file)"
+              >
+                <i class="fa-solid fa-trash-can"></i>
+                删除
               </div>
             </div>
           </div>
@@ -94,7 +98,7 @@
           <div class="flex-1 overflow-y-auto space-y-1">
             <!-- 下载客户端 -->
             <div 
-              @click="openExternalLink('https://github.com/glyphforge/app/releases')" 
+              @click="openExternalLink(APP_CONFIG.links.releases)" 
               class="group flex items-center justify-between p-3 rounded-lg hover:bg-white dark:hover:bg-[#2d2d2d] hover:shadow-sm transition-all cursor-pointer"
             >
               <div class="flex items-center gap-4">
@@ -155,17 +159,17 @@
           <div>
             <h2 class="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-6">快速入门</h2>
             <div class="space-y-4">
-              <div class="p-4 bg-white dark:bg-[#252526] rounded-lg border border-gray-100 dark:border-[#333333] shadow-sm dark:shadow-none">
-                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">结构化数据</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-500 leading-relaxed">GlyphForge 将世界观、时间线等创作要素实体化，方便在写作时随时调用与校验一致性。</p>
-              </div>
-              <div class="p-4 bg-white dark:bg-[#252526] rounded-lg border border-gray-100 dark:border-[#333333] shadow-sm dark:shadow-none">
-                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">角色管理</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-500 leading-relaxed">支持角色间关系、叙事阶段等多种辅助要素，帮助构建丰富的故事人物关系。</p>
-              </div>
-              <div class="p-4 bg-white dark:bg-[#252526] rounded-lg border border-gray-100 dark:border-[#333333] shadow-sm dark:shadow-none">
-                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">AI 辅助</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-500 leading-relaxed">基于结构化数据，AI 可以更精准地理解上下文，提供更有深度的写作建议。</p>
+              <div 
+                v-for="item in QUICK_START_GUIDE" 
+                :key="item.title"
+                @click="openExternalLink(item.url)"
+                class="p-4 bg-white dark:bg-[#252526] rounded-lg border border-gray-100 dark:border-[#333333] shadow-sm dark:shadow-none hover:border-blue-500/50 transition-colors cursor-pointer group"
+              >
+                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 mb-1 flex items-center justify-between">
+                  {{ item.title }}
+                  <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 group-hover:text-blue-500 transition-colors"></i>
+                </h3>
+                <p class="text-xs text-gray-500 dark:text-gray-500 leading-relaxed">{{ item.content }}</p>
               </div>
             </div>
           </div>
@@ -173,9 +177,9 @@
           <div>
             <h2 class="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-6">资源</h2>
             <ul class="space-y-3 text-sm">
-              <li><a href="#" class="text-blue-600 dark:text-blue-400 hover:underline transition-colors">快速入门指南</a></li>
-              <li><a href="#" class="text-blue-600 dark:text-blue-400 hover:underline transition-colors">获取更多 AI 提示词</a></li>
-              <li><a href="#" class="text-blue-600 dark:text-blue-400 hover:underline transition-colors">扩展及插件开发</a></li>
+              <li v-for="link in DESCRIPTIVE_LINKS" :key="link.title">
+                <a @click="openExternalLink(link.url)" class="text-blue-600 dark:text-blue-400 hover:underline transition-colors cursor-pointer">{{ link.title }}</a>
+              </li>
             </ul>
           </div>
         </div>
@@ -219,7 +223,7 @@ import { useUIStore } from '@/store/ui'
 import { useChapterStore } from '@/store/chapters'
 import { useActions } from '@/composables/useActions'
 import { TxtImporter } from '@/core/bridge/txt-importer'
-import { APP_CONFIG } from '@/config'
+import { APP_CONFIG, QUICK_START_GUIDE, DESCRIPTIVE_LINKS } from '@/config'
 import { isElectron } from '@/utils/env'
 
 const router = useRouter()
@@ -254,6 +258,10 @@ async function clearRecentFiles() {
   if (confirmed) {
     uiStore.clearRecentFiles()
   }
+}
+
+async function removeRecentFile(file: any) {
+  uiStore.removeRecentFile(file.name, file.path)
 }
 
 async function handleRecentClick(file: any) {

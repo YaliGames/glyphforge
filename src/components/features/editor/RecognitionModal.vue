@@ -17,13 +17,15 @@
               <button @click="addPattern(type)" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-[10px]">+ 添加模式</button>
             </div>
             <div v-for="(_, idx) in patterns" :key="idx" class="flex items-center gap-2">
-              <input 
-                :value="patterns[idx]"
-                @input="(e: any) => updatePattern(type as any, idx, e.target.value)"
-                class="flex-1 border dark:border-[#333] rounded-lg px-3 py-1.5 text-xs font-mono bg-gray-50 dark:bg-[#1e1e1e] dark:text-gray-200 outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+              <Input
+                size="sm"
+                variant="filled"
                 placeholder="正则表达式"
+                input-class="font-mono"
+                :model-value="patterns[idx]"
+                @update:model-value="(val) => updatePattern(type as any, idx, val as string)"
               />
-              <button @click="removePattern(type as any, idx)" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors">
+              <button @click="removePattern(type as any, idx)" class="w-8 h-8 flex shrink-0 items-center justify-center text-gray-400 hover:text-red-500 transition-colors">
                 <i class="fa-solid fa-trash-can text-[10px]"></i>
               </button>
             </div>
@@ -38,15 +40,14 @@
           结构锚定 (Structural Anchors)
         </h4>
         <div class="grid grid-cols-2 gap-4">
-          <div class="space-y-1">
-            <label class="text-[10px] font-bold text-gray-400 uppercase">最大标题长度</label>
-            <input 
-              type="number" 
-              v-model.number="chapterStore.recognitionRules.structuralAnchors.maxLength"
-              class="w-full bg-gray-50 dark:bg-[#1e1e1e] border dark:border-[#333] rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 transition-all"
-            />
-          </div>
-          <div class="flex items-end pb-1">
+          <Input
+            type="number"
+            size="sm"
+            variant="filled"
+            label="最大标题长度"
+            v-model.number="chapterStore.recognitionRules.structuralAnchors.maxLength"
+          />
+          <div class="flex items-end pb-3">
             <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer group">
               <input 
                 type="checkbox" 
@@ -93,10 +94,13 @@
             </label>
             <div class="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 px-1">
               <span>单行最大允许标点符号数</span>
-              <input 
-                type="number" 
+              <Input
+                type="number"
+                size="sm"
+                variant="filled"
+                input-class="text-center"
+                class="!w-16"
                 v-model.number="chapterStore.recognitionRules.negativeRules.maxPunctuationCount"
-                class="w-12 bg-gray-50 dark:bg-[#1e1e1e] border dark:border-[#333] rounded px-1.5 py-0.5 text-center text-xs outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -123,6 +127,7 @@
 <script setup lang="ts">
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
+import Input from '@/components/common/Input.vue'
 import { useChapterStore } from '@/store/chapters'
 import { useUIStore } from '@/store/ui'
 
