@@ -479,6 +479,18 @@ export const useAIStore = defineStore('ai', () => {
 
                 try {
                   const chunk = JSON.parse(jsonStr);
+
+                  if (chunk.error) {
+                    const msg = history.value.find(m => m.id === assistantMsgId);
+                    if (msg) {
+                      msg.content = `模型连接中断或发生错误：${chunk.error.message || JSON.stringify(chunk.error)}`;
+                      msg.isError = true;
+                    }
+                    if (watchdog) clearTimeout(watchdog);
+                    reject(new Error(chunk.error.message || 'Model service error'));
+                    return;
+                  }
+
                   const delta = chunk.choices?.[0]?.delta;
 
                   if (delta?.content) {
@@ -630,25 +642,24 @@ export const useAIStore = defineStore('ai', () => {
 
     } catch (error: any) {
       console.error('[AI Error]', error)
-      stopGeneration() // 关键：发生任何错误（含超时）时，立即通知 API 终止后端请求并重置状态
+      stopGeneration()
 
-      // 如果错误已经被处理过（在递归调用的深层已记录到消息中），则直接向上抛出，避免父级重复记录
       if (error._handled) throw error;
       error._handled = true;
 
+      const uiStore = useUIStore()
       const assistantMsg = history.value.find(m => m.id === assistantMsgId)
+      
+      let errorText = error.message || error;
+
       if (assistantMsg) {
-        assistantMsg.content = `抱歉，请求模型时出错：${error.message || error}`
+        assistantMsg.content = `抱歉，请求模型时出错：\n${errorText}`
         assistantMsg.type = 'error' as any
         assistantMsg.isError = true
-        // 存储重试参数，即使是 Loop 模式，我们也存储最初触发该序列的参数
         assistantMsg.retryParams = { displayContent, fullPrompt, references }
       }
-      throw error // 重新抛出错误，确保 UI 组件（如 AIAssistant.vue）可以捕获到异常并显示全局提示（Tips）
+      throw error
     } finally {
-      // 只有在非循环或最终完成时才重置处理状态
-      // 注意：如果是递归调用，sendMessage 内部会再次设置 isProcessing=true
-      // 为了平滑过渡，只有当 history 中最后一个消息不是待处理的 tool 结果时才重置
       const lastMsg = history.value[history.value.length - 1];
       if (lastMsg.role !== 'tool') {
         isProcessing.value = false
@@ -660,7 +671,6 @@ export const useAIStore = defineStore('ai', () => {
     const index = history.value.findIndex(m => m.id === msgId)
     if (index === -1) return
 
-    // 移除出错的消息块
     history.value.splice(index, 1)
 
     await sendMessage('重试', '重试', undefined, false)
