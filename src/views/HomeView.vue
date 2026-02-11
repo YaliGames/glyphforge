@@ -70,8 +70,12 @@
                   <div class="text-[10px] text-gray-400 dark:text-gray-500">{{ formatDate(file.date) }}</div>
                 </div>
               </div>
-              <div class="text-[10px] text-blue-600 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                点击打开
+              <div 
+                class="text-[10px] text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all flex items-center gap-1"
+                @click.stop="removeRecentFile(file)"
+              >
+                <i class="fa-solid fa-trash-can"></i>
+                删除
               </div>
             </div>
           </div>
@@ -254,6 +258,10 @@ async function clearRecentFiles() {
   if (confirmed) {
     uiStore.clearRecentFiles()
   }
+}
+
+async function removeRecentFile(file: any) {
+  uiStore.removeRecentFile(file.name, file.path)
 }
 
 async function handleRecentClick(file: any) {

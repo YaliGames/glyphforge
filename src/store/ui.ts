@@ -82,6 +82,14 @@ export const useUIStore = defineStore('ui', () => {
     localStorage.setItem(STORAGE_KEYS.RECENT_FILES, JSON.stringify(recentFiles.value))
   }
 
+  function removeRecentFile(name: string, path?: string) {
+    const existing = recentFiles.value.findIndex(f => f.name === name && f.path === path)
+    if (existing !== -1) {
+      recentFiles.value.splice(existing, 1)
+      localStorage.setItem(STORAGE_KEYS.RECENT_FILES, JSON.stringify(recentFiles.value))
+    }
+  }
+
   function clearRecentFiles() {
     recentFiles.value = []
     localStorage.removeItem(STORAGE_KEYS.RECENT_FILES)
@@ -185,6 +193,7 @@ export const useUIStore = defineStore('ui', () => {
     editorSelection,
     loadRecentFiles,
     addRecentFile,
+    removeRecentFile,
     clearRecentFiles,
     switchViewMode,
     switchEditMode,
