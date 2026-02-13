@@ -6,35 +6,57 @@
   >
     <div class="flex h-[600px] -m-6">
       <!-- 左侧配置文件列表 -->
-      <SidePanel title="已保存配置" width="w-64">
+      <SidePanel title="模型配置" width="w-64">
         <template #actions>
           <button @click="startCreating" class="text-blue-500 hover:text-blue-600" title="新建配置">
             <i class="fa-solid fa-plus-circle text-sm"></i>
           </button>
         </template>
         
-        <div class="p-2 space-y-1">
-          <button 
-            v-for="profile in settingsStore.getSettings()['ai.profiles']" 
-            :key="profile.id"
-            @click="selectProfile(profile.id)"
-            :class="[
-              'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold transition-all group',
-              !isCreating && editingProfileId === profile.id 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
-                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-[#333] hover:text-gray-700 dark:hover:text-gray-300'
-            ]"
-          >
-            <div class="flex items-center gap-2 truncate">
-              <i :class="[
-                'fa-solid',
-                profile.provider === 'openai' ? 'fa-bolt' : profile.provider === 'anthropic' ? 'fa-leaf' : 'fa-gear',
-                editingProfileId === profile.id ? 'text-white' : 'text-gray-400'
-              ]"></i>
-              <span class="truncate">{{ profile.name }}</span>
+        <div class="p-2 space-y-6">
+          <div v-for="profile in settingsStore.getSettings()['ai.profiles']" :key="profile.id">
+            <!-- 供应商标题/配置层级 -->
+            <div 
+              @click="selectProfile(profile.id)"
+              class="flex items-center justify-between px-2 py-1.5 mb-1 rounded-lg cursor-pointer transition-colors group"
+              :class="editingProfileId === profile.id && isCreating === false ? 'bg-blue-500/5' : 'hover:bg-gray-100 dark:hover:bg-[#333]'"
+            >
+              <div class="flex items-center gap-2 min-w-0">
+                <i :class="[
+                  'fa-solid text-xs transition-colors',
+                  profile.provider === 'openai' ? 'fa-bolt text-amber-500' : profile.provider === 'anthropic' ? 'fa-leaf text-green-500' : 'fa-gear text-gray-400',
+                  editingProfileId === profile.id ? 'scale-110' : ''
+                ]"></i>
+                <span class="text-[11px] font-black uppercase tracking-wider truncate" :class="editingProfileId === profile.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'">
+                  {{ profile.name }}
+                </span>
+              </div>
+              <i class="fa-solid fa-chevron-right text-[8px] text-gray-300 transform transition-transform" :class="editingProfileId === profile.id ? 'rotate-90 text-blue-500' : ''"></i>
             </div>
-            <i v-if="settingsStore.getSettings()['ai.activeProfileId']?.startsWith(profile.id)" class="fa-solid fa-check text-[10px] opacity-60"></i>
-          </button>
+            
+            <!-- 模型子项列表 (带层级连线效果) -->
+            <div class="ml-3.5 pl-3 border-l-2 border-gray-100 dark:border-white/5 pt-1 space-y-1">
+              <button 
+                v-for="model in (profile.models && profile.models.length > 0 ? profile.models.filter(m => m.trim()) : [null])" 
+                :key="model || 'none'"
+                @click.stop="model ? activateAndEdit(profile.id, model) : selectProfile(profile.id)"
+                :class="[
+                  'w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all relative',
+                  model && settingsStore.getSettings()['ai.activeProfileId'] === `${profile.id}:${model}`
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-[#333] hover:text-gray-600 dark:hover:text-gray-300'
+                ]"
+              >
+                <!-- 连线装饰项 -->
+                <div class="absolute -left-[14px] top-1/2 -translate-y-1/2 w-2 h-[2px] bg-gray-100 dark:bg-white/5"></div>
+                
+                <div class="flex items-center gap-2 truncate">
+                  <span class="truncate">{{ model || '(未配置模型)' }}</span>
+                </div>
+                <i v-if="model && settingsStore.getSettings()['ai.activeProfileId'] === `${profile.id}:${model}`" class="fa-solid fa-check-circle text-[10px]"></i>
+              </button>
+            </div>
+          </div>
         </div>
       </SidePanel>
 
@@ -80,20 +102,8 @@
         <div v-else-if="currentEditingProfile" class="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
           <!-- 头部状态 -->
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <h3 class="text-lg font-bold dark:text-gray-100">{{ currentEditingProfile.name }}</h3>
-              <span v-if="settingsStore.getSettings()['ai.activeProfileId']?.startsWith(currentEditingProfile.id)" 
-                class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-full uppercase border border-green-500/20"
-              >当前活动</span>
-            </div>
+            <h3 class="text-lg font-bold dark:text-gray-100">{{ currentEditingProfile.name }}</h3>
             <div class="flex items-center gap-3">
-              <button 
-                v-if="!settingsStore.getSettings()['ai.activeProfileId']?.startsWith(currentEditingProfile.id)"
-                @click="activateProfile"
-                class="px-3 py-1.5 text-[10px] font-bold text-gray-500 hover:text-blue-500 transition-colors"
-              >
-                激活此配置
-              </button>
               <button 
                 @click="removeProfile(currentEditingProfile.id)"
                 class="p-2 text-gray-400 hover:text-red-500 transition-colors"
@@ -111,13 +121,12 @@
               <Input 
                 v-model="currentEditingProfile.name"
                 label="配置展示名称"
-                placeholder="例如：我的 ChatGPT"
               />
               <div class="space-y-2">
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">接口兼容类型</label>
                 <select 
                   v-model="currentEditingProfile.provider"
-                  class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-500 transition-all shadow-sm"
+                  class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-4 py-2 text-xs outline-none focus:border-blue-500 transition-all shadow-sm"
                 >
                   <option value="openai">OpenAI</option>
                   <option value="anthropic">Anthropic</option>
@@ -143,12 +152,25 @@
 
             <div class="space-y-3">
               <label class="text-[10px] font-bold text-gray-400 uppercase flex items-center justify-between">
-                <span>可用模型列表 (Model Identifiers)</span>
-                <span class="text-[9px] lowercase font-normal opacity-60">每个配置可支持多个模型</span>
+                <span>可用模型列表</span>
+                <Button size="xs" icon="fa-solid fa-plus text-[8px]" @click="addModel">
+                  添加备选模型
+                </Button>
               </label>
               
               <div class="space-y-2">
                 <div v-for="(_, idx) in currentEditingProfile.models || []" :key="idx" class="flex gap-2">
+                  <button 
+                    @click="activateAndEdit(currentEditingProfile.id, currentEditingProfile.models[idx])"
+                    :disabled="!currentEditingProfile.models[idx]?.trim()"
+                    class="w-8 h-8 flex items-center justify-center shrink-0 rounded-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                    :class="settingsStore.getSettings()['ai.activeProfileId'] === `${currentEditingProfile.id}:${currentEditingProfile.models[idx]}`
+                      ? 'bg-blue-600 text-white shadow-lg' 
+                      : 'bg-gray-100 dark:bg-white/5 text-gray-300 hover:text-blue-500'"
+                    :title="currentEditingProfile.models[idx]?.trim() ? '设为活动模型' : '请先填写模型标识'"
+                  >
+                    <i class="fa-solid fa-check text-[10px]"></i>
+                  </button>
                   <Input 
                     v-model="currentEditingProfile.models[idx]"
                     placeholder="例如: gpt-4o"
@@ -162,14 +184,6 @@
                     <i class="fa-solid fa-xmark text-xs"></i>
                   </button>
                 </div>
-                
-                <button 
-                  @click="addModel"
-                  class="w-full py-2 border border-dashed dark:border-[#333] rounded-lg text-[10px] font-bold text-gray-400 hover:text-blue-500 hover:border-blue-500/50 transition-all flex items-center justify-center gap-2"
-                >
-                  <i class="fa-solid fa-plus text-[8px]"></i>
-                  添加备选模型
-                </button>
 
                 <div v-if="!currentEditingProfile.models || currentEditingProfile.models.length === 0" class="text-[10px] text-amber-500 flex items-center gap-1 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
                   <i class="fa-solid fa-triangle-exclamation"></i>
@@ -259,6 +273,11 @@ function selectProfile(id: string) {
   editingProfileId.value = id
 }
 
+function activateAndEdit(profileId: string, model: string) {
+  settingsStore.updateSetting('ai.activeProfileId', `${profileId}:${model}`)
+  editingProfileId.value = profileId
+}
+
 function createFromTemplate(templateId: string) {
   const template = AI_PROFILE_TEMPLATES.find(t => t.id === templateId)
   if (!template) return
@@ -296,14 +315,6 @@ function saveNewProfile(profile: AIProfile) {
   settingsStore.updateSetting('ai.profiles', [...current, profile])
   editingProfileId.value = profile.id
   isCreating.value = false
-}
-
-function activateProfile() {
-  if (!currentEditingProfile.value) return
-  const models = currentEditingProfile.value.models || []
-  const targetId = currentEditingProfile.value.id
-  const val = models.length > 0 ? `${targetId}:${models[0]}` : targetId
-  settingsStore.updateSetting('ai.activeProfileId', val)
 }
 
 function addModel() {

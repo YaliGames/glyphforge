@@ -16,8 +16,8 @@
           <IconButton
             icon="fa-solid fa-gear"
             icon-class="group-hover:rotate-45 transition-transform"
-            title="AI 设置"
-            @click="goToSettings('ai')"
+            title="AI 模型管理"
+            @click="uiStore.openModal('ai-profile')"
             class="group"
           />
           <IconButton
@@ -1527,13 +1527,6 @@ watch(() => aiStore.history.length, async () => {
     historyBox.value.scrollTop = historyBox.value.scrollHeight
   }
 })
-
-function goToSettings(section?: string) {
-  router.push({
-    path: '/settings',
-    query: { section: section || 'ai' }
-  })
-}
 
 async function copyContent(text: string) {
   try {
