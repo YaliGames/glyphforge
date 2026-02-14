@@ -259,7 +259,7 @@
     </main>
 
     <!-- 右侧：阶段管理 -->
-    <SidePanel title="剧情阶段" width="w-64" side="right">
+    <SidePanel v-if="!aiStore.isVisible" title="剧情阶段" width="w-80" side="right">
       <template #actions>
         <IconButton icon="fa-solid fa-plus" title="添加阶段" size="sm" variant="primary"
           @click="characterStore.addPhase()" />

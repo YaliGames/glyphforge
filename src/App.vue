@@ -20,6 +20,9 @@
           </transition>
         </router-view>
       </div>
+
+      <!-- AI 创作助手 (右侧抽屉，加入主体区域以实现挤压效果) -->
+      <AIAssistant v-if="settingsStore.getSettings()['ai.enabled']" />
     </main>
 
     <!-- 底部状态栏 -->
@@ -27,9 +30,6 @@
 
     <!-- 全局弹窗组件 -->
     <GlobalModals />
-
-    <!-- AI 创作助手 (右侧抽屉) -->
-    <AIAssistant v-if="settingsStore.getSettings()['ai.enabled']" />
 
     <!-- AI 请求调试工具 (左下角) -->
     <AIDebugger v-if="showAIDebugger" />

@@ -70,8 +70,8 @@
       </div>
     </main>
 
-    <!-- 右栏：结构属性区 -->
-    <SidePanel title="属性" width="w-80" side="right">
+    <!-- 结构属性区 -->
+    <SidePanel v-if="!aiStore.isVisible" title="属性" width="w-80" side="right">
       <template #actions>
         <div v-if="currentAct">
           <span v-if="currentAct.range"
@@ -134,6 +134,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useOutlineStore } from '@/store/outline'
+import { useAIStore } from '@/store/ai'
 import { useUIStore } from '@/store/ui'
 import { useFieldHistory } from '@/composables/useFieldHistory'
 import OutlineEditor from '@/components/features/editor/OutlineEditor.vue'
@@ -146,6 +147,7 @@ import * as monaco from 'monaco-editor'
 import type { OutlineAct } from '@/types'
 
 const outlineStore = useOutlineStore()
+const aiStore = useAIStore()
 const uiStore = useUIStore()
 const { startEdit, endEdit } = useFieldHistory()
 const editorRef = ref<any>(null)

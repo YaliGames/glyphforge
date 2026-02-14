@@ -59,8 +59,8 @@
       </div>
     </main>
 
-    <!-- 右侧：属性与大纲参考 (规范 6.3) -->
-    <SidePanel title="属性" width="w-80" side="right">
+    <!-- 属性与大纲参考 -->
+    <SidePanel v-if="!aiStore.isVisible" title="属性" width="w-80" side="right">
       <div v-if="activeChapter" class="p-5 space-y-6">
         <!-- 章节基本属性 -->
         <div class="space-y-4">
@@ -158,6 +158,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import * as monaco from 'monaco-editor'
 import { useChapterStore } from '@/store/chapters'
+import { useAIStore } from '@/store/ai'
 import { useOutlineStore } from '@/store/outline'
 import { v4 as uuidv4 } from 'uuid'
 import { useProjectStore } from '@/store/project'
@@ -174,6 +175,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 const chapterStore = useChapterStore()
 const outlineStore = useOutlineStore()
 const projectStore = useProjectStore()
+const aiStore = useAIStore()
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
 const { startEdit, endEdit } = useFieldHistory()
