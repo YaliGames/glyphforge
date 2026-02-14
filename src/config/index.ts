@@ -62,6 +62,8 @@ export const STORAGE_KEYS = {
   CUSTOM_PROMPTS: 'glyphforge-custom-prompts',
   SETTINGS: 'glyphforge-settings',
   RECENT_FILES: 'glyphforge-recent-files',
+  SIDEBAR_LEFT_WIDTH: 'glyphforge-sidebar-left-width',
+  SIDEBAR_RIGHT_WIDTH: 'glyphforge-sidebar-right-width',
 } as const
 
 /**

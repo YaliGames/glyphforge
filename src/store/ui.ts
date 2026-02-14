@@ -25,6 +25,24 @@ export const useUIStore = defineStore('ui', () => {
   // 编辑器状态同步 (用于 AI 引用等)
   const editorSelection = ref<{ startLine: number, endLine: number, text: string } | null>(null)
 
+  // 侧边栏宽度管理
+  const SIDE_PANEL_MIN = 200
+  const SIDE_PANEL_MAX = 600
+  const SIDE_PANEL_DEFAULT = 260
+  
+  const leftPanelWidth = ref(Number(localStorage.getItem(STORAGE_KEYS.SIDEBAR_LEFT_WIDTH)) || SIDE_PANEL_DEFAULT)
+  const rightPanelWidth = ref(Number(localStorage.getItem(STORAGE_KEYS.SIDEBAR_RIGHT_WIDTH)) || SIDE_PANEL_DEFAULT)
+
+  function setLeftPanelWidth(width: number) {
+    leftPanelWidth.value = Math.min(Math.max(width, SIDE_PANEL_MIN), SIDE_PANEL_MAX)
+    localStorage.setItem(STORAGE_KEYS.SIDEBAR_LEFT_WIDTH, String(leftPanelWidth.value))
+  }
+
+  function setRightPanelWidth(width: number) {
+    rightPanelWidth.value = Math.min(Math.max(width, SIDE_PANEL_MIN), SIDE_PANEL_MAX)
+    localStorage.setItem(STORAGE_KEYS.SIDEBAR_RIGHT_WIDTH, String(rightPanelWidth.value))
+  }
+
   function startLoading(message = '正在加载...') {
     isLoading.value = true
     loadingMessage.value = message
@@ -191,6 +209,10 @@ export const useUIStore = defineStore('ui', () => {
     stopLoading,
     recentFiles,
     editorSelection,
+    leftPanelWidth,
+    rightPanelWidth,
+    setLeftPanelWidth,
+    setRightPanelWidth,
     loadRecentFiles,
     addRecentFile,
     removeRecentFile,

@@ -1,5 +1,15 @@
 <template>
-  <div v-if="aiStore.isVisible" class="h-full w-[400px] bg-white dark:bg-[#1e1e1e] border-l dark:border-[#333] flex flex-col overflow-hidden shrink-0 z-10">
+  <div v-if="aiStore.isVisible" 
+    ref="containerRef"
+    class="h-full bg-white dark:bg-[#1e1e1e] border-l dark:border-[#333] flex flex-col overflow-hidden shrink-0 z-10 relative"
+    :style="{ width: `${uiStore.rightPanelWidth}px` }"
+  >
+    <!-- Resize Handle -->
+    <div 
+      class="absolute top-0 bottom-0 left-0 w-1 cursor-col-resize z-50 hover:bg-purple-500/30 transition-colors"
+      @mousedown="startResize"
+    ></div>
+
     <!-- 头部 -->
     <header class="h-14 border-b dark:border-[#333] px-4 flex items-center justify-between bg-gray-50/50 dark:bg-[#252525]/50 backdrop-blur-md shrink-0">
       <div class="flex items-center gap-3">
@@ -635,7 +645,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed, reactive } from 'vue'
+import { ref, watch, nextTick, computed, reactive, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import { useAIStore } from '@/store/ai'
 import { useProjectStore } from '@/store/project'
@@ -660,6 +670,7 @@ const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
 const router = useRouter()
 
+const containerRef = ref<HTMLElement | null>(null)
 const input = ref('')
 const expandedToolCallIds = reactive(new Set<string>())
 const historyBox = ref<HTMLElement | null>(null)
@@ -1534,17 +1545,49 @@ async function copyContent(text: string) {
     uiStore.showToast('复制失败', 'error')
   }
 }
+
+// 宽度调整逻辑
+let isResizing = false
+
+function startResize(e: MouseEvent) {
+  isResizing = true
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+function handleResize(e: MouseEvent) {
+  if (!isResizing || !containerRef.value) return
+  const rect = containerRef.value.getBoundingClientRect()
+  const newWidth = rect.right - e.clientX
+  uiStore.setRightPanelWidth(newWidth)
+}
+
+function stopResize() {
+  if (!isResizing) return
+  isResizing = false
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
+onUnmounted(() => {
+  stopResize()
+})
 </script>
 
 <style scoped>
 .slide-right-enter-active,
 .slide-right-leave-active {
-  transition: transform 0.3s ease-out, opacity 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slide-right-enter-from,
 .slide-right-leave-to {
   transform: translateX(100%);
+  width: 0 !important;
   opacity: 0;
 }
 
