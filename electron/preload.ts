@@ -2,6 +2,7 @@
 
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
+  systemVersion: process.getSystemVersion(),
   versions: {
     node: process.versions.node,
     chrome: process.versions.chrome,
