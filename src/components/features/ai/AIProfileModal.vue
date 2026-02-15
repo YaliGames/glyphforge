@@ -99,7 +99,7 @@
           </button>
         </div>
 
-        <div v-else-if="currentEditingProfile" class="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
+        <div v-else-if="currentEditingProfile" class="flex-1 overflow-y-auto p-8 space-y-8">
           <!-- 头部状态 -->
           <div class="flex items-center justify-between">
             <h3 class="text-lg font-bold dark:text-gray-100">{{ currentEditingProfile.name }}</h3>

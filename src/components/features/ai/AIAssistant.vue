@@ -39,7 +39,7 @@
     <!-- 中间内容区容器 -->
     <div class="flex-1 relative overflow-hidden">
       <!-- 聊天记录滚动区 -->
-      <div class="absolute inset-0 overflow-y-auto p-4 space-y-2 custom-scrollbar flex flex-col pb-8" ref="historyBox">
+      <div class="absolute inset-0 overflow-y-auto p-4 space-y-2 flex flex-col pb-8" ref="historyBox">
         <EmptyState
           v-if="aiStore.history.length === 0"
           icon="fa-comment-dots"
@@ -177,7 +177,7 @@
                               <i class="fa-solid fa-sliders text-[8px]"></i>
                               执行参数
                             </div>
-                            <pre class="p-2 bg-gray-50 dark:bg-black/20 rounded border dark:border-white/5 text-[10px] text-gray-500 overflow-x-auto whitespace-pre-wrap leading-tight max-h-[150px] custom-scrollbar">{{ formatArgs(call.function.arguments) }}</pre>
+                            <pre class="p-2 bg-gray-50 dark:bg-black/20 rounded border dark:border-white/5 text-[10px] text-gray-500 overflow-x-auto whitespace-pre-wrap leading-tight max-h-[150px]">{{ formatArgs(call.function.arguments) }}</pre>
                         </div>
 
                         <!-- 3. 执行结果反馈 -->
@@ -257,7 +257,7 @@
             </div>
           </header>
           
-          <div class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-8">
+          <div class="flex-1 overflow-y-auto p-5 space-y-8">
             <!-- 参考内容配置面板 -->
             <div v-if="activePanel === 'context'" class="space-y-8">
               <!-- 基础信息组 -->
@@ -345,7 +345,7 @@
                           {{ (granularSelections[val]?.length || 0) === getOptionsForValue(val).length ? '取消全选' : '全选' }}
                         </button>
                       </div>
-                      <div class="grid grid-cols-2 gap-1.5 max-h-[130px] overflow-y-auto custom-scrollbar pr-1">
+                      <div class="grid grid-cols-2 gap-1.5 max-h-[130px] overflow-y-auto pr-1">
                         <button 
                           v-for="item in getOptionsForValue(val)" 
                           :key="item.id"
@@ -415,7 +415,7 @@
                           {{ (granularSelections[val]?.length || 0) === getOptionsForValue(val).length ? '取消全选' : '全选' }}
                         </button>
                       </div>
-                      <div class="grid grid-cols-2 gap-1.5 max-h-[130px] overflow-y-auto custom-scrollbar pr-1">
+                      <div class="grid grid-cols-2 gap-1.5 max-h-[130px] overflow-y-auto pr-1">
                         <button 
                           v-for="item in getOptionsForValue(val)" 
                           :key="item.id"
@@ -601,7 +601,7 @@
           <i class="fa-solid fa-at text-purple-500"></i>
           引用实体类型
         </div>
-        <div ref="atScrollContainer1" class="max-h-[300px] overflow-y-auto custom-scrollbar">
+        <div ref="atScrollContainer1" class="max-h-[300px] overflow-y-auto">
           <button 
             v-for="(type, idx) in atMenu.types" 
             :key="type.value"
@@ -623,7 +623,7 @@
           </span>
           <span v-if="atMenu.search" class="text-[9px] bg-purple-100 dark:bg-purple-900/40 px-1.5 py-0.5 rounded text-purple-600">{{ atMenu.search }}</span>
         </div>
-        <div ref="atScrollContainer2" class="flex-1 overflow-y-auto custom-scrollbar pr-0.5">
+        <div ref="atScrollContainer2" class="flex-1 overflow-y-auto pr-0.5">
           <button 
             v-for="(item, idx) in filteredAtInstances" 
             :key="item.id"

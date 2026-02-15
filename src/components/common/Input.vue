@@ -29,7 +29,7 @@
         :readonly="readonly"
         :rows="rows"
         :class="[
-          'w-full rounded-lg outline-none transition-all custom-scrollbar',
+          'w-full rounded-lg outline-none transition-all',
           sizeClasses,
           variantClasses,
           hoverClasses,

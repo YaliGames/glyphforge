@@ -1,6 +1,6 @@
 <template>
   <Modal title="目录识别规则管理" @close="$emit('close')" :close-on-backdrop="false">
-    <div class="space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar pr-2">
+    <div class="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
       <!-- 正则模式 -->
       <section>
         <div class="flex items-center justify-between mb-3">

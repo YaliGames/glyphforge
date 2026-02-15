@@ -46,7 +46,7 @@
     </SidePanel>
 
     <!-- 右侧滚动内容区 -->
-    <main class="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e] scroll-smooth custom-scrollbar view-transition">
+    <main class="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e] scroll-smooth view-transition">
       <div v-if="worldviewStore.worldview?.timeline" class="max-w-4xl mx-auto p-8 space-y-12 pb-24">
 
         <!-- 时间线 (规范 4.3) -->

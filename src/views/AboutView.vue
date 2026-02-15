@@ -100,17 +100,3 @@ const { openExternalLink } = useActions()
 const commonLinks = DESCRIPTIVE_LINKS
 const tips = QUICK_START_GUIDE
 </script>
-
-<style scoped>
-/* 隐藏滚动条但保留功能 */
-.flex-1::-webkit-scrollbar {
-  width: 4px;
-}
-.flex-1::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-}
-.dark .flex-1::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
-}
-</style>

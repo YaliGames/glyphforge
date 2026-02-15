@@ -51,7 +51,7 @@
     </SidePanel>
 
     <!-- 主要内容区：仅显示当前激活的分类 -->
-    <div class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-[#1e1e1e] view-transition">
+    <div class="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e] view-transition">
       <div v-if="activeCategory" class="max-w-4xl mx-auto p-8 space-y-12 pb-24">
         <!-- 头部：参考角色面板 -->
         <header class="flex items-center justify-between border-b dark:border-[#333] pb-6">

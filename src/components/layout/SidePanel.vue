@@ -23,7 +23,7 @@
     </div>
     
     <!-- Panel Content -->
-    <div class="flex-1 overflow-y-auto custom-scrollbar">
+    <div class="flex-1 overflow-y-auto">
       <slot></slot>
     </div>
   </aside>

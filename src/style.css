@@ -17,10 +17,9 @@ body {
   height: 100vh;
 }
 
-/* 自定义滚动条 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
@@ -28,25 +27,36 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
+  background-color: rgba(100, 100, 100, 0.2);
+  border-radius: 0;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
+  background-color: rgba(121, 121, 121, 0.2);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.15);
+  background-color: rgba(100, 100, 100, 0.4) !important;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background-color: rgba(121, 121, 121, 0.4) !important;
 }
 
-/* 兼容旧代码中的 .custom-scrollbar 类 */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(100, 100, 100, 0.6) !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* 常用动画集 */

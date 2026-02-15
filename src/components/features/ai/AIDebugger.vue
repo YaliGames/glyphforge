@@ -22,7 +22,7 @@
           </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-[11px] custom-scrollbar" ref="logContainer">
+        <div class="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-[11px]" ref="logContainer">
           <div v-if="logs.length === 0" class="h-full flex flex-col items-center justify-center text-gray-600 italic">
             <i class="fa-solid fa-terminal text-2xl mb-2 opacity-20"></i>
             Waiting for traffic...
@@ -200,16 +200,5 @@ onMounted(() => {
 .pop-enter-from, .pop-leave-to {
   transform: scale(0.9) translateY(20px);
   opacity: 0;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 2px;
 }
 </style>

@@ -45,7 +45,7 @@
     </SidePanel>
 
     <!-- 详情编辑区 -->
-    <main class="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e] animate-fade-in custom-scrollbar view-transition">
+    <main class="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e] animate-fade-in view-transition">
       <div v-if="activeCharacter" class="max-w-4xl mx-auto p-8 space-y-12 pb-24">
         <!-- 头部 -->
         <header class="flex items-center justify-between border-b dark:border-[#333] pb-6">

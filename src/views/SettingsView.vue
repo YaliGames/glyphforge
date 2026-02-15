@@ -15,7 +15,7 @@
         />
       </div>
 
-      <nav class="flex-1 space-y-1 px-3 overflow-y-auto custom-scrollbar">
+      <nav class="flex-1 space-y-1 px-3 overflow-y-auto">
         <button 
           v-for="section in filteredSchema" 
           :key="section.id"
@@ -208,7 +208,7 @@ function shouldShow(item: SettingItem) {
 </script>
 
 <style scoped>
-/* 隐藏默认滚动条，使用 custom-scrollbar */
+/* 隐藏默认滚动条，使用 */
 main {
   scrollbar-gutter: stable;
 }
