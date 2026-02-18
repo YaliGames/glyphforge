@@ -1,6 +1,6 @@
 <template>
   <div class="flex items-center gap-2 group">
-    <label class="text-[10px] font-bold text-gray-500 uppercase">{{ label }}</label>
+    <label class="text-ui-label">{{ label }}</label>
     <div v-if="isOverridden" class="flex items-center gap-1">
       <i class="fa-solid fa-pen-nib text-[10px] text-orange-400" title="字段在当前阶段发生了变化"></i>
       <button @click="$emit('restore')"

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 flex overflow-hidden bg-[#f9f9f9] dark:bg-[#1a1a1a]">
+  <div class="flex-1 flex overflow-hidden bg-app-main">
     <!-- 目录树顶部操作栏 (规范 6.1) -->
     <SidePanel title="目录结构" width="w-64" side="left">
       <template #actions>
@@ -45,7 +45,7 @@
     </SidePanel>
 
     <!-- 中间：单文件正文编辑器 (规范 5.1 & 6.2) -->
-    <main class="flex-1 flex flex-col relative bg-white dark:bg-[#1e1e1e] min-w-0">
+    <main class="flex-1 flex flex-col relative bg-app-main min-w-0">
       <div class="flex-1 relative">
         <MonacoEditor
           ref="monacoRef"
@@ -89,18 +89,18 @@
           
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">显示层级</label>
-              <div class="w-full bg-gray-50 dark:bg-[#2d2d2d] rounded px-3 py-1.5 text-xs text-gray-500 font-bold border dark:border-[#333333]">
+              <label class="text-ui-label">显示层级</label>
+              <div class="w-full bg-app-surface rounded-main px-3 py-1.5 text-xs text-gray-500 font-bold border border-divider">
                 {{ projectStore.bundle?.project.hierarchies?.find(h => h.depth === activeChapter.depth)?.name || '未定义层级' }}
               </div>
             </div>
             <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">逻辑深度</label>
+              <label class="text-ui-label">逻辑深度</label>
               <div class="flex items-center gap-2">
                 <IconButton
                   icon="fa-solid fa-minus"
                   size="xs"
-                  class="border dark:border-[#333333]"
+                  class="border border-divider"
                   :disabled="activeChapter.depth <= 0"
                   @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: Math.max(0, activeChapter.depth - 1) })"
                 />
@@ -108,7 +108,7 @@
                 <IconButton
                   icon="fa-solid fa-plus"
                   size="xs"
-                  class="border dark:border-[#333333]"
+                  class="border border-divider"
                   @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: activeChapter.depth + 1 })"
                 />
               </div>
@@ -116,15 +116,15 @@
           </div>
         </div>
 
-        <div class="h-[1px] bg-gray-100 dark:bg-[#333333]"></div>
+        <div class="h-[1px] bg-divider"></div>
 
         <!-- 关联参考 -->
         <div class="space-y-4">
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">对应大纲情节</label>
+          <label class="text-ui-label">对应大纲情节</label>
           <select 
             :value="activeChapter.linkedOutlineActId"
             @change="(e: any) => chapterStore.updateChapter(activeChapter.id, { linkedOutlineActId: e.target.value })"
-            class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500"
+            class="w-full bg-app-main border border-divider rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500"
           >
             <option :value="null">未关联</option>
             <option v-for="act in outlineStore.acts" :key="act.id" :value="act.id">

@@ -11,16 +11,16 @@
           :key="preset.type"
           @click="selectedPresetType = preset.type"
           :class="[
-            'flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left group',
+            'flex flex-col items-start p-4 rounded-main border-2 transition-all text-left group',
             selectedPresetType === preset.type 
-              ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20' 
-              : 'border-gray-100 dark:border-[#333] hover:border-gray-200 dark:hover:border-[#444] bg-white dark:bg-[#1e1e1e]'
+              ? 'border-blue-500 bg-app-active' 
+              : 'border-divider hover:bg-app-hover bg-app-main'
           ]"
         >
           <div class="flex items-center gap-3 mb-2">
             <div :class="[
-              'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
-              selectedPresetType === preset.type ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-[#333] text-gray-500'
+              'w-8 h-8 rounded-main flex items-center justify-center transition-colors',
+              selectedPresetType === preset.type ? 'bg-blue-500 text-white' : 'bg-app-hover text-gray-500'
             ]">
               <i :class="['fa-solid', preset.icon]"></i>
             </div>

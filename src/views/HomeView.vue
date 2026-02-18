@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="flex-1 flex flex-col bg-gray-50 dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-300 overflow-hidden relative"
+    class="flex-1 flex flex-col bg-app-main text-gray-600 dark:text-gray-300 overflow-hidden relative"
     @dragover.prevent="isDragging = true"
     @drop.prevent="handleDrop"
   >
@@ -39,11 +39,11 @@
         <!-- Recent Files (Desktop only) -->
         <div v-if="isElectron" class="lg:col-span-2 flex flex-col min-h-0">
           <div class="shrink-0 flex items-center justify-between mb-6">
-            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">最近项目</h2>
+            <h2 class="text-ui-header">最近项目</h2>
             <button 
               v-if="uiStore.recentFiles.length > 0"
               @click="clearRecentFiles"
-              class="text-[10px] text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
+              class="text-ui-detail hover:text-red-500 transition-colors flex items-center gap-1"
             >
               <i class="fa-solid fa-trash-can"></i>
               清除记录
@@ -53,25 +53,25 @@
             <div 
               v-for="file in uiStore.recentFiles" 
               :key="file.name + file.path"
-              class="group flex items-center justify-between p-3 rounded-lg hover:bg-white dark:hover:bg-[#2d2d2d] hover:shadow-sm transition-all cursor-pointer"
+              class="group flex items-center justify-between p-3 rounded-lg hover:bg-app-hover hover:shadow-sm transition-all cursor-pointer"
               @click="handleRecentClick(file)"
             >
               <div class="flex items-center gap-4">
                 <div 
-                  class="w-10 h-10 bg-white dark:bg-[#252526] group-hover:bg-gray-100 dark:group-hover:bg-[#37373d] rounded flex items-center justify-center transition-colors border border-gray-100 dark:border-transparent text-blue-500"
+                  class="w-10 h-10 bg-app-surface group-hover:bg-app-active rounded flex items-center justify-center transition-colors border border-divider dark:border-transparent text-blue-500"
                 >
                   <i class="fa-solid fa-file-code text-lg"></i>
                 </div>
                 <div>
-                  <div class="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                  <div class="text-ui-item font-medium flex items-center gap-2">
                     {{ file.name }}
                     <span class="text-[9px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1 rounded">工程</span>
                   </div>
-                  <div class="text-[10px] text-gray-400 dark:text-gray-500">{{ formatDate(file.date) }}</div>
+                  <div class="text-ui-detail">{{ formatDate(file.date) }}</div>
                 </div>
               </div>
               <div 
-                class="text-[10px] text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all flex items-center gap-1"
+                class="text-ui-detail opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all flex items-center gap-1"
                 @click.stop="removeRecentFile(file)"
               >
                 <i class="fa-solid fa-trash-can"></i>
@@ -79,7 +79,7 @@
               </div>
             </div>
           </div>
-          <div v-else class="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-200 dark:border-[#333333] rounded-xl">
+          <div v-else class="flex flex-col items-center justify-center py-20 border-2 border-dashed border-divider rounded-main">
             <p class="text-gray-400 dark:text-gray-600 text-sm">暂无最近打开的项目</p>
           </div>
         </div>
@@ -87,7 +87,7 @@
         <!-- Web Guide (Web only) -->
         <div v-else class="lg:col-span-2 flex flex-col min-h-0">
           <div class="shrink-0 flex items-center justify-between mb-6">
-            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">启动中心</h2>
+            <h2 class="text-ui-header">启动中心</h2>
             <div class="flex items-center gap-2">
               <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                 Web 预览版
@@ -99,18 +99,18 @@
             <!-- 下载客户端 -->
             <div 
               @click="openExternalLink(APP_CONFIG.links.releases)" 
-              class="group flex items-center justify-between p-3 rounded-lg hover:bg-white dark:hover:bg-[#2d2d2d] hover:shadow-sm transition-all cursor-pointer"
+              class="group flex items-center justify-between p-3 rounded-lg hover:bg-app-hover hover:shadow-sm transition-all cursor-pointer"
             >
               <div class="flex items-center gap-4">
                 <div class="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 rounded flex items-center justify-center transition-colors text-blue-600 dark:text-blue-400">
                   <i class="fa-solid fa-cloud-arrow-down text-lg"></i>
                 </div>
                 <div>
-                  <div class="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                  <div class="text-ui-item font-medium flex items-center gap-2">
                     获取桌面客户端
                     <span class="text-[9px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1 rounded">推荐</span>
                   </div>
-                  <div class="text-[10px] text-gray-400 dark:text-gray-500">解锁本地存储、高性能 AI 补全与更强的数据隐私保护</div>
+                  <div class="text-ui-detail">解锁本地存储、高性能 AI 补全与更强的数据隐私保护</div>
                 </div>
               </div>
               <div class="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -121,15 +121,15 @@
             <!-- 官方文档 -->
             <div 
               @click="openExternalLink(APP_CONFIG.links.docs)" 
-              class="group flex items-center justify-between p-3 rounded-lg hover:bg-white dark:hover:bg-[#2d2d2d] hover:shadow-sm transition-all cursor-pointer"
+              class="group flex items-center justify-between p-3 rounded-lg hover:bg-app-hover hover:shadow-sm transition-all cursor-pointer"
             >
               <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-white dark:bg-[#252526] group-hover:bg-gray-100 dark:group-hover:bg-[#37373d] rounded flex items-center justify-center transition-colors border border-gray-100 dark:border-transparent text-gray-500">
+                <div class="w-10 h-10 bg-app-surface group-hover:bg-app-active rounded flex items-center justify-center transition-colors border border-divider dark:border-transparent text-gray-500">
                   <i class="fa-solid fa-book text-lg"></i>
                 </div>
                 <div>
-                  <div class="text-sm font-medium text-gray-700 dark:text-gray-200">查阅官方文档</div>
-                  <div class="text-[10px] text-gray-400 dark:text-gray-500">快速学习结构化写作的核心逻辑与 GlyphForge 的高效用法</div>
+                  <div class="text-ui-item font-medium">查阅官方文档</div>
+                  <div class="text-ui-detail">快速学习结构化写作的核心逻辑与 GlyphForge 的高效用法</div>
                 </div>
               </div>
               <i class="fa-solid fa-up-right-from-square text-[10px] text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
@@ -138,15 +138,15 @@
             <!-- 开发者社区 -->
             <div 
               @click="openExternalLink(APP_CONFIG.links.github)" 
-              class="group flex items-center justify-between p-3 rounded-lg hover:bg-white dark:hover:bg-[#2d2d2d] hover:shadow-sm transition-all cursor-pointer"
+              class="group flex items-center justify-between p-3 rounded-lg hover:bg-app-hover hover:shadow-sm transition-all cursor-pointer"
             >
               <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-white dark:bg-[#252526] group-hover:bg-gray-100 dark:group-hover:bg-[#37373d] rounded flex items-center justify-center transition-colors border border-gray-100 dark:border-transparent text-gray-500">
+                <div class="w-10 h-10 bg-app-surface group-hover:bg-app-active rounded flex items-center justify-center transition-colors border border-divider dark:border-transparent text-gray-500">
                   <i class="fa-brands fa-github text-lg"></i>
                 </div>
                 <div>
-                  <div class="text-sm font-medium text-gray-700 dark:text-gray-200">GitHub 源代码</div>
-                  <div class="text-[10px] text-gray-400 dark:text-gray-500">本项目已开源，欢迎通过 Issue 或 Pull Request 参与建设</div>
+                  <div class="text-ui-item font-medium">GitHub 源代码</div>
+                  <div class="text-ui-detail">本项目已开源，欢迎通过 Issue 或 Pull Request 参与建设</div>
                 </div>
               </div>
               <i class="fa-solid fa-up-right-from_square text-[10px] text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
@@ -157,7 +157,7 @@
         <!-- Quick Actions / Tips -->
         <div class="space-y-8 overflow-y-auto pr-2">
           <div>
-            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-6">快速入门</h2>
+            <h2 class="text-ui-header mb-6">快速入门</h2>
             <div class="space-y-4">
               <div 
                 v-for="item in QUICK_START_GUIDE" 
@@ -165,7 +165,7 @@
                 @click="openExternalLink(item.url)"
                 class="p-4 bg-white dark:bg-[#252526] rounded-lg border border-gray-100 dark:border-[#333333] shadow-sm dark:shadow-none hover:border-blue-500/50 transition-colors cursor-pointer group"
               >
-                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 mb-1 flex items-center justify-between">
+                <h3 class="text-ui-item font-bold mb-1 flex items-center justify-between">
                   {{ item.title }}
                   <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 group-hover:text-blue-500 transition-colors"></i>
                 </h3>
@@ -175,7 +175,7 @@
           </div>
           
           <div>
-            <h2 class="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-6">资源</h2>
+            <h2 class="text-ui-header mb-6">资源</h2>
             <ul class="space-y-3 text-sm">
               <li v-for="link in DESCRIPTIVE_LINKS" :key="link.title">
                 <a @click="openExternalLink(link.url)" class="text-blue-600 dark:text-blue-400 hover:underline transition-colors cursor-pointer">{{ link.title }}</a>

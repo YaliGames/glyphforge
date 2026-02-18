@@ -57,10 +57,10 @@ const variantClasses = computed(() => {
     case 'danger':
       return 'text-red-500 enabled:hover:bg-red-50 dark:enabled:hover:bg-red-900/20'
     case 'filled':
-      return 'bg-gray-100 dark:bg-[#333] text-gray-600 dark:text-gray-400 enabled:hover:bg-gray-200 dark:enabled:hover:bg-[#444]'
+      return 'bg-app-hover text-gray-600 dark:text-gray-400 enabled:hover:bg-app-surface'
     case 'ghost':
     default:
-      return 'text-gray-500 dark:text-gray-400 enabled:hover:bg-gray-200 dark:enabled:hover:bg-white/5 enabled:hover:text-gray-700 dark:enabled:hover:text-gray-200'
+      return 'text-gray-500 dark:text-gray-400 enabled:hover:bg-app-hover enabled:hover:text-gray-700 dark:enabled:hover:text-gray-200'
   }
 })
 

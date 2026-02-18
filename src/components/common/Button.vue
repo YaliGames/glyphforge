@@ -7,7 +7,7 @@
       // Color and variant classes
       typeClasses,
       // Rounded
-      rounded ? 'rounded-lg' : 'rounded'
+      rounded ? 'rounded-main' : 'rounded'
     ]"
     :disabled="disabled || loading"
     @click="$emit('click', $event)"
@@ -54,18 +54,18 @@ const typeClasses = computed(() => {
   
   // Text only mode
   if (props.text) {
-    if (c === 'gray') return 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5'
+    if (c === 'gray') return 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-app-hover'
     return `text-${c}-600 hover:text-${c}-700 dark:text-${c}-400 dark:hover:text-${c}-300 hover:bg-${c}-50 dark:hover:bg-${c}-900/20`
   }
 
   // Outline mode
   if (props.outline) {
-    if (c === 'gray') return 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
+    if (c === 'gray') return 'border border-divider text-gray-600 dark:text-gray-300 hover:bg-app-hover'
     return `border border-${c}-200 dark:border-${c}-900/30 text-${c}-600 dark:text-${c}-400 hover:bg-${c}-50 dark:hover:bg-${c}-900/10`
   }
 
   // Solid mode (Default)
-  if (c === 'gray') return 'bg-gray-100 dark:bg-[#333] text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-[#444]'
+  if (c === 'gray') return 'bg-app-hover text-gray-700 dark:text-gray-200 hover:bg-app-surface border border-transparent hover:border-divider shadow-sm'
   return `bg-${c}-600 hover:bg-${c}-700 text-white shadow-lg shadow-${c}-500/20`
 })
 </script>

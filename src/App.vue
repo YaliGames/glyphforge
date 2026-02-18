@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-screen overflow-hidden flex flex-col bg-gray-50 dark:bg-[#1e1e1e] text-gray-900 dark:text-gray-100 font-sans">
+  <div class="w-full h-screen overflow-hidden flex flex-col bg-app-main text-gray-900 dark:text-gray-100 font-sans">
     <!-- 顶部标题栏 -->
     <TopBar />
 
@@ -11,7 +11,7 @@
       <ActivityBar />
 
       <!-- 内容视图区域 -->
-      <div class="flex-1 overflow-hidden flex flex-col relative bg-white dark:bg-[#1e1e1e]">
+      <div class="flex-1 overflow-hidden flex flex-col relative bg-app-main">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <keep-alive>

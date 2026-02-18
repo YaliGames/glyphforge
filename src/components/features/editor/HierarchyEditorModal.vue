@@ -1,21 +1,21 @@
 <template>
   <Modal title="层级结构配置" @close="$emit('close')">
     <div class="space-y-4">
-      <p class="text-[11px] text-gray-500 leading-relaxed italic">
+      <p class="text-ui-label">
         定义项目中章节的层级深度与对应名称。深度越小层级越高（如 0 为顶层）。
       </p>
 
-      <div class="border dark:border-[#333333] rounded overflow-hidden">
+      <div class="border border-divider rounded overflow-hidden">
         <table class="w-full text-left text-xs">
-          <thead class="bg-gray-50 dark:bg-[#2d2d2d] text-gray-400 font-bold uppercase tracking-widest">
+          <thead class="bg-app-surface text-ui-header">
             <tr>
               <th class="px-3 py-2 w-16">深度</th>
               <th class="px-3 py-2">显示名称</th>
               <th class="px-3 py-2 w-16 text-center">操作</th>
             </tr>
           </thead>
-          <tbody class="divide-y dark:divide-[#333333]">
-            <tr v-for="(h, index) in localHierarchies" :key="index" class="bg-white dark:bg-[#1e1e1e]">
+          <tbody class="divide-y divide-divider">
+            <tr v-for="(h, index) in localHierarchies" :key="index" class="bg-app-main">
               <td class="px-3 py-2 font-mono text-gray-400">{{ index }}</td>
               <td class="px-3 py-1">
                 <Input
@@ -42,7 +42,7 @@
 
       <button 
         @click="addHierarchy"
-        class="w-full py-2 border border-dashed dark:border-[#333333] rounded text-[10px] text-gray-400 hover:text-blue-500 hover:border-blue-500/50 transition-all font-bold uppercase tracking-widest"
+        class="w-full py-2 border border-dashed border-divider rounded text-title text-gray-400 hover:text-blue-500 hover:border-blue-500/50 transition-all"
       >
         + 添加层级深度
       </button>

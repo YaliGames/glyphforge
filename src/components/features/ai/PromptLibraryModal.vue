@@ -46,7 +46,7 @@
               :disabled="activePrompt.id?.startsWith('builtin-')"
             />
             <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">分类</label>
+              <label class="text-ui-label">分类</label>
               <select v-model="activePrompt.category"
                 :disabled="activePrompt.id?.startsWith('builtin-')"
                 class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333] rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:border-purple-500 ring-purple-500/30 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition-all focus:ring-2">

@@ -4,7 +4,7 @@
       v-if="icon"
       :class="[
         'flex items-center justify-center opacity-40 transition-all',
-        circle ? `${sizeConfig.container} rounded-full bg-gray-100 dark:bg-[#252525] border dark:border-[#333]` : '',
+        circle ? `${sizeConfig.container} rounded-full bg-app-hover border border-divider` : '',
         sizeConfig.margin
       ]"
     >

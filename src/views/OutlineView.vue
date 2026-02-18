@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 flex overflow-hidden bg-white dark:bg-[#1e1e1e]">
+  <div class="flex-1 flex overflow-hidden bg-app-main">
     <!-- 左栏：大纲树 -->
     <SidePanel title="大纲结构" width="w-64" side="left">
       <template #actions>
@@ -16,15 +16,15 @@
         <template v-for="item in listItems" :key="item.id">
           <!-- 分割线 -->
           <div v-if="item.isSeparator" class="my-3 flex items-center gap-2 px-2">
-            <div class="h-[1px] flex-1 bg-gray-200 dark:bg-[#333333]"></div>
+            <div class="h-[1px] flex-1 bg-divider"></div>
             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">已绑定正文</span>
-            <div class="h-[1px] flex-1 bg-gray-200 dark:bg-[#333333]"></div>
+            <div class="h-[1px] flex-1 bg-divider"></div>
           </div>
 
           <!-- 普通项 -->
           <div v-else @click="jumpToAct(item.id)"
-            class="p-2 rounded-lg cursor-pointer transition-all duration-200 group relative hover:translate-x-0.5"
-            :class="currentActId === item.id ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-[#2d2d2d] text-gray-600 dark:text-gray-400'">
+            class="p-2 rounded-main cursor-pointer transition-all duration-200 group relative hover:translate-x-0.5"
+            :class="currentActId === item.id ? 'bg-app-active text-blue-600 dark:text-blue-400 shadow-sm' : 'hover:bg-app-hover text-gray-600 dark:text-gray-400'">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2 min-w-0">
                 <i class="fa-solid fa-bookmark text-[10px] opacity-50 transition-transform group-hover:scale-110"></i>
@@ -33,7 +33,7 @@
               <!-- 未绑定标签/绑定按钮 (Hover 切换) -->
               <div v-if="!item.range" class="relative flex items-center h-5 shrink-0">
                 <span
-                  class="group-hover:hidden px-1.5 py-0.5 rounded-[4px] bg-gray-100 dark:bg-[#333333] text-gray-400 text-[9px] whitespace-nowrap">
+                  class="group-hover:hidden px-1.5 py-0.5 rounded-[4px] bg-app-hover text-gray-400 text-[9px] whitespace-nowrap">
                   未绑定
                 </span>
                 <Button size="xs" :rounded="false" class="hidden group-hover:flex !px-2 !py-0.5"
@@ -54,9 +54,9 @@
     <!-- 中栏：主编辑区 -->
     <main class="flex-1 flex flex-col relative min-w-0">
       <div
-        class="h-10 border-b dark:border-[#333333] flex items-center px-4 justify-between bg-gray-50/50 dark:bg-[#252526]/50 shrink-0">
+        class="h-10 border-b border-divider flex items-center px-4 justify-between bg-app-panel/50 shrink-0">
         <div class="flex items-center gap-4">
-          <span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">大纲正文</span>
+          <span class="text-ui-header">大纲正文</span>
         </div>
         <div class="flex items-center gap-2">
           <Button size="xs" icon="fa-solid fa-plus text-[9px]" @click="createActFromSelection" title="将当前选中的正文创建为一幕">
@@ -92,7 +92,7 @@
         />
 
         <div
-          class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 border-dashed space-y-3">
+          class="p-4 rounded-main bg-app-active border border-blue-100 dark:border-blue-800/30 border-dashed space-y-3">
           <p class="text-[11px] text-blue-600 dark:text-blue-400 font-medium">正文绑定操作</p>
           <div class="flex gap-2">
             <Button outline size="xs" class="flex-1" @click="bindSelectionToCurrentAct">
@@ -120,7 +120,7 @@
           @blur="endEdit()"
         />
 
-        <div class="pt-6 border-t dark:border-[#333333]">
+        <div class="pt-6 border-t border-divider">
           <Button outline color="red" size="sm" class="w-full" icon="fa-solid fa-trash-can" @click="deleteCurrentAct">
             移除此幕结构 (保留文字)
           </Button>

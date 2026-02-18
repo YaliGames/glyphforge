@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 flex overflow-hidden bg-white dark:bg-[#1e1e1e]">
+  <div class="flex-1 flex overflow-hidden bg-app-main">
     <!-- 角色列表 -->
     <SidePanel title="角色库" width="w-64" side="left">
       <template #actions>
@@ -11,15 +11,15 @@
 
         <div class="space-y-1 mt-2">
           <div v-for="char in filteredCharacters" :key="char.id" @click="activeCharacterId = char.id" :class="[
-            'group p-2 rounded-lg cursor-pointer transition-all duration-200 relative hover:translate-x-0.5 border border-transparent',
+            'group p-2 rounded-main cursor-pointer transition-all duration-200 relative hover:translate-x-0.5 border border-transparent',
             activeCharacterId === char.id
-              ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 shadow-sm border-gray-200 dark:border-transparent'
-              : 'hover:bg-gray-100 dark:hover:bg-[#2d2d2d] text-gray-600 dark:text-gray-400'
+              ? 'bg-app-active text-blue-600 dark:text-blue-400 shadow-sm border-divider dark:border-transparent'
+              : 'hover:bg-app-hover text-gray-600 dark:text-gray-400'
           ]">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <i class="fa-solid fa-user-circle text-[10px] opacity-50"></i>
-                <span class="text-xs font-bold truncate pr-1">
+                <span class="text-xs truncate font-medium pr-1">
                   {{ char.name || '未命名角色' }}
                 </span>
                 <i v-if="currentPhaseId && hasOverride(char, currentPhaseId)"
@@ -45,19 +45,19 @@
     </SidePanel>
 
     <!-- 详情编辑区 -->
-    <main class="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e] animate-fade-in view-transition">
+    <main class="flex-1 overflow-y-auto bg-app-main animate-fade-in custom-scrollbar view-transition">
       <div v-if="activeCharacter" class="max-w-4xl mx-auto p-8 space-y-12 pb-24">
         <!-- 头部 -->
-        <header class="flex items-center justify-between border-b dark:border-[#333] pb-6">
+        <header class="flex items-center justify-between border-b border-divider pb-6">
           <div class="flex items-baseline gap-4">
-            <h1 class="text-2xl font-bold dark:text-gray-100">
+            <h1 class="text-ui-title">
               {{ activeCharacter.name }}
               <span v-if="currentPhaseId"
                 class="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 ml-2 font-normal">
                 @{{phases.find(p => p.id === currentPhaseId)?.label}}
               </span>
             </h1>
-            <span class="text-xs text-gray-400 font-mono">{{ activeCharacter.id }}</span>
+            <span class="text-ui-badge">{{ activeCharacter.id }}</span>
           </div>
           <div v-if="settingsStore.getSettings()['ai.enabled']" class="flex items-center gap-2">
             <AIButton @click="openAIAssistant('builtin-character-design')" class="!px-3 !py-1.5 shadow-purple-500/20">
@@ -78,15 +78,15 @@
 
         <!-- 角色基本信息 -->
         <section class="space-y-4">
-          <div class="flex items-center justify-between border-b dark:border-[#333333] pb-2">
-            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+          <div class="flex items-center justify-between border-b border-divider pb-2">
+            <h3 class="text-ui-header flex items-center gap-2">
               <i class="fa-solid fa-address-card text-[10px]"></i>
               角色基本信息
             </h3>
           </div>
 
           <div
-            class="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50/30 dark:bg-[#252525]/30">
+            class="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 rounded-main border border-divider bg-app-surface/30">
             <div class="space-y-4">
               <div class="space-y-2">
                 <CharacterFieldLabel label="姓名" :is-overridden="isOverridden('name')" @restore="restoreField('name')" />
@@ -178,8 +178,8 @@
 
         <!-- 角色间关系 -->
         <section class="space-y-4">
-          <div class="flex items-center justify-between border-b dark:border-[#333333] pb-2">
-            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+          <div class="flex items-center justify-between border-b border-divider pb-2">
+            <h3 class="text-ui-header flex items-center gap-2">
               <i class="fa-solid fa-users text-[10px]"></i>
               角色间关系
             </h3>
@@ -195,22 +195,22 @@
               @remove="removeRelation(rel.id)" />
 
             <div v-if="activeCharacterRelationships.length === 0"
-              class="py-8 text-center border-2 border-dashed border-gray-200 dark:border-[#333] rounded-xl text-xs text-gray-400">
+              class="py-8 text-center border-2 border-dashed border-divider rounded-main text-xs text-gray-400">
               <p>暂无关系</p>
               <button @click="addRel" class="mt-2 text-blue-500 hover:underline">点击添加</button>
             </div>
 
             <div v-if="hiddenRelationships.length > 0" class="pt-4">
               <div @click="showHiddenRelations = !showHiddenRelations"
-                class="flex items-center justify-center gap-2 py-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer rounded hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors select-none">
+                class="flex items-center justify-center gap-2 py-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer rounded hover:bg-app-hover transition-colors select-none">
                 <i class="fa-solid" :class="showHiddenRelations ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                 <span>存在 {{ hiddenRelationships.length }} 个当前阶段不生效（已断绝/隐藏）的关系</span>
               </div>
 
               <div v-if="showHiddenRelations"
-                class="space-y-2 mt-2 pl-4 border-l-2 border-dashed border-gray-200 dark:border-[#333]">
+                class="space-y-2 mt-2 pl-4 border-l-2 border-dashed border-divider">
                 <div v-for="rel in hiddenRelationships" :key="rel.id"
-                  class="flex items-center gap-2 p-2 rounded-lg border border-dashed border-gray-200 dark:border-[#444] bg-gray-50 dark:bg-[#252525] opacity-75">
+                  class="flex items-center gap-2 p-2 rounded-lg border border-dashed border-divider bg-app-hover opacity-75">
                   <span class="text-xs text-gray-500">
                     {{rel.sourceId === activeCharacterId ? '本角色' : otherCharacters.find(c => c.id ===
                       rel.sourceId)?.name
@@ -235,18 +235,20 @@
           </div>
         </section>
 
-
         <!-- 创作备注 (规范 2.5) -->
-        <section class="space-y-6 pt-12 border-t dark:border-[#333]">
-          <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">创作备注</h3>
+        <section class="space-y-6 pt-12 border-t border-divider">
+          <h3 class="text-ui-header flex items-center gap-2">
+            <i class="fa-solid fa-pencil text-[10px]"></i>
+            创作备注
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-500 uppercase">作者私语</label>
+              <label class="text-ui-label">作者私语</label>
               <Input type="textarea" v-model="activeCharacter.notes.authorNotes" placeholder="灵感或计划..." auto-resize
                 :rows="4" @focus="startEdit()" @blur="endEdit()" />
             </div>
             <div class="space-y-2">
-              <label class="text-[10px] font-bold text-gray-500 uppercase">待解悬念</label>
+              <label class="text-ui-label">待解悬念</label>
               <Input type="textarea" v-model="activeCharacter.notes.openQuestions" placeholder="未解之谜..." auto-resize
                 :rows="4" @focus="startEdit()" @blur="endEdit()" />
             </div>
@@ -268,14 +270,14 @@
       <div class="p-2 space-y-1">
         <div @click="characterStore.setCurrentPhase(null)"
           class="p-2 rounded-lg cursor-pointer flex items-center gap-2 border border-transparent transition-colors"
-          :class="!currentPhaseId ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 border-gray-200 dark:border-transparent' : 'hover:bg-gray-100 dark:hover:bg-[#2d2d2d] text-gray-600 dark:text-gray-400'">
+          :class="!currentPhaseId ? 'bg-app-active text-blue-600 dark:text-blue-400 border-divider dark:border-transparent' : 'hover:bg-app-hover text-gray-600 dark:text-gray-400'">
           <i class="fa-solid fa-earth-americas text-[10px] opacity-70"></i>
           <span class="text-xs font-bold">全局 / 基础设定</span>
         </div>
 
         <div v-for="(phase, index) in phases" :key="phase.id"
           class="group relative p-2 rounded-lg cursor-pointer flex items-center justify-between border border-transparent transition-all"
-          :class="currentPhaseId === phase.id ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 border-gray-200 dark:border-transparent' : 'hover:bg-gray-100 dark:hover:bg-[#2d2d2d] text-gray-600 dark:text-gray-400'"
+          :class="currentPhaseId === phase.id ? 'bg-app-active text-blue-600 dark:text-blue-400 border-divider dark:border-transparent' : 'hover:bg-app-hover text-gray-600 dark:text-gray-400'"
           @click="characterStore.setCurrentPhase(phase.id)">
           <div class="flex items-center gap-2 flex-1 min-w-0">
             <i class="fa-solid fa-flag text-[10px] opacity-70"></i>

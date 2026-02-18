@@ -1,8 +1,8 @@
 <template>
   <div class="chapter-node">
     <div 
-      class="group flex items-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all duration-200 hover:translate-x-0.5"
-      :class="active ? 'bg-blue-50 dark:bg-[#37373d] text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2d2d2d]'"
+      class="group flex items-center gap-1.5 p-2 rounded-main cursor-pointer transition-all duration-200 hover:translate-x-0.5"
+      :class="active ? 'bg-app-active text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-app-hover'"
       :style="{ paddingLeft: `${depth * 12 + 8}px` }"
       @click="$emit('select', node.id)"
     >
@@ -19,7 +19,7 @@
 
       <!-- Title / DisplayName -->
       <div class="flex-1 flex items-center gap-2 min-w-0">
-        <span class="text-[9px] px-1 bg-gray-100 dark:bg-[#333333] text-gray-500 rounded font-bold shrink-0 opacity-70">
+        <span class="text-[9px] px-1 bg-app-hover text-gray-500 rounded-sm font-bold shrink-0 opacity-70">
           {{ depthName }}
         </span>
         <span class="text-xs truncate font-medium">

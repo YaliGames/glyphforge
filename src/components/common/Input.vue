@@ -3,7 +3,7 @@
     <!-- Label -->
     <label 
       v-if="label" 
-      class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5"
+      class="text-ui-label flex items-center gap-1.5"
     >
       <i v-if="iconPrefix && !isTextarea" :class="iconPrefix" class="opacity-70"></i>
       {{ label }}
@@ -29,7 +29,7 @@
         :readonly="readonly"
         :rows="rows"
         :class="[
-          'w-full rounded-lg outline-none transition-all',
+          'w-full rounded-main outline-none transition-all custom-scrollbar',
           sizeClasses,
           variantClasses,
           hoverClasses,
@@ -53,7 +53,7 @@
         :disabled="disabled"
         :readonly="readonly"
         :class="[
-          'w-full rounded-lg outline-none transition-all',
+          'w-full rounded-main outline-none transition-all',
           sizeClasses,
           variantClasses,
           iconPaddingClasses,
@@ -136,9 +136,9 @@ const variantClasses = computed(() => {
     case 'ghost':
       return 'bg-transparent border-none shadow-none'
     case 'filled':
-      return 'bg-gray-50 dark:bg-[#252526] border-transparent focus:bg-white dark:focus:bg-[#1e1e1e]'
+      return 'bg-app-surface border-transparent focus:bg-app-main outline-none ring-1 ring-divider/50'
     default:
-      return 'bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] shadow-sm'
+      return 'bg-app-main border border-divider shadow-sm'
   }
 })
 

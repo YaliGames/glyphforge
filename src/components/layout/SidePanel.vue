@@ -1,7 +1,7 @@
 <template>
   <aside 
     ref="sidePanelRef"
-    class="flex flex-col shrink-0 overflow-hidden bg-white dark:bg-[#252526] relative"
+    class="flex flex-col shrink-0 overflow-hidden bg-app-panel relative"
     :class="[borderClass]"
     :style="{ width: `${props.side === 'left' ? uiStore.leftPanelWidth : uiStore.rightPanelWidth}px` }"
   >
@@ -13,8 +13,8 @@
     ></div>
 
     <!-- Panel Header -->
-    <div class="h-10 border-b dark:border-[#333333] flex items-center justify-between px-3 shrink-0">
-      <h2 class="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest truncate">
+    <div class="h-10 border-b border-divider flex items-center justify-between px-3 shrink-0">
+      <h2 class="text-ui-header truncate">
         {{ title }}
       </h2>
       <div class="flex items-center gap-1">
@@ -46,7 +46,7 @@ const uiStore = useUIStore()
 const sidePanelRef = ref<HTMLElement | null>(null)
 
 const borderClass = computed(() => {
-  return props.side === 'left' ? 'border-r dark:border-[#333333]' : 'border-l dark:border-[#333333]'
+  return props.side === 'left' ? 'border-r border-divider' : 'border-l border-divider'
 })
 
 let isResizing = false

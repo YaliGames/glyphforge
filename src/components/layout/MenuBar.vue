@@ -2,8 +2,8 @@
   <div class="flex items-center h-full select-none">
     <div v-for="menu in menus" :key="menu.label" class="relative h-full flex items-center">
       <button 
-        class="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#37373d] rounded transition-colors"
-        :class="{ 'bg-gray-200 dark:bg-[#37373d]': activeMenu === menu.label }"
+        class="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-app-hover rounded transition-colors"
+        :class="{ 'bg-app-hover': activeMenu === menu.label }"
         @click.stop="toggleMenu(menu.label)"
         @mouseenter="onMouseEnter(menu.label)"
       >
@@ -13,15 +13,15 @@
       <!-- Dropdown -->
       <div 
         v-if="activeMenu === menu.label"
-        class="absolute top-full left-0 mt-0 w-56 bg-white dark:bg-[#252526] border border-gray-200 dark:border-[#333333] shadow-xl rounded-md py-1 z-50"
+        class="absolute top-full left-0 mt-0 w-56 bg-app-elevated border border-divider shadow-xl rounded-md py-1 z-50"
       >
         <template v-for="(item, idx) in menu.items" :key="idx">
-          <div v-if="item.type === 'separator'" class="my-1 border-t border-gray-100 dark:border-[#333333]"></div>
+          <div v-if="item.type === 'separator'" class="my-1 border-t border-divider"></div>
           
           <!-- Submenu Item -->
           <div v-else-if="item.children" class="relative group/sub">
             <button 
-              class="w-full text-left px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-[#37373d] hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between group/item"
+              class="w-full text-left px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-app-active hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between group/item"
               :disabled="item.disabled"
               :class="{ 'opacity-50 cursor-not-allowed': item.disabled }"
               @click.stop="handleSubmenuClick(item)"
@@ -33,17 +33,17 @@
                 <span>{{ item.label }}</span>
               </div>
               <div class="flex items-center gap-3">
-                <span v-if="item.shortcut" class="text-[10px] text-gray-400 group-hover/item:text-blue-400">{{ item.shortcut }}</span>
+                <span v-if="item.shortcut" class="text-ui-badge group-hover/item:text-blue-400">{{ item.shortcut }}</span>
                 <i class="fa-solid fa-chevron-right text-[10px] text-gray-400"></i>
               </div>
             </button>
             
             <!-- Submenu Dropdown -->
-            <div class="absolute left-full top-0 ml-0 w-48 bg-white dark:bg-[#252526] border border-gray-200 dark:border-[#333333] shadow-xl rounded-md py-1 hidden group-hover/sub:block">
+            <div class="absolute left-full top-0 ml-0 w-48 bg-app-elevated border border-divider shadow-xl rounded-md py-1 hidden group-hover/sub:block">
               <button 
                 v-for="(subItem, subIdx) in item.children" 
                 :key="subIdx"
-                class="w-full text-left px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-[#37373d] hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between group/subitem"
+                class="w-full text-left px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-app-active hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between group/subitem"
                 @click="handleItemClick(subItem)"
                 :disabled="subItem.disabled"
               >
@@ -54,7 +54,7 @@
                   <span>{{ subItem.label }}</span>
                 </div>
                 <div class="flex items-center gap-3">
-                  <span v-if="subItem.shortcut" class="text-[10px] text-gray-400 group-hover/subitem:text-blue-400">{{ subItem.shortcut }}</span>
+                  <span v-if="subItem.shortcut" class="text-ui-badge group-hover/subitem:text-blue-400">{{ subItem.shortcut }}</span>
                   <div class="w-3"></div>
                 </div>
               </button>
@@ -64,7 +64,7 @@
           <!-- Regular Item -->
           <button 
             v-else
-            class="w-full text-left px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-[#37373d] hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between group/item"
+            class="w-full text-left px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-app-active hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between group/item"
             @click="handleItemClick(item)"
             :disabled="item.disabled"
             :class="{ 'opacity-50 cursor-not-allowed': item.disabled }"
@@ -76,7 +76,7 @@
               <span>{{ item.label }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <span v-if="item.shortcut" class="text-[10px] text-gray-400 group-hover/item:text-blue-400">{{ item.shortcut }}</span>
+              <span v-if="item.shortcut" class="text-ui-badge group-hover/item:text-blue-400">{{ item.shortcut }}</span>
               <div class="w-3"></div>
             </div>
           </button>

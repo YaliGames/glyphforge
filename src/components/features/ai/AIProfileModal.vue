@@ -116,14 +116,14 @@
 
           <!-- 表单字段 -->
           <div class="space-y-6">
-            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b dark:border-[#333] pb-2">基础配置</div>
+            <div class="text-ui-header border-b border-divider pb-2">基础配置</div>
             <div class="grid grid-cols-2 gap-8">
               <Input 
                 v-model="currentEditingProfile.name"
                 label="配置展示名称"
               />
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">接口兼容类型</label>
+                <label class="text-ui-label flex items-center gap-1.5">接口兼容类型</label>
                 <select 
                   v-model="currentEditingProfile.provider"
                   class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-4 py-2 text-xs outline-none focus:border-blue-500 transition-all shadow-sm"
@@ -195,7 +195,7 @@
 
           <!-- 高级选项 -->
           <div v-if="currentEditingProfile.provider === 'custom'" class="space-y-6">
-            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b dark:border-[#333] pb-2">自定义数据引擎 (高级)</div>
+            <div class="text-ui-header border-b border-divider pb-2">自定义数据引擎 (高级)</div>
             <Input
               type="textarea"
               v-model="currentEditingProfile.template"
