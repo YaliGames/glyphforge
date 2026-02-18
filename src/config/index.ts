@@ -1,10 +1,11 @@
 export const APP_CONFIG = {
   name: 'GlyphForge',
-  version: '0.2.0',
+  version: '0.2.1',
   tag: null,
   projectExtension: '.gfp',
   author: 'GlyphForge Project',
   copyright: '2025-2026 GlyphForge Project. 保留所有权利。',
+  repo: 'YaliGames/glyphforge',
   links: {
     github: 'https://github.com/YaliGames/glyphforge',
     docs: 'https://github.com/YaliGames/glyphforge/wiki',
