@@ -123,11 +123,20 @@
                   @update:model-value="(val) => updateField('factions', val)" @focusin="startEdit()"
                   @focusout="endEdit()" />
               </div>
+
               <div class="space-y-2">
                 <CharacterFieldLabel label="角色身份" :is-overridden="isOverridden('identities')"
                   @restore="restoreField('identities')" />
                 <ChipInput :model-value="activeCharacter.identities" placeholder="角色的具体职位、称号或社会标签"
                   @update:model-value="(val) => updateField('identities', val)" @focusin="startEdit()"
+                  @focusout="endEdit()" />
+              </div>
+
+              <div class="space-y-2">
+                <CharacterFieldLabel label="角色标签" :is-overridden="isOverridden('tags')"
+                  @restore="restoreField('tags')" />
+                <ChipInput :model-value="activeCharacter.tags" placeholder="角色的其他属性"
+                  @update:model-value="(val) => updateField('tags', val)" @focusin="startEdit()"
                   @focusout="endEdit()" />
               </div>
             </div>
