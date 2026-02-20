@@ -37,6 +37,7 @@ export const deleteEntitiesTool: DecoupledTool = {
       else if (e.type === 'outline') outlineStore.removeAct(e.id);
       else if (e.type === 'relationship') characterStore.removeRelationship(e.id);
       else if (e.type === 'timeline') worldviewStore.removeTimelineEvent(e.id);
+      else if (e.type === 'worldview') worldviewStore.removeCategory(e.id);
     });
 
     return {
