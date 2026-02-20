@@ -39,6 +39,13 @@ export const deleteEntitiesTool: DecoupledTool = {
       else if (e.type === 'timeline') worldviewStore.removeTimelineEvent(e.id);
     });
 
-    return `成功删除了 ${entities.length} 个实体`;
+    return {
+      status: 'success',
+      data: {
+        count: entities.length,
+        deleted: entities
+      },
+      message: `成功删除了 ${entities.length} 个指定的物理实体及相关数据。`
+    };
   }
 };

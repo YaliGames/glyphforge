@@ -119,14 +119,16 @@ export const searchEntitiesTool: DecoupledTool = {
     const total = results.length;
     const pagedResults = results.slice(offset, offset + limit);
     
-    // 如果结果很多，在末尾添加一条提示
-    if (total > offset + limit) {
-      pagedResults.push({
-        type: 'system_info',
-        message: `更多提示：匹配到共 ${total} 条结果，当前仅展示第 ${offset + 1} 到 ${offset + limit} 条。如需更多请修改 offset 参数再次搜索。`
-      });
-    }
-    
-    return pagedResults;
+    return {
+      status: 'success',
+      data: {
+        type,
+        query,
+        count: total,
+        results: pagedResults,
+        hasMore: total > offset + limit
+      },
+      message: `检索到 ${total} 个匹配项。已返回当前分页数据。`
+    };
   }
 };

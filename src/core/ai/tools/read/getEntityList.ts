@@ -58,16 +58,17 @@ export const getEntityListTool: DecoupledTool = {
       return result;
     };
 
+    let list: any[] = [];
     if (type === 'character') {
-      return (bundle.characters || []).map((c: any) => pickFields(c));
+      list = (bundle.characters || []).map((c: any) => pickFields(c));
     } else if (type === 'relationship') {
-      return (bundle.relationships || []).map((r: any) => pickFields(r));
+      list = (bundle.relationships || []).map((r: any) => pickFields(r));
     } else if (type === 'outline') {
-      return (bundle.outline?.structure.acts || []).map((a: any) => pickFields(a));
+      list = (bundle.outline?.structure.acts || []).map((a: any) => pickFields(a));
     } else if (type === 'worldview') {
-      return (bundle.worldview?.categories || []).map((c: any) => pickFields(c));
+      list = (bundle.worldview?.categories || []).map((c: any) => pickFields(c));
     } else if (type === 'timeline') {
-      return (bundle.worldview?.timeline || []).map((e: any) => pickFields(e));
+      list = (bundle.worldview?.timeline || []).map((e: any) => pickFields(e));
     } else if (type === 'chapters' || type === 'manuscript') {
       const chapters: any[] = [];
       const flatten = (items: any[]) => {
@@ -79,9 +80,16 @@ export const getEntityListTool: DecoupledTool = {
         });
       };
       flatten(bundle.chapters || []);
-      return chapters;
+      list = chapters;
     }
 
-    return [];
+    return {
+      status: 'success',
+      data: {
+        type,
+        entities: list
+      },
+      message: `已获取 ${list.length} 个 ${type} 类型实体`
+    };
   }
 };

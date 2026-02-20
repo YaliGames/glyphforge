@@ -22,13 +22,29 @@ export const editTextBlockTool: DecoupledTool = {
     const fullOutline = (bundle.outline.content || []).join('\n');
     if (fullOutline.includes(search_text)) {
       bundle.outline.content = fullOutline.replace(search_text, replace_text).split('\n');
-      return '已成功更新大纲文本段落';
+      return {
+        status: 'success',
+        data: {
+          target: 'outline',
+          originalLength: search_text.length,
+          newLength: replace_text.length
+        },
+        message: '已成功更新大纲文本段落。'
+      };
     }
 
     const fullManuscript = (bundle.manuscript.content || []).join('\n');
     if (fullManuscript.includes(search_text)) {
       bundle.manuscript.content = fullManuscript.replace(search_text, replace_text).split('\n');
-      return '已成功更新正文文本段落';
+      return {
+        status: 'success',
+        data: {
+          target: 'manuscript',
+          originalLength: search_text.length,
+          newLength: replace_text.length
+        },
+        message: '已成功更新正文文本段落。'
+      };
     }
 
     throw new Error('无法定位到指定的文本锚点');

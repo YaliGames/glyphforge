@@ -127,7 +127,7 @@ export const getEntityDetailTool: DecoupledTool = {
     }
 
     // 处理数据清洗
-    return details.map((item: any) => {
+    const cleanedDetails = details.map((item: any) => {
       let source = { ...item };
       if (source.base) { Object.assign(source, source.base); delete source.base; }
       
@@ -150,5 +150,14 @@ export const getEntityDetailTool: DecoupledTool = {
       }
       return cleaned;
     });
+
+    return {
+      status: 'success',
+      data: {
+        type,
+        entities: cleanedDetails
+      },
+      message: `成功拉取 ${cleanedDetails.length} 个实体的详情数据。`
+    };
   }
 };

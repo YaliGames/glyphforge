@@ -12,10 +12,16 @@ export const getRelationGraphTool: DecoupledTool = {
     },
     required: ['id']
   },
-  async execute(_args: any, context: ToolContext) {
+  async execute(args: any, context: ToolContext) {
+    const { id } = args;
     const { characterStore } = context;
     const nodes = characterStore.charactersInPhase.map((c: any) => ({ id: c.id, label: c.name }));
     const edges = characterStore.relationshipsInPhase.map((r: any) => ({ from: r.sourceId, to: r.targetId, label: r.label }));
-    return { nodes, edges };
+    const data = { nodes, edges };
+    return {
+      status: 'success',
+      data,
+      message: `已为角色 ${id} 生成并拉取包含 ${nodes.length} 个节点和 ${edges.length} 条边的人物关系拓扑。`
+    };
   }
 };

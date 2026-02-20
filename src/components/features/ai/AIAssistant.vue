@@ -1257,14 +1257,17 @@ async function handleApplyTool(messageId: string, call: AIToolCall) {
     console.log('Tool execution successful:', result);
     aiStore.executedToolCallIds.add(call.id)
     expandedToolCallIds.delete(call.id) 
-    uiStore.showToast(result, 'success')
+
+    uiStore.showToast(result.message || '操作成功', 'success')
     projectStore.markDirty()
 
+    const toolOutput = result;
+
     // 将结果反馈给 AI 历史
-    aiStore.addHistory('tool', result, 'text', {
+    aiStore.addHistory('tool', result.message || '操作成功', 'text', {
       toolResults: [{
         toolCallId: call.id,
-        content: JSON.stringify({ status: 'success', message: result })
+        content: JSON.stringify(toolOutput)
       }]
     })
 
