@@ -60,6 +60,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useProjectStore } from '@/store/project'
 import { useSettingsStore } from '@/store/settings'
 import { useAIStore } from '@/store/ai'
+import { useUIStore } from '@/store/ui'
 import { useActions } from '@/composables/useActions'
 import { isElectron } from '@/utils/env'
 import IconButton from '@/components/common/IconButton.vue'
@@ -71,6 +72,7 @@ const router = useRouter()
 const route = useRoute()
 const projectStore = useProjectStore()
 const settingsStore = useSettingsStore()
+const uiStore = useUIStore()
 const aiStore = useAIStore()
 const { handleAction } = useActions()
 
@@ -114,7 +116,30 @@ const menus = computed(() => <Menu[]>[
     label: '文件',
     items: [
       { id: 'new-project', label: '新建', shortcut: 'Ctrl+N', icon: '<i class="fa-solid fa-file-circle-plus"></i>' },
-      { id: 'open-project', label: '打开项目...', shortcut: 'Ctrl+O', icon: '<i class="fa-solid fa-folder-open"></i>' },
+      { 
+        label: '使用模板新建',
+        children: [
+          { disabled: true, label: '暂无可用模板' },
+          { type: 'separator' },
+          { label: '更多...' }
+        ]
+      },
+      { type: 'separator' },
+      { id: 'open-project', label: '打开...', shortcut: 'Ctrl+O', icon: '<i class="fa-solid fa-folder-open"></i>' },
+      { 
+        label: '打开最近项目', 
+        icon: '<i class="fa-solid fa-clock-rotate-left"></i>',
+        disabled: uiStore.recentFiles.length === 0,
+        children: [
+          ...(uiStore.recentFiles.slice(0, 10).map(f => ({
+            id: `recent-open:${f.path}` as AppAction,
+            label: f.path,
+          }))),
+          { type: 'separator' },
+          { label: '更多...' }
+        ]
+      },
+      { type: 'separator' },
       { id: 'import-txt', label: '导入文本...', disabled: !projectStore.isLoaded, icon: '<i class="fa-solid fa-file-import"></i>' },
       { type: 'separator' },
       ...(isElectron ? [
@@ -186,6 +211,11 @@ const menus = computed(() => <Menu[]>[
 ])
 
 async function handleMenuAction(id: string) {
+  if (id.startsWith('recent-open:')) {
+    const path = id.replace('recent-open:', '')
+    handleAction('open-project', path)
+    return
+  }
   handleAction(id as AppAction)
 }
 </script>

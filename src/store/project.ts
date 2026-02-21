@@ -80,7 +80,7 @@ export const useProjectStore = defineStore('project', () => {
       
       if (success && bundle.value) {
         const fileTitle = getTitleFromPath(path);
-        uiStore.addRecentFile(fileTitle, path, 'project')
+        uiStore.addRecentFile(fileTitle, path)
       }
       return success
     } catch (e) {
@@ -103,7 +103,7 @@ export const useProjectStore = defineStore('project', () => {
       
       if (success && bundle.value && path) {
         const fileTitle = getTitleFromPath(path);
-        uiStore.addRecentFile(fileTitle, path, 'project')
+        uiStore.addRecentFile(fileTitle, path)
       }
       return success
     } catch (e) {
@@ -152,7 +152,7 @@ export const useProjectStore = defineStore('project', () => {
       const success = await loadProjectBundle(bundleData, path)
       
       if (success && bundle.value && path) {
-        uiStore.addRecentFile(bundle.value.project.title, path, 'project')
+        uiStore.addRecentFile(bundle.value.project.title, path)
       }
       return success
     } catch (e) {
@@ -192,7 +192,7 @@ export const useProjectStore = defineStore('project', () => {
         const fileTitle = getTitleFromPath(savedPath);
         
         isDirty.value = false
-        uiStore.addRecentFile(fileTitle, savedPath, 'project')
+        uiStore.addRecentFile(fileTitle, savedPath)
         uiStore.showToast('项目已另存为', 'success')
         return true
       }

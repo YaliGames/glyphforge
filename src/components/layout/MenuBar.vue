@@ -10,78 +10,11 @@
         {{ menu.label }}
       </button>
       
-      <!-- Dropdown -->
-      <div 
+      <MenuDropdown 
         v-if="activeMenu === menu.label"
-        class="absolute top-full left-0 mt-0 w-56 bg-app-elevated border border-divider shadow-xl rounded-md py-1 z-50"
-      >
-        <template v-for="(item, idx) in menu.items" :key="idx">
-          <div v-if="item.type === 'separator'" class="my-1 border-t border-divider"></div>
-          
-          <!-- Submenu Item -->
-          <div v-else-if="item.children" class="relative group/sub">
-            <button 
-              class="w-full text-left px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-app-active hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between group/item"
-              :disabled="item.disabled"
-              :class="{ 'opacity-50 cursor-not-allowed': item.disabled }"
-              @click.stop="handleSubmenuClick(item)"
-            >
-              <div class="flex items-center gap-2">
-                <span class="w-4 h-4 flex items-center justify-center text-gray-400 group-hover/item:text-blue-500 shrink-0 relative">
-                  <span v-if="item.icon" v-html="item.icon" class="flex items-center justify-center"></span>
-                </span>
-                <span>{{ item.label }}</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <span v-if="item.shortcut" class="text-ui-badge group-hover/item:text-blue-400">{{ item.shortcut }}</span>
-                <i class="fa-solid fa-chevron-right text-[10px] text-gray-400"></i>
-              </div>
-            </button>
-            
-            <!-- Submenu Dropdown -->
-            <div class="absolute left-full top-0 ml-0 w-48 bg-app-elevated border border-divider shadow-xl rounded-md py-1 hidden group-hover/sub:block">
-              <button 
-                v-for="(subItem, subIdx) in item.children" 
-                :key="subIdx"
-                class="w-full text-left px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-app-active hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between group/subitem"
-                @click="handleItemClick(subItem)"
-                :disabled="subItem.disabled"
-              >
-                <div class="flex items-center gap-2">
-                  <span class="w-4 h-4 flex items-center justify-center text-gray-400 group-hover/subitem:text-blue-500 shrink-0 relative">
-                    <span v-if="subItem.icon" v-html="subItem.icon" class="flex items-center justify-center"></span>
-                  </span>
-                  <span>{{ subItem.label }}</span>
-                </div>
-                <div class="flex items-center gap-3">
-                  <span v-if="subItem.shortcut" class="text-ui-badge group-hover/subitem:text-blue-400">{{ subItem.shortcut }}</span>
-                  <div class="w-3"></div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <!-- Regular Item -->
-          <button 
-            v-else
-            class="w-full text-left px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-app-active hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between group/item"
-            @click="handleItemClick(item)"
-            :disabled="item.disabled"
-            :class="{ 'opacity-50 cursor-not-allowed': item.disabled }"
-          >
-            <div class="flex items-center gap-2">
-              <span class="w-4 h-4 flex items-center justify-center text-gray-400 group-hover/item:text-blue-500 shrink-0 relative">
-                <span v-if="item.icon" v-html="item.icon" class="flex items-center justify-center"></span>
-              </span>
-              <span>{{ item.label }}</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <span v-if="item.shortcut" class="text-ui-badge group-hover/item:text-blue-400">{{ item.shortcut }}</span>
-              <div class="w-3"></div>
-            </div>
-          </button>
-        </template>
-      </div>
+        :items="menu.items" 
+        @action="handleItemAction"
+      />
     </div>
   </div>
 </template>
@@ -89,6 +22,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import type { AppAction } from '@/types'
+import MenuDropdown from './MenuDropdown.vue'
 
 interface MenuItem {
   id?: AppAction
@@ -131,21 +65,9 @@ const onMouseEnter = (label: string) => {
   }
 }
 
-const handleItemClick = (item: MenuItem) => {
-  const action = item.id || item.action
-  if (action) {
-    emit('action', action)
-  }
+const handleItemAction = (action: AppAction) => {
+  emit('action', action)
   activeMenu.value = null
-}
-
-const handleSubmenuClick = (item: MenuItem) => {
-  const action = item.id || item.action
-  if (action) {
-    emit('action', action)
-    activeMenu.value = null
-  }
-  // 如果没有 action，则不执行任何操作，由于使用了 @click.stop，菜单不会关闭
 }
 
 const closeMenu = () => {

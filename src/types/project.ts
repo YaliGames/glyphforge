@@ -7,6 +7,7 @@ import { Outline, Chapter, AuthorNote } from './content'
 export type AppAction = 
   | 'new-project'
   | 'open-project' 
+  | 'recent-open'
   | 'import-txt'
   | 'save' 
   | 'save-as'

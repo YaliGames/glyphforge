@@ -20,7 +20,7 @@ export const useUIStore = defineStore('ui', () => {
   const loadingMessage = ref('正在加载...')
   const loadingProgress = ref(0)
 
-  const recentFiles = ref<{ name: string, path?: string, date: number, type: 'txt' | 'project' }[]>([])
+  const recentFiles = ref<{ name: string, path?: string, date: number }[]>([])
 
   // 编辑器状态同步 (用于 AI 引用等)
   const editorSelection = ref<{ startLine: number, endLine: number, text: string } | null>(null)
@@ -81,7 +81,6 @@ export const useUIStore = defineStore('ui', () => {
 
   const exportFormat = ref<'txt' | 'md'>('txt')
   
-  // --- 持久化方法 ---
   function loadRecentFiles() {
     const saved = localStorage.getItem(STORAGE_KEYS.RECENT_FILES)
     if (saved) {
@@ -89,13 +88,13 @@ export const useUIStore = defineStore('ui', () => {
     }
   }
 
-  function addRecentFile(name: string, path?: string, type: 'txt' | 'project' = 'project') {
+  function addRecentFile(name: string, path?: string) {
     const now = Date.now()
     const existing = recentFiles.value.findIndex(f => f.name === name && f.path === path)
     if (existing !== -1) {
       recentFiles.value.splice(existing, 1)
     }
-    recentFiles.value.unshift({ name, path, date: now, type })
+    recentFiles.value.unshift({ name, path, date: now })
     recentFiles.value = recentFiles.value.slice(0, 10)
     localStorage.setItem(STORAGE_KEYS.RECENT_FILES, JSON.stringify(recentFiles.value))
   }
