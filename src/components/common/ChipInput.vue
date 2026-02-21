@@ -17,7 +17,7 @@
       ref="inputRef"
       v-model="inputValue"
       type="text"
-      :placeholder="modelValue.length === 0 ? placeholder : ''"
+      :placeholder="modelValue?.length === 0 ? placeholder : ''"
       class="flex-1 bg-transparent border-none outline-none text-xs min-w-[80px] dark:text-gray-300"
       @keydown.enter.prevent="addChip"
       @keydown.backspace="handleBackspace"
