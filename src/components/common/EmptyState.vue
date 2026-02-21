@@ -3,7 +3,7 @@
     <div
       v-if="icon"
       :class="[
-        'flex items-center justify-center opacity-40 transition-all',
+        'flex items-center justify-center opacity-70 transition-all',
         circle ? `${sizeConfig.container} rounded-full bg-app-hover border border-divider` : '',
         sizeConfig.margin
       ]"
