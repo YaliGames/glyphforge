@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ViewMode, EditMode } from '@/types'
 import { STORAGE_KEYS } from '@/config'
 
 export interface Toast {
@@ -14,8 +13,6 @@ export type ModalId = string
 
 export const useUIStore = defineStore('ui', () => {
   // --- 导航与模式 (从 AppStore 合并) ---
-  const viewMode = ref<ViewMode>('source')
-  const editMode = ref<EditMode>('edit')
   const isLoading = ref(false)
   const loadingMessage = ref('正在加载...')
   const loadingProgress = ref(0)
@@ -112,29 +109,6 @@ export const useUIStore = defineStore('ui', () => {
     localStorage.removeItem(STORAGE_KEYS.RECENT_FILES)
   }
 
-  // --- 模式切换 ---
-  function switchViewMode(mode: ViewMode) {
-    if (viewMode.value === mode) return
-    isLoading.value = true
-    setTimeout(() => {
-      viewMode.value = mode
-      setTimeout(() => {
-        isLoading.value = false
-      }, 100)
-    }, 50)
-  }
-
-  function switchEditMode(mode: EditMode) {
-    if (editMode.value === mode) return
-    isLoading.value = true
-    setTimeout(() => {
-      editMode.value = mode
-      setTimeout(() => {
-        isLoading.value = false
-      }, 100)
-    }, 50)
-  }
-  
   // Confirm 状态
   const confirmState = ref({
     show: false,
@@ -198,8 +172,6 @@ export const useUIStore = defineStore('ui', () => {
 
   return {
     // 导航
-    viewMode,
-    editMode,
     isLoading,
     loadingMessage,
     loadingProgress,
@@ -216,8 +188,6 @@ export const useUIStore = defineStore('ui', () => {
     addRecentFile,
     removeRecentFile,
     clearRecentFiles,
-    switchViewMode,
-    switchEditMode,
     // 弹窗
     activeModals,
     openModal,

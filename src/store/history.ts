@@ -4,7 +4,6 @@ import type { GlyphForgeBundle } from '@/types'
 
 export interface HistoryState {
   bundle: GlyphForgeBundle
-  view: string
 }
 
 /**
@@ -22,8 +21,8 @@ export const useHistoryStore = defineStore('history', () => {
   /**
    * 记录一个检查点
    */
-  function pushState(bundle: GlyphForgeBundle, view: string) {
-    const newState = JSON.stringify({ bundle, view })
+  function pushState(bundle: GlyphForgeBundle) {
+    const newState = JSON.stringify({ bundle })
     
     if (past.value.length > 0 && past.value[past.value.length - 1] === newState) {
       return false
@@ -48,10 +47,10 @@ export const useHistoryStore = defineStore('history', () => {
     return true
   }
 
-  function undo(currentBundle: GlyphForgeBundle, currentView: string): HistoryState | null {
+  function undo(currentBundle: GlyphForgeBundle): HistoryState | null {
     if (!canUndo.value) return null
 
-    const currentJSON = JSON.stringify({ bundle: currentBundle, view: currentView })
+    const currentJSON = JSON.stringify({ bundle: currentBundle })
     
     // 如果重做条目与当前状态相同，则不再推入，避免重做空转
     if (future.value.length === 0 || future.value[future.value.length - 1] !== currentJSON) {
@@ -63,16 +62,16 @@ export const useHistoryStore = defineStore('history', () => {
     
     // 如果回退后的状态竟然和现在的状态一模一样，则继续往回走一步（处理失焦导致的冗余快照）
     if (JSON.stringify(state.bundle) === JSON.stringify(currentBundle) && canUndo.value) {
-      return undo(currentBundle, currentView)
+      return undo(currentBundle)
     }
 
     return state
   }
 
-  function redo(currentBundle: GlyphForgeBundle, currentView: string): HistoryState | null {
+  function redo(currentBundle: GlyphForgeBundle): HistoryState | null {
     if (!canRedo.value) return null
 
-    const currentJSON = JSON.stringify({ bundle: currentBundle, view: currentView })
+    const currentJSON = JSON.stringify({ bundle: currentBundle })
     
     // 同样，重做前先把当前状态存入撤销栈
     if (past.value.length === 0 || past.value[past.value.length - 1] !== currentJSON) {
@@ -84,7 +83,7 @@ export const useHistoryStore = defineStore('history', () => {
     
     // 如果重做后的状态和现在一模一样，递归寻找真正的下一个状态
     if (JSON.stringify(state.bundle) === JSON.stringify(currentBundle) && canRedo.value) {
-      return redo(currentBundle, currentView)
+      return redo(currentBundle)
     }
 
     return state

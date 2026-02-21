@@ -38,11 +38,6 @@ export type AppAction =
   | 'build-info'
   | 'exit';
 
-/**
- * 视图与编辑模式
- */
-export type ViewMode = 'source' | 'preview' | 'diff' | 'split'
-export type EditMode = 'edit' | 'read'
 
 /**
  * GlyphForge V1 核心数据模型 (项目级)

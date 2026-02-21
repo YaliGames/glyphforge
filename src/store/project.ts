@@ -212,7 +212,7 @@ export const useProjectStore = defineStore('project', () => {
     if (!bundle.value || isRestoring.value || isSessionActive.value) return
     
     // 只有在数据真正发生变化时才记录
-    const success = historyStore.pushState(bundle.value, uiStore.viewMode)
+    const success = historyStore.pushState(bundle.value)
     if (success) {
       console.log('[History] 记录检查点成功')
     }
@@ -222,7 +222,7 @@ export const useProjectStore = defineStore('project', () => {
     if (isRestoring.value || isSessionActive.value || !bundle.value) return
     
     console.log('[History] 开启编辑会话，挂起初始快照')
-    pendingSessionSnapshot = JSON.stringify({ bundle: bundle.value, view: uiStore.viewMode })
+    pendingSessionSnapshot = JSON.stringify({ bundle: bundle.value })
     isSessionActive.value = true
   }
 
@@ -233,7 +233,7 @@ export const useProjectStore = defineStore('project', () => {
     isSessionActive.value = false
     
     if (pendingSessionSnapshot && !isRestoring.value) {
-      const currentState = JSON.stringify({ bundle: bundle.value, view: uiStore.viewMode })
+      const currentState = JSON.stringify({ bundle: bundle.value })
       
       // 只有实质性内容改变了，才推入撤销栈（此时会清理重做栈）
       if (currentState !== pendingSessionSnapshot) {
@@ -283,11 +283,10 @@ export const useProjectStore = defineStore('project', () => {
       endEditSession()
     }
 
-    const prevState = historyStore.undo(bundle.value, uiStore.viewMode)
+    const prevState = historyStore.undo(bundle.value)
     
     if (prevState) {
       bundle.value = prevState.bundle
-      uiStore.switchViewMode(prevState.view as any)
       isDirty.value = true
     }
     
@@ -308,11 +307,10 @@ export const useProjectStore = defineStore('project', () => {
       endEditSession()
     }
 
-    const nextState = historyStore.redo(bundle.value, uiStore.viewMode)
+    const nextState = historyStore.redo(bundle.value)
     
     if (nextState) {
       bundle.value = nextState.bundle
-      uiStore.switchViewMode(nextState.view as any)
       isDirty.value = true
     }
     
