@@ -15,7 +15,6 @@ export const useProjectStore = defineStore('project', () => {
   let pendingSessionSnapshot: string | null = null 
 
   const isSessionActive = ref(false) // 是否处于连续编辑会话中
-  const historyDebounceTimer = ref<any>(null)
 
   const uiStore = useUIStore()
   const historyStore = useHistoryStore()
@@ -33,8 +32,6 @@ export const useProjectStore = defineStore('project', () => {
     bundle.value = BundleManager.createNewProject(title)
     isDirty.value = false
     historyStore.clear()
-    // 建立初始历史检查点
-    takeSnapshot()
   }
 
   async function parseProjectBuffer(data: Uint8Array): Promise<GlyphForgeBundle> {
@@ -132,7 +129,6 @@ export const useProjectStore = defineStore('project', () => {
       isDirty.value = false
       historyStore.clear()
       await nextTick()
-      takeSnapshot()
       
       setTimeout(() => {
         isRestoring.value = false
@@ -208,99 +204,87 @@ export const useProjectStore = defineStore('project', () => {
     isDirty.value = true
   }
 
+  /**
+   * 记录一个全局快照点。用于非编辑器操作（如重命名章节、调整大纲结构）
+   */
   function takeSnapshot() {
     if (!bundle.value || isRestoring.value || isSessionActive.value) return
-    
-    // 只有在数据真正发生变化时才记录
-    const success = historyStore.pushState(bundle.value)
-    if (success) {
-      console.log('[History] 记录检查点成功')
-    }
+    historyStore.pushState(bundle.value)
   }
 
+  /**
+   * 开启连续编辑会话。
+   * 开始时记录当前 bundle 状态，以便在结束时对比差异。
+   */
   function startEditSession() {
     if (isRestoring.value || isSessionActive.value || !bundle.value) return
     
-    console.log('[History] 开启编辑会话，挂起初始快照')
     pendingSessionSnapshot = JSON.stringify({ bundle: bundle.value })
     isSessionActive.value = true
   }
 
+  /**
+   * 结束编辑会话。
+   * 对比当前 bundle 与会话开始时的差异。如有变更，则将“开始前”的状态推入撤销栈。
+   */
   function endEditSession() {
     if (!isSessionActive.value) return
     
-    console.log(`[History] 结束编辑会话`)
     isSessionActive.value = false
     
     if (pendingSessionSnapshot && !isRestoring.value) {
       const currentState = JSON.stringify({ bundle: bundle.value })
       
-      // 只有实质性内容改变了，才推入撤销栈（此时会清理重做栈）
+      // 仅当实质性内容发生改变，且与最近一次快照不同时，才记入撤销栈
       if (currentState !== pendingSessionSnapshot) {
         historyStore.pushRawState(pendingSessionSnapshot)
       }
     }
     
     pendingSessionSnapshot = null
-    
-    if (historyDebounceTimer.value) {
-      clearTimeout(historyDebounceTimer.value)
-      historyDebounceTimer.value = null
-    }
-  }
-
-  /**
-   * 专门用于文字编辑的节流
-   * @param delay 结束会话的延迟毫秒数，默认为 1000ms
-   */
-  function triggerTextChange(delay = 1000) {
-    if (isRestoring.value) return
-    
-    // 如果还没开启会话，开启它（正常情况下 MonacoEditor 会处理，此处作为二层保险）
-    if (!isSessionActive.value) {
-      startEditSession()
-    }
-
-    // 自动重置结束计时器
-    if (historyDebounceTimer.value) clearTimeout(historyDebounceTimer.value)
-    historyDebounceTimer.value = setTimeout(() => {
-      endEditSession()
-    }, delay) 
   }
 
   const canUndo = computed(() => historyStore.canUndo)
   const canRedo = computed(() => historyStore.canRedo)
 
+  /**
+   * 全局同步信号。编辑器监听此信号，在撤销/重做前强制同步文字。
+   */
+  const syncSignalCounter = ref(0)
+  function requestGlobalSync() {
+    syncSignalCounter.value++
+  }
+
   function undo() {
     if (!bundle.value || isRestoring.value) return
     
-    console.log('[History] 请求撤销')
+    // 发送同步信号，确保当前编辑器（如果有）中的最新文字已同步回 Store
+    requestGlobalSync()
     
-    // 关键修复：先设恢复锁，防止后续 endEditSession 或 reactive 变更触发快照
+    // 设置恢复锁，防止后续连锁反应触发异常快照
     isRestoring.value = true
     
+    // 如果处于会话中，先结束它。由于上面已触发同步，此处 endEditSession 会带上最新文字
     if (isSessionActive.value) {
       endEditSession()
     }
 
     const prevState = historyStore.undo(bundle.value)
-    
     if (prevState) {
       bundle.value = prevState.bundle
       isDirty.value = true
     }
     
-    // 延迟更久一些释放锁，给浏览器反应事件和 Vue 渲染留足缓冲
+    // 延迟更久一些释放锁，确保 Vue 渲染周期完成
     setTimeout(() => { 
       isRestoring.value = false 
-      console.log('[History] 恢复锁已释放')
     }, 200)
   }
 
   function redo() {
     if (!bundle.value || isRestoring.value) return
     
-    console.log('[History] 请求重做')
+    requestGlobalSync()
     isRestoring.value = true
     
     if (isSessionActive.value) {
@@ -308,7 +292,6 @@ export const useProjectStore = defineStore('project', () => {
     }
 
     const nextState = historyStore.redo(bundle.value)
-    
     if (nextState) {
       bundle.value = nextState.bundle
       isDirty.value = true
@@ -316,7 +299,6 @@ export const useProjectStore = defineStore('project', () => {
     
     setTimeout(() => { 
       isRestoring.value = false 
-      console.log('[History] 恢复锁已释放')
     }, 200)
   }
 
@@ -333,6 +315,7 @@ export const useProjectStore = defineStore('project', () => {
     isSessionActive,
     canUndo,
     canRedo,
+    syncSignalCounter,
     createProject,
     openProject,
     openProjectFromBuffer,
@@ -343,7 +326,6 @@ export const useProjectStore = defineStore('project', () => {
     takeSnapshot,
     startEditSession,
     endEditSession,
-    triggerTextChange,
     undo,
     redo,
     finishRestoring

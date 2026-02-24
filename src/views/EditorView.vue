@@ -50,11 +50,11 @@
         <MonacoEditor
           ref="monacoRef"
           :model-value="chapterStore.manuscriptContent"
+          :on-force-sync="(v) => (chapterStore.manuscriptContent = v)"
           @update:model-value="debouncedContentUpdate"
           @mounted="onEditorMounted"
           @cursor-change="handleCursorChange"
           @selection-change="handleSelectionChange"
-          @blur="projectStore.endEditSession()"
         />
       </div>
     </main>
@@ -102,14 +102,14 @@
                   size="xs"
                   class="border border-divider"
                   :disabled="activeChapter.depth <= 0"
-                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: Math.max(0, activeChapter.depth - 1) })"
+                  @click="chapterStore.updateChapter(activeChapter.id, { depth: Math.max(0, activeChapter.depth - 1) })"
                 />
                 <span class="text-xs font-mono">{{ activeChapter.depth }}</span>
                 <IconButton
                   icon="fa-solid fa-plus"
                   size="xs"
                   class="border border-divider"
-                  @click="projectStore.takeSnapshot(); chapterStore.updateChapter(activeChapter.id, { depth: activeChapter.depth + 1 })"
+                  @click="chapterStore.updateChapter(activeChapter.id, { depth: activeChapter.depth + 1 })"
                 />
               </div>
             </div>
@@ -200,16 +200,22 @@ const activeChapterAct = computed(() => {
 let updateTimer: any = null
 function debouncedContentUpdate(val: string) {
   if (updateTimer) clearTimeout(updateTimer)
+  
+  // 如果会话即将由外部强制结束（如 Undo），我们可能需要加速同步
+  // 但此处最稳妥的做法是保持异步，由 MonacoEditor 层面的 nextTick/微任务确保执行顺序
   updateTimer = setTimeout(() => {
     chapterStore.manuscriptContent = val
-  }, 500)
+    updateTimer = null
+  }, 300)
 }
 
-// 当发生撤销/重做时，立即取消正在排队的文本更新
+// 当发生撤销/重做时，立即强制同步一次当前内容（确保当前修改能进 Past），然后取消正在排队的文本更新
 watch(() => projectStore.isRestoring, (val) => {
-  if (val && updateTimer) {
-    clearTimeout(updateTimer)
-    updateTimer = null
+  if (val) {
+    if (updateTimer) {
+      clearTimeout(updateTimer)
+      updateTimer = null
+    }
   }
 })
 
@@ -509,12 +515,15 @@ watch(() => projectStore.bundle?.project.id, () => {
 })
 
 /**
- * 核心修复：监听正文内容变化。
- * 当项目初次加载或切换时，Monaco 会异步填充内容。
- * 此时需要重新计算装饰器位置，避免它们因为模型初始为空而被挤压到第一行。
+ * 针对正文内容变化的监听。
+ * 仅在“外部更新”（如项目切换、撤销重做、外部脚本修改）时触发全量刷新。
+ * 正常的输入（isSessionActive 为 true 时）由 syncStoreFromDecorations 负责增量同步位置。
  */
-watch(() => chapterStore.manuscriptContent, () => {
-  // 延迟一帧，确保 Monaco 已经完成了 setValue 和布局计算
+watch(() => chapterStore.manuscriptContent, (newVal, oldVal) => {
+  if (newVal === oldVal) return
+  
+  if (projectStore.isSessionActive && !projectStore.isRestoring) return
+
   requestAnimationFrame(() => refreshDecorations())
 }, { immediate: true })
 

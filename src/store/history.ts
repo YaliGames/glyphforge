@@ -23,16 +23,7 @@ export const useHistoryStore = defineStore('history', () => {
    */
   function pushState(bundle: GlyphForgeBundle) {
     const newState = JSON.stringify({ bundle })
-    
-    if (past.value.length > 0 && past.value[past.value.length - 1] === newState) {
-      return false
-    }
-
-    if (past.value.length >= MAX_HISTORY) past.value.shift()
-    
-    past.value.push(newState)
-    future.value = []
-    return true
+    return pushRawState(newState)
   }
 
   function pushRawState(rawState: string) {
@@ -60,8 +51,8 @@ export const useHistoryStore = defineStore('history', () => {
     const previous = past.value.pop()!
     const state = JSON.parse(previous)
     
-    // 如果回退后的状态竟然和现在的状态一模一样，则继续往回走一步（处理失焦导致的冗余快照）
-    if (JSON.stringify(state.bundle) === JSON.stringify(currentBundle) && canUndo.value) {
+    // 递归处理：如果回退后的内容与当前无异，继续回退
+    if (JSON.stringify(state.bundle) === currentJSON && canUndo.value) {
       return undo(currentBundle)
     }
 
@@ -73,7 +64,7 @@ export const useHistoryStore = defineStore('history', () => {
 
     const currentJSON = JSON.stringify({ bundle: currentBundle })
     
-    // 同样，重做前先把当前状态存入撤销栈
+    // 重做前将当前状态存入撤销栈
     if (past.value.length === 0 || past.value[past.value.length - 1] !== currentJSON) {
       past.value.push(currentJSON)
     }
@@ -81,8 +72,8 @@ export const useHistoryStore = defineStore('history', () => {
     const next = future.value.pop()!
     const state = JSON.parse(next)
     
-    // 如果重做后的状态和现在一模一样，递归寻找真正的下一个状态
-    if (JSON.stringify(state.bundle) === JSON.stringify(currentBundle) && canRedo.value) {
+    // 递归处理：如果重做后的内容与当前无异，继续重做
+    if (JSON.stringify(state.bundle) === currentJSON && canRedo.value) {
       return redo(currentBundle)
     }
 
@@ -94,6 +85,10 @@ export const useHistoryStore = defineStore('history', () => {
     future.value = []
   }
 
+  function clearRedo() {
+    future.value = []
+  }
+
   return {
     canUndo,
     canRedo,
@@ -101,6 +96,7 @@ export const useHistoryStore = defineStore('history', () => {
     pushRawState,
     undo,
     redo,
-    clear
+    clear,
+    clearRedo
   }
 })

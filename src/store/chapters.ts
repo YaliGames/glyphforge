@@ -90,6 +90,9 @@ export const useChapterStore = defineStore('chapters', () => {
     get: () => projectStore.bundle?.manuscript.content.join('\n') || '',
     set: (val: string) => {
       if (projectStore.bundle) {
+        const current = projectStore.bundle.manuscript.content.join('\n')
+        if (current === val) return
+        
         projectStore.bundle.manuscript.content = val.split(/\r?\n/)
         projectStore.bundle.manuscript.lastUpdated = new Date().toISOString()
         projectStore.markDirty()
@@ -141,6 +144,12 @@ export const useChapterStore = defineStore('chapters', () => {
   function updateChapter(id: string, updates: Partial<Chapter>) {
     const chapter = projectStore.bundle?.chapters.find(c => c.id === id)
     if (chapter) {
+      // 只有在值发生变化时才更新，防止冗余的快照触发
+      const hasChanged = Object.entries(updates).some(([key, val]) => (chapter as any)[key] !== val)
+      if (!hasChanged) return
+
+      projectStore.takeSnapshot() // 在实质修改前捕获快照
+
       const needsReorder = updates.anchorLineNumber !== undefined && updates.anchorLineNumber !== chapter.anchorLineNumber
       Object.assign(chapter, updates)
       if (needsReorder) {
