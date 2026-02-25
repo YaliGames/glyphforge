@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group relative flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-[#444] hover:bg-gray-50 dark:hover:bg-[#252525] transition-all">
+    class="group relative flex items-center gap-2 p-2 rounded-main border border-divider hover:bg-app-hover transition-all">
     <div
       v-if="currentPhaseId && rel.overrides?.[currentPhaseId]?.isActive === true && rel._original?.isActive === false"
       class="absolute -top-1.5 -left-1.5 z-10 w-4 h-4 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-200 dark:border-green-800 shadow-sm"
@@ -16,13 +16,13 @@
     <div class="w-24 shrink-0">
       <template v-if="rel.sourceId === activeCharacter.id">
         <div
-          class="w-full bg-gray-100 dark:bg-[#333] border dark:border-[#444] text-gray-500 rounded px-2 py-1.5 text-xs truncate">
+          class="w-full bg-app-hover border border-divider text-gray-500 rounded-sm px-2 py-1.5 text-xs truncate">
           {{ activeCharacter.name }}
         </div>
       </template>
       <template v-else>
         <select :value="rel.sourceId"
-          class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333] rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 truncate"
+          class="w-full bg-app-main border border-divider rounded-sm px-2 py-1.5 text-xs outline-none focus:border-blue-500 truncate"
           @change="(e) => $emit('update', { sourceId: (e.target as HTMLSelectElement).value })">
           <option value="" disabled>选择角色</option>
           <option v-for="c in otherCharacters" :key="c.id" :value="c.id">{{ c.name }}</option>
@@ -44,13 +44,13 @@
     <div class="w-24 shrink-0">
       <template v-if="rel.targetId === activeCharacter.id">
         <div
-          class="w-full bg-gray-100 dark:bg-[#333] border dark:border-[#444] text-gray-500 rounded px-2 py-1.5 text-xs truncate">
+          class="w-full bg-app-hover border border-divider text-gray-500 rounded-sm px-2 py-1.5 text-xs truncate">
           {{ activeCharacter.name }}
         </div>
       </template>
       <template v-else>
         <select :value="rel.targetId"
-          class="w-full bg-white dark:bg-[#1e1e1e] border dark:border-[#333] rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 truncate"
+          class="w-full bg-app-main border border-divider rounded-sm px-2 py-1.5 text-xs outline-none focus:border-blue-500 truncate"
           @change="(e) => $emit('update', { targetId: (e.target as HTMLSelectElement).value })">
           <option value="" disabled>选择角色</option>
           <option v-for="c in otherCharacters" :key="c.id" :value="c.id">{{ c.name }}</option>
@@ -72,7 +72,7 @@
       />
     </div>
 
-    <div class="flex-1 flex items-center pl-2 border-l dark:border-[#333] ml-2 border-dashed min-w-[100px]">
+    <div class="flex-1 flex items-center pl-2 border-l border-divider ml-2 border-dashed min-w-[100px]">
       <Input
         size="sm"
         variant="ghost"

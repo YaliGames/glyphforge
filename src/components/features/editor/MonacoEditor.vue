@@ -13,10 +13,12 @@ const props = defineProps<{
   language?: string
   theme?: string
   options?: monaco.editor.IStandaloneEditorConstructionOptions
+  onForceSync?: (value: string) => void
 }>()
 
 const emit = defineEmits(['update:modelValue', 'change', 'cursor-change', 'selection-change', 'focus', 'blur', 'mounted'])
 
+const projectStore = useProjectStore()
 const settingsStore = useSettingsStore()
 const editorContainer = ref<HTMLElement | null>(null)
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
@@ -58,7 +60,6 @@ onMounted(() => {
   })
 
   bindEditorEvents()
-  bindKeyBindings()
   
   emit('mounted', editor)
   window.addEventListener('monaco-find', handleFind)
@@ -74,38 +75,36 @@ onUnmounted(() => {
 function bindEditorEvents() {
   if (!editor) return
 
-  editor.onDidFocusEditorWidget(() => emit('focus'))
-  editor.onDidBlurEditorWidget(() => emit('blur'))
+  editor.onDidFocusEditorWidget(() => {
+    emit('focus')
+    projectStore.startEditSession()
+  })
 
-  // 内容变更处理：核心历史记录逻辑
-  editor.onDidChangeModelContent((e) => {
-    const projectStore = useProjectStore()
-    if (projectStore.isRestoring) return
-
-    // 变更前开启会话，确保状态被捕获
-    if (!projectStore.isSessionActive) {
-      projectStore.startEditSession()
+  editor.onDidBlurEditorWidget(() => {
+    if (props.onForceSync) {
+      props.onForceSync(editor?.getValue() || '')
     }
+    
+    emit('blur')
+    projectStore.endEditSession()
+  })
+
+  editor.onDidChangeModelContent((e) => {
+    if (projectStore.isRestoring) return
 
     const value = editor?.getValue() || ''
     emit('update:modelValue', value)
     emit('change', value)
 
-    // 动态调整提交延迟：换行或长文本粘贴视为意群结束，加速提交
     const hasIntentBreak = e.changes.some(c => c.text.includes('\n') || c.text.length > 10)
-    const delay = hasIntentBreak ? 200 : 1000
-
-    projectStore.triggerTextChange(delay)
+    
+    if (hasIntentBreak && props.onForceSync) {
+      props.onForceSync(value)
+    }
   })
 
-  // 光标移动处理
   editor.onDidChangeCursorPosition((e) => {
     emit('cursor-change', e.position)
-    
-    // 显式移动光标（非打字引起）视为当前编辑意图中断，立即提交会话
-    if (e.reason === monaco.editor.CursorChangeReason.Explicit) {
-      useProjectStore().endEditSession()
-    }
   })
 
   editor.onDidChangeCursorSelection((e) => {
@@ -113,15 +112,14 @@ function bindEditorEvents() {
   })
 }
 
-function bindKeyBindings() {
-  if (!editor) return
-  const projectStore = useProjectStore()
-  
-  // 接管系统撤销/重做
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ, () => projectStore.undo())
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY, () => projectStore.redo())
-  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, () => projectStore.redo())
-}
+// 响应全局同步信号 (例如用户点击顶部撤销按钮前)
+watch(() => projectStore.syncSignalCounter, () => {
+  if (editor && projectStore.isSessionActive) {
+    if (props.onForceSync) {
+      props.onForceSync(editor.getValue())
+    }
+  }
+})
 
 watch(() => settingsStore.isDarkMode, (isDark) => {
   monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs')
@@ -136,8 +134,13 @@ watch(() => [settingsStore.getSettings()['editor.fontSize'], settingsStore.getSe
 
 watch(() => props.modelValue, (newValue) => {
   if (editor && newValue !== editor.getValue()) {
+    // 关键修正：如果正在编辑会话中且非恢复模式，则不通过 props 同步回编辑器
+    // 这能解决“打字时因 debounce 导致的文本重渲染/光标跳动”问题
+    if (projectStore.isSessionActive && !projectStore.isRestoring) return
+    
+    const position = editor.getPosition()
     editor.setValue(newValue)
-    // 此时处于 ProjectStore 恢复期，无需手动干预历史状态
+    if (position) editor.setPosition(position)
   }
 })
 

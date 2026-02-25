@@ -1,9 +1,9 @@
 <template>
-  <div class="h-full flex bg-[#f3f3f3] dark:bg-[#1a1a1a] overflow-hidden">
+  <div class="h-full flex bg-app-side overflow-hidden">
     <!-- 左侧导航 (VS Code Style) -->
-    <aside class="w-64 border-r dark:border-[#333] flex flex-col pt-6 pb-12 shrink-0 bg-[#f3f3f3] dark:bg-[#252526]">
+    <aside class="w-64 border-r border-divider flex flex-col pt-6 pb-12 shrink-0 bg-app-side">
       <div class="px-6 mb-4">
-        <h2 class="text-sm font-bold dark:text-gray-200 uppercase tracking-widest opacity-60">设置</h2>
+        <h2 class="text-ui-header">设置</h2>
       </div>
 
       <!-- 搜索栏 -->
@@ -15,7 +15,7 @@
         />
       </div>
 
-      <nav class="flex-1 space-y-1 px-3 overflow-y-auto custom-scrollbar">
+      <nav class="flex-1 space-y-1 px-3 overflow-y-auto">
         <button 
           v-for="section in filteredSchema" 
           :key="section.id"
@@ -208,7 +208,7 @@ function shouldShow(item: SettingItem) {
 </script>
 
 <style scoped>
-/* 隐藏默认滚动条，使用 custom-scrollbar */
+/* 隐藏默认滚动条，使用 */
 main {
   scrollbar-gutter: stable;
 }

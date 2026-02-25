@@ -1,6 +1,6 @@
 <template>
   <header
-    class="h-10 border-b dark:border-[#333333] bg-white dark:bg-[#252526] flex items-center justify-between shrink-0 z-[5000] relative drag-region">
+    class="h-10 border-b border-divider bg-app-side flex items-center justify-between shrink-0 z-[5000] relative drag-region">
     <div class="flex-1 h-full min-w-0 flex items-center pointer-events-none">
       <div class="flex items-center h-full shrink-0 pointer-events-auto no-drag">
         <div class="flex items-center gap-2 mx-4 cursor-pointer" @click="router.push('/')">
@@ -14,14 +14,14 @@
 
     <!-- 绝对居中的文件名 -->
     <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none max-w-[30%] truncate">
-      <span v-if="projectStore.isLoaded" class="text-[11px] text-gray-400 dark:text-gray-500 font-medium select-none">
+      <span v-if="projectStore.isLoaded" class="text-ui-header select-none">
         {{ displayFileName }}
       </span>
     </div>
 
     <div class="flex items-center h-full shrink-0 gap-1 pr-2">
       <!-- 撤销/重做快捷按钮 -->
-      <div class="flex items-center border-r dark:border-[#333333] pr-2 mr-1 gap-0.5 no-drag">
+      <div class="flex items-center border-r border-divider pr-2 mr-1 gap-0.5 no-drag">
         <IconButton
           icon="fa-solid fa-rotate-left"
           title="撤销 (Ctrl+Z)"
@@ -60,6 +60,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useProjectStore } from '@/store/project'
 import { useSettingsStore } from '@/store/settings'
 import { useAIStore } from '@/store/ai'
+import { useUIStore } from '@/store/ui'
 import { useActions } from '@/composables/useActions'
 import { isElectron } from '@/utils/env'
 import IconButton from '@/components/common/IconButton.vue'
@@ -71,6 +72,7 @@ const router = useRouter()
 const route = useRoute()
 const projectStore = useProjectStore()
 const settingsStore = useSettingsStore()
+const uiStore = useUIStore()
 const aiStore = useAIStore()
 const { handleAction } = useActions()
 
@@ -114,7 +116,30 @@ const menus = computed(() => <Menu[]>[
     label: '文件',
     items: [
       { id: 'new-project', label: '新建', shortcut: 'Ctrl+N', icon: '<i class="fa-solid fa-file-circle-plus"></i>' },
-      { id: 'open-project', label: '打开项目...', shortcut: 'Ctrl+O', icon: '<i class="fa-solid fa-folder-open"></i>' },
+      { 
+        label: '使用模板新建',
+        children: [
+          { disabled: true, label: '暂无可用模板' },
+          { type: 'separator' },
+          { label: '更多...' }
+        ]
+      },
+      { type: 'separator' },
+      { id: 'open-project', label: '打开...', shortcut: 'Ctrl+O', icon: '<i class="fa-solid fa-folder-open"></i>' },
+      { 
+        label: '打开最近项目', 
+        icon: '<i class="fa-solid fa-clock-rotate-left"></i>',
+        disabled: uiStore.recentFiles.length === 0,
+        children: [
+          ...(uiStore.recentFiles.slice(0, 10).map(f => ({
+            id: `recent-open:${f.path}` as AppAction,
+            label: f.path,
+          }))),
+          { type: 'separator' },
+          { label: '更多...' }
+        ]
+      },
+      { type: 'separator' },
       { id: 'import-txt', label: '导入文本...', disabled: !projectStore.isLoaded, icon: '<i class="fa-solid fa-file-import"></i>' },
       { type: 'separator' },
       ...(isElectron ? [
@@ -186,6 +211,11 @@ const menus = computed(() => <Menu[]>[
 ])
 
 async function handleMenuAction(id: string) {
+  if (id.startsWith('recent-open:')) {
+    const path = id.replace('recent-open:', '')
+    handleAction('open-project', path)
+    return
+  }
   handleAction(id as AppAction)
 }
 </script>

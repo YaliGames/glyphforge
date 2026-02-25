@@ -186,7 +186,7 @@ export function useActions() {
         await openExternalLink(APP_CONFIG.links.privacy)
         break
       case 'check-updates':
-        await openExternalLink(APP_CONFIG.links.releases)
+        uiStore.openModal('check-updates')
         break
       case 'report-issue':
         await openExternalLink(APP_CONFIG.links.feedback)

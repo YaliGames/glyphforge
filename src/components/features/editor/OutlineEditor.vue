@@ -3,10 +3,9 @@
     <MonacoEditor
       ref="monacoRef"
       v-model="internalValue"
+      :on-force-sync="(v) => (internalValue = v)"
       @cursor-change="handleCursorChange"
       @mounted="onEditorMounted"
-      @focus="projectStore.startEditSession"
-      @blur="projectStore.endEditSession"
     />
   </div>
 </template>
@@ -135,7 +134,6 @@ function updateContentWidgets(force = false) {
  * 核心渲染：将 Act Range 映射为编辑器高亮
  */
 function updateDecorations(forceWidgets = false) {
-  console.log('Updating act decorations...')
   if (!editor) return
   const model = editor.getModel()
   if (!model) return
@@ -174,12 +172,16 @@ watch(() => props.acts, () => {
 }, { deep: true })
 
 /**
- * 核心修复：监听正文内容变化。
- * 当项目初次加载或切换时，Monaco 会异步填充内容。
- * 此时需要重新计算装饰器位置，避免它们因为模型初始为空而被挤压到第一行。
+ * 针对正文内容变化的监听。
+ * 当用户正在输入时不触发重绘（Monaco Tracked Range 会动态偏移）。
+ * 仅在初始加载、恢复历史、切换内容等“外部行为”时，全量更新位置与 Widgets。
  */
-watch(() => props.modelValue, () => {
-  // 延迟一帧，确保 Monaco 已经完成了 setValue 和布局计算
+watch(() => props.modelValue, (newVal, oldVal) => {
+  if (newVal === oldVal) return
+
+  // 正常输入下，跳过强制更新
+  if (projectStore.isSessionActive && !projectStore.isRestoring) return
+
   requestAnimationFrame(() => {
     updateDecorations(true)
   })

@@ -1,10 +1,10 @@
 <template>
   <Modal title="目录识别规则管理" @close="$emit('close')" :close-on-backdrop="false">
-    <div class="space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar pr-2">
+    <div class="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
       <!-- 正则模式 -->
       <section>
         <div class="flex items-center justify-between mb-3">
-          <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+          <h4 class="text-title text-gray-500 flex items-center gap-2">
             <i class="fa-solid fa-wand-sparkles text-[10px]"></i>
             正则匹配模式
           </h4>
@@ -13,7 +13,7 @@
         <div class="space-y-4">
           <div v-for="(patterns, type) in chapterStore.recognitionRules.patterns" :key="type" class="space-y-2">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">{{ getTypeName(type) }}</span>
+              <span class="text-title text-gray-400">{{ getTypeName(type) }}</span>
               <button @click="addPattern(type)" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-[10px]">+ 添加模式</button>
             </div>
             <div v-for="(_, idx) in patterns" :key="idx" class="flex items-center gap-2">
@@ -35,7 +35,7 @@
 
       <!-- 结构锚定 -->
       <section class="space-y-4">
-        <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 border-b dark:border-[#333] pb-2">
+        <h4 class="text-title text-gray-500 flex items-center gap-2 border-b border-divider pb-2">
           <i class="fa-solid fa-anchor text-[10px]"></i>
           结构锚定 (Structural Anchors)
         </h4>
@@ -52,7 +52,7 @@
               <input 
                 type="checkbox" 
                 v-model="chapterStore.recognitionRules.structuralAnchors.requireEmptyLineAround"
-                class="rounded border-gray-300 dark:border-[#444] text-blue-600 focus:ring-blue-500" 
+                class="rounded border-divider text-blue-600 focus:ring-blue-500" 
               />
               <span class="group-hover:text-blue-500 transition-colors">要求前后空行</span>
             </label>
@@ -62,7 +62,7 @@
 
       <!-- 否定规则 -->
       <section class="space-y-4">
-        <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 border-b dark:border-[#333] pb-2">
+        <h4 class="text-title text-gray-500 flex items-center gap-2 border-b border-divider pb-2">
           <i class="fa-solid fa-filter-circle-xmark text-[10px]"></i>
           否定规则 (Negative Rules)
         </h4>
@@ -71,16 +71,16 @@
             <input 
               type="checkbox" 
               v-model="chapterStore.recognitionRules.negativeRules.enabled"
-              class="rounded border-gray-300 dark:border-[#444] text-blue-600 focus:ring-blue-500" 
+              class="rounded border-divider text-blue-600 focus:ring-blue-500" 
             />
             <span class="font-bold group-hover:text-blue-500 transition-colors">启用否定规则排除干扰项</span>
           </label>
-          <div v-if="chapterStore.recognitionRules.negativeRules.enabled" class="pl-6 space-y-3 border-l-2 border-gray-100 dark:border-[#333]">
+          <div v-if="chapterStore.recognitionRules.negativeRules.enabled" class="pl-6 space-y-3 border-l-2 border-divider">
             <label class="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 cursor-pointer hover:text-blue-500 transition-colors">
               <input 
                 type="checkbox" 
                 v-model="chapterStore.recognitionRules.negativeRules.excludePunctuationEnd"
-                class="rounded border-gray-300 dark:border-[#444] text-blue-600" 
+                class="rounded border-divider text-blue-600" 
               />
               <span>排除以句号/问号/感叹号结尾的行 (感言/后记除外)</span>
             </label>
@@ -88,7 +88,7 @@
               <input 
                 type="checkbox" 
                 v-model="chapterStore.recognitionRules.negativeRules.excludeDialogueStart"
-                class="rounded border-gray-300 dark:border-[#444] text-blue-600" 
+                class="rounded border-divider text-blue-600" 
               />
               <span>排除以引号/括号开头的行 (对话排除)</span>
             </label>

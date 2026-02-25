@@ -41,14 +41,19 @@ export const upsertEntitiesTool: DecoupledTool = {
     const { characterStore, outlineStore, worldviewStore } = context;
     if (!Array.isArray(entities)) throw new Error('Entities must be an array');
 
-    const results: string[] = [];
+    const created: any[] = [];
+    const updated: any[] = [];
+    const skipped: any[] = [];
     
     for (const rawEntity of entities) {
       let type = rawEntity.type;
       const id = rawEntity.id;
       
       const schema = SCHEMA_REGISTRY[type];
-      if (!schema) continue;
+      if (!schema) {
+        skipped.push({ type, reason: `Unknown entity type: ${type}` });
+        continue;
+      }
 
       const sanitizedData: any = {};
       schema.fields.forEach(field => {
@@ -60,66 +65,63 @@ export const upsertEntitiesTool: DecoupledTool = {
       if (type === 'character') {
         if (id) {
           characterStore.smartUpdateCharacter(id, sanitizedData);
-          results.push(`更新角色: ${id}`);
+          updated.push({ type, id, name: sanitizedData.name });
         } else {
           const newChar = characterStore.addCharacter(sanitizedData.name || '新角色');
           if (newChar) {
             characterStore.smartUpdateCharacter(newChar.id, sanitizedData);
-            results.push(`创建角色: ${sanitizedData.name}`);
+            created.push({ type, id: newChar.id, name: sanitizedData.name });
           }
         }
       } else if (type === 'relationship') {
         if (id) {
           characterStore.smartUpdateRelationship(id, sanitizedData);
-          results.push(`更新关系: ${id}`);
+          updated.push({ type, id, label: sanitizedData.label });
         } else if (sanitizedData.sourceId && sanitizedData.targetId) {
           const newRel = characterStore.addRelationship(sanitizedData.sourceId, sanitizedData.targetId, sanitizedData.type || 'custom');
           if (newRel) {
             characterStore.smartUpdateRelationship(newRel.id, sanitizedData);
-            results.push(`创建关系: ${newRel.id}`);
+            created.push({ type, id: newRel.id, label: sanitizedData.label });
           }
         }
       } else if (type === 'outline') {
         if (id) {
           outlineStore.updateActMetadata(id, sanitizedData);
-          results.push(`更新大纲: ${id}`);
+          updated.push({ type, id, title: sanitizedData.title });
         } else {
           const newAct = outlineStore.createAct(sanitizedData.title || '新幕', sanitizedData.range);
           if (newAct) {
             outlineStore.updateActMetadata(newAct.id, sanitizedData);
-            results.push(`创建大纲: ${sanitizedData.title}`);
+            created.push({ type, id: newAct.id, title: sanitizedData.title });
           }
         }
       } else if (type === 'worldview') {
         const categoryId = id || sanitizedData.id;
         
-        // 防止因 AI 漏传 ID 导致误拿顶级 "type: worldview" 作为标识符
         if (!categoryId || categoryId === 'worldview') {
-          results.push(`跳过世界观: 未提供有效的类别 ID (如 geography)`);
+          skipped.push({ type, reason: `Missing or invalid worldview category ID` });
           continue;
         }
 
         const displayName = WORLDVIEW_TYPE_MAP[categoryId] || sanitizedData.name || categoryId;
         const category = worldviewStore.worldview?.categories.find((c: any) => c.type === categoryId);
         
-        // 强制修正名称并同步到 SanitizedData
         sanitizedData.name = displayName;
 
         if (category) {
           worldviewStore.updateCategory(categoryId, sanitizedData);
-          results.push(`更新世界观分类: ${displayName}`);
+          updated.push({ type, id: categoryId, name: displayName });
         } else {
-          // 如果分类不存在，则创建它
           worldviewStore.addCategory(displayName, categoryId);
           worldviewStore.updateCategory(categoryId, sanitizedData);
-          results.push(`新建世界观分类: ${displayName}`);
+          created.push({ type, id: categoryId, name: displayName });
         }
       } else if (type === 'timeline') {
         const eventData = {
-          title: sanitizedData.title,
-          description: sanitizedData.content,
-          participants: sanitizedData.participants,
-          impact: sanitizedData.tags,
+          title: sanitizedData.title || '',
+          description: sanitizedData.content || '',
+          participants: sanitizedData.participants || [],
+          impact: sanitizedData.tags || [],
           time: {
             label: sanitizedData.date || '',
             order: 0 
@@ -128,17 +130,29 @@ export const upsertEntitiesTool: DecoupledTool = {
 
         if (id) {
           worldviewStore.updateTimelineEvent(id, eventData);
-          results.push(`更新时间线事件: ${id}`);
+          updated.push({ type, id, title: sanitizedData.title });
         } else {
           const newEvent = worldviewStore.addTimelineEvent(sanitizedData.title || '新事件');
           if (newEvent) {
             worldviewStore.updateTimelineEvent(newEvent.id, eventData);
-            results.push(`创建时间线事件: ${sanitizedData.title}`);
+            created.push({ type, id: newEvent.id, title: sanitizedData.title });
           }
         }
       }
     }
 
-    return results.length > 0 ? `操作成功：\n- ${results.join('\n- ')}` : '未发现可处理的实体数据';
+    const summary: string[] = [];
+    if (created.length > 0) summary.push(`新建: ${created.map(e => `${e.name || e.title || e.id} (${e.id})`).join(', ')}`);
+    if (updated.length > 0) summary.push(`更新: ${updated.map(e => `${e.name || e.title || e.id} (${e.id})`).join(', ')}`);
+    if (skipped.length > 0) summary.push(`跳过: ${skipped.length} 项`);
+
+    return {
+      status: 'success',
+      data: {
+        created,
+        updated
+      },
+      message: `操作成功：\n- ${summary.join('\n- ')}`
+    };
   }
 };

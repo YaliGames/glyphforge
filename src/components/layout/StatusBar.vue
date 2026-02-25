@@ -1,5 +1,5 @@
 <template>
-  <footer class="h-6 border-t dark:border-[#333333] bg-white dark:bg-[#1e1e1e] flex items-center px-4 text-[10px] text-gray-500 dark:text-gray-400 justify-between shrink-0 select-none">
+  <footer class="h-6 border-t border-divider bg-app-main flex items-center px-4 text-[10px] text-gray-500 dark:text-gray-400 justify-between shrink-0 select-none">
     <div class="flex items-center gap-4">
       <div class="flex items-center gap-1.5">
         <i class="fa-solid fa-folder-open text-[9px]"></i>
@@ -14,7 +14,7 @@
       <div class="flex items-center gap-2">
         <span>{{ uiStore.isLoading ? '处理中...' : '就绪' }}</span>
       </div>
-      <div class="w-px h-3 bg-gray-200 dark:bg-[#333333]"></div>
+      <div class="w-px h-3 bg-divider"></div>
       <div class="hover:text-blue-600 transition-colors cursor-pointer">
         <span>GlyphForge v{{ APP_CONFIG.version }}</span>
       </div>

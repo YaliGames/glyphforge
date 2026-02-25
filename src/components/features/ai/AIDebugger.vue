@@ -11,18 +11,18 @@
 
     <!-- 调试面板 -->
     <transition name="pop">
-      <div v-if="isVisible" class="w-[600px] h-[450px] bg-[#1e1e1e] border border-[#333] rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl">
-        <header class="px-4 h-10 border-b border-[#333] flex items-center justify-between bg-[#252525]">
+      <div v-if="isVisible" class="w-[600px] h-[450px] bg-app-elevated border border-divider rounded-modal shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl">
+        <header class="px-4 h-10 border-b border-divider flex items-center justify-between bg-app-panel/50">
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest">AI Network Traffic (Debug)</span>
+            <span class="text-ui-header !text-amber-500">AI Network Traffic (Debug)</span>
           </div>
           <div class="flex items-center gap-2">
-            <button @click="clearLogs" class="text-[10px] text-gray-400 hover:text-white transition-colors">CLEAR</button>
+            <button @click="clearLogs" class="text-ui-badge hover:text-white transition-colors">CLEAR</button>
             <button @click="isVisible = false" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
           </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-[11px] custom-scrollbar" ref="logContainer">
+        <div class="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-[11px]" ref="logContainer">
           <div v-if="logs.length === 0" class="h-full flex flex-col items-center justify-center text-gray-600 italic">
             <i class="fa-solid fa-terminal text-2xl mb-2 opacity-20"></i>
             Waiting for traffic...
@@ -200,16 +200,5 @@ onMounted(() => {
 .pop-enter-from, .pop-leave-to {
   transform: scale(0.9) translateY(20px);
   opacity: 0;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 2px;
 }
 </style>

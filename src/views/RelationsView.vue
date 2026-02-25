@@ -1,18 +1,18 @@
 <template>
-  <div class="h-full w-full flex flex-col bg-gray-50 dark:bg-[#1e1e1e] relative group">
+  <div class="h-full w-full flex flex-col bg-app-main relative group">
     <!-- 顶部菜单栏 -->
-    <div class="h-12 border-b bg-white dark:bg-[#252525] dark:border-[#333] flex items-center px-4 justify-between z-10 shrink-0 shadow-sm">
+    <div class="h-12 border-b bg-app-side border-divider flex items-center px-4 justify-between z-10 shrink-0 shadow-sm">
       <div class="flex items-center gap-4">
         <!-- 模式切换 -->
-        <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded p-1">
+        <div class="flex items-center bg-app-hover rounded p-1">
           <button @click="isConnectMode = false"
             class="px-3 py-1 text-xs rounded transition-all flex items-center gap-1.5"
-            :class="!isConnectMode ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700/50'">
+            :class="!isConnectMode ? 'bg-app-surface shadow-sm text-blue-600 font-medium' : 'text-content-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-app-surface/50'">
             <i class="fa-solid fa-arrows-up-down-left-right"></i>移动模式
           </button>
           <button @click="isConnectMode = true"
             class="px-3 py-1 text-xs rounded transition-all flex items-center gap-1.5"
-            :class="isConnectMode ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700/50'">
+            :class="isConnectMode ? 'bg-app-surface shadow-sm text-blue-600 font-medium' : 'text-content-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-app-surface/50'">
             <i class="fa-solid fa-link"></i>连线模式
           </button>
         </div>
@@ -93,7 +93,7 @@
 
     <!-- Context Menu -->
     <div v-if="menu.visible"
-      class="fixed z-50 bg-white dark:bg-[#252525] shadow-xl rounded-lg border dark:border-[#333] py-1 min-w-[120px] menu-enter-active"
+      class="fixed z-50 bg-app-side shadow-xl rounded-lg border border-divider py-1 min-w-[120px] menu-enter-active"
       :style="{ left: menu.x + 'px', top: menu.y + 'px' }" @click.stop>
       <div v-if="menu.type === 'edge'" class="flex flex-col">
         <button @click="handleEdit"

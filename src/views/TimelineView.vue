@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 flex overflow-hidden bg-white dark:bg-[#1e1e1e]">
+  <div class="flex-1 flex overflow-hidden bg-app-main">
     <!-- 左侧：快速跳转 -->
     <SidePanel title="历史轨迹" width="w-64" side="left">
       <template #actions>
@@ -21,23 +21,25 @@
 
         <nav class="space-y-1">
           <div v-for="event in filteredEvents" :key="event.id" @click="scrollToId('event-' + event.id)" :class="[
-            'group p-2 rounded-lg cursor-pointer transition-all duration-200 relative hover:translate-x-0.5 border border-transparent',
-            'hover:bg-gray-100 dark:hover:bg-[#2d2d2d] text-gray-600 dark:text-gray-400'
+            'group p-2 rounded-main cursor-pointer transition-all duration-200 relative hover:translate-x-0.5 border border-transparent',
+            'hover:bg-app-hover text-gray-600 dark:text-gray-400'
           ]">
             <div class="flex items-center justify-between mb-0.5">
               <div class="flex items-center gap-2 min-w-0">
                 <div class="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0"></div>
-                <span class="text-xs font-bold truncate pr-1">{{ event.title || '未命名事件' }}</span>
+                <span class="text-xs truncate font-medium pr-1">{{ event.title || '未命名事件' }}</span>
               </div>
-              <div class="flex items-center w-[60px] justify-end shrink-0">
-                <SidebarActionGroup :can-move-up="worldviewStore.worldview?.timeline.indexOf(event) !== 0"
+              <div class="flex items-center w-0 group-hover:w-[60px] transition-all duration-200 justify-end shrink-0 overflow-hidden">
+                <SidebarActionGroup 
+                  class="opacity-0 group-hover:opacity-100"
+                  :can-move-up="worldviewStore.worldview?.timeline.indexOf(event) !== 0"
                   :can-move-down="worldviewStore.worldview?.timeline.indexOf(event) !== (worldviewStore.worldview?.timeline.length ?? 0) - 1"
                   @move-up="worldviewStore.moveTimelineEvent(event.id, 'up')"
                   @move-down="worldviewStore.moveTimelineEvent(event.id, 'down')"
                   @delete="removeTimelineEvent(event.id)" />
               </div>
             </div>
-            <div class="text-[9px] font-mono text-gray-400 ml-3.5 opacity-60 group-hover:opacity-100">{{
+            <div class="text-ui-detail ml-3.5">{{
               event.time.label ||
               '待定时刻' }}</div>
           </div>
@@ -46,17 +48,17 @@
     </SidePanel>
 
     <!-- 右侧滚动内容区 -->
-    <main class="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e] scroll-smooth custom-scrollbar view-transition">
+    <main class="flex-1 overflow-y-auto bg-app-main scroll-smooth custom-scrollbar view-transition">
       <div v-if="worldviewStore.worldview?.timeline" class="max-w-4xl mx-auto p-8 space-y-12 pb-24">
 
         <!-- 时间线 (规范 4.3) -->
         <div class="space-y-4">
-          <header class="flex items-center justify-between border-b dark:border-[#333] pb-6">
+          <header class="flex items-center justify-between border-b border-divider pb-6">
             <div class="flex items-baseline gap-4">
-              <h1 class="text-2xl font-bold dark:text-gray-100 flex items-center gap-3">
+              <h1 class="text-ui-title flex items-center gap-3">
                 历史轨迹
               </h1>
-              <span class="text-xs text-gray-400 font-mono tracking-wider">按故事发生的相对顺序排列</span>
+              <span class="text-ui-badge">按故事发生的相对顺序排列</span>
             </div>
             <div class="flex items-center gap-2">
               <Button icon="fa-solid fa-plus" @click="addTimelineEvent">
@@ -70,16 +72,16 @@
             title="尚未创建时间点" subtitle="这个世界还没有过去，直到你写下第一个时刻" />
 
           <div v-else
-            class="space-y-8 relative before:absolute before:left-[11px] before:top-2 before:bottom-0 before:w-[2px] before:bg-gray-100 dark:before:bg-[#2d2d2d]">
+            class="space-y-8 relative before:absolute before:left-[11px] before:top-2 before:bottom-0 before:w-[2px] before:bg-divider">
             <div v-for="event in worldviewStore.worldview.timeline" :key="event.id" :id="'event-' + event.id"
               class="relative pl-10 group pt-4 animate-slide-up">
               <!-- 轴点 -->
               <div
-                class="absolute left-0 top-[22px] w-6 h-6 rounded-full bg-white dark:bg-[#1e1e1e] border-2 border-blue-500 shadow-sm z-10 transition-transform group-hover:scale-110">
+                class="absolute left-0 top-[22px] w-6 h-6 rounded-full bg-app-main border-2 border-blue-500 shadow-sm z-10 transition-transform group-hover:scale-110">
               </div>
 
               <div
-                class="bg-white dark:bg-[#1e1e1e] border dark:border-[#333] rounded-xl p-5 space-y-4 shadow-sm group-hover:border-blue-200 dark:group-hover:border-blue-900/30 transition-all">
+                class="bg-app-main border border-divider rounded-main p-5 space-y-4 shadow-sm group-hover:border-blue-200 dark:group-hover:border-blue-900/30 transition-all">
                 <div class="flex items-start justify-between">
                   <div class="space-y-3 flex-1">
                     <div class="flex items-center gap-3">
@@ -119,21 +121,21 @@
                     />
                 </div>
 
-                <div class="flex flex-wrap gap-4 pt-2 border-t dark:border-[#2d2d2d]">
+                <div class="flex flex-wrap gap-4 pt-2 border-t border-divider">
                   <div class="space-y-1.5 flex-1">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase">主要关联</label>
+                    <label class="text-ui-label">主要关联</label>
                     <div class="flex flex-wrap gap-1.5">
                       <span v-for="pid in event.participants" :key="pid"
-                        class="px-2 py-0.5 bg-gray-100 dark:bg-[#333] rounded text-[10px] text-gray-600 dark:text-gray-400">{{
+                        class="px-2 py-0.5 bg-app-hover rounded-sm text-[10px] text-gray-600 dark:text-gray-400">{{
                         pid }}</span>
                       <button class="text-[10px] text-blue-500 hover:underline">+ 关联</button>
                     </div>
                   </div>
                   <div class="space-y-1.5 flex-1">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase">波及影响</label>
+                    <label class="text-ui-label">波及影响</label>
                     <div class="flex flex-wrap gap-1.5">
                       <span v-for="imp in event.impact" :key="imp"
-                        class="px-2 py-0.5 bg-orange-50 dark:bg-orange-900/10 text-orange-600 rounded text-[10px]">{{
+                        class="px-2 py-0.5 bg-orange-50 dark:bg-orange-900/10 text-orange-600 rounded-sm text-[10px]">{{
                         imp
                         }}</span>
                       <button class="text-[10px] text-orange-500 hover:underline">+ 领域</button>

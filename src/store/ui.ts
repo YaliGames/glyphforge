@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ViewMode, EditMode } from '@/types'
 import { STORAGE_KEYS } from '@/config'
 
 export interface Toast {
@@ -14,16 +13,32 @@ export type ModalId = string
 
 export const useUIStore = defineStore('ui', () => {
   // --- 导航与模式 (从 AppStore 合并) ---
-  const viewMode = ref<ViewMode>('source')
-  const editMode = ref<EditMode>('edit')
   const isLoading = ref(false)
   const loadingMessage = ref('正在加载...')
   const loadingProgress = ref(0)
 
-  const recentFiles = ref<{ name: string, path?: string, date: number, type: 'txt' | 'project' }[]>([])
+  const recentFiles = ref<{ name: string, path?: string, date: number }[]>([])
 
   // 编辑器状态同步 (用于 AI 引用等)
   const editorSelection = ref<{ startLine: number, endLine: number, text: string } | null>(null)
+
+  // 侧边栏宽度管理
+  const SIDE_PANEL_MIN = 200
+  const SIDE_PANEL_MAX = 600
+  const SIDE_PANEL_DEFAULT = 260
+  
+  const leftPanelWidth = ref(Number(localStorage.getItem(STORAGE_KEYS.SIDEBAR_LEFT_WIDTH)) || SIDE_PANEL_DEFAULT)
+  const rightPanelWidth = ref(Number(localStorage.getItem(STORAGE_KEYS.SIDEBAR_RIGHT_WIDTH)) || SIDE_PANEL_DEFAULT)
+
+  function setLeftPanelWidth(width: number) {
+    leftPanelWidth.value = Math.min(Math.max(width, SIDE_PANEL_MIN), SIDE_PANEL_MAX)
+    localStorage.setItem(STORAGE_KEYS.SIDEBAR_LEFT_WIDTH, String(leftPanelWidth.value))
+  }
+
+  function setRightPanelWidth(width: number) {
+    rightPanelWidth.value = Math.min(Math.max(width, SIDE_PANEL_MIN), SIDE_PANEL_MAX)
+    localStorage.setItem(STORAGE_KEYS.SIDEBAR_RIGHT_WIDTH, String(rightPanelWidth.value))
+  }
 
   function startLoading(message = '正在加载...') {
     isLoading.value = true
@@ -63,7 +78,6 @@ export const useUIStore = defineStore('ui', () => {
 
   const exportFormat = ref<'txt' | 'md'>('txt')
   
-  // --- 持久化方法 ---
   function loadRecentFiles() {
     const saved = localStorage.getItem(STORAGE_KEYS.RECENT_FILES)
     if (saved) {
@@ -71,13 +85,13 @@ export const useUIStore = defineStore('ui', () => {
     }
   }
 
-  function addRecentFile(name: string, path?: string, type: 'txt' | 'project' = 'project') {
+  function addRecentFile(name: string, path?: string) {
     const now = Date.now()
     const existing = recentFiles.value.findIndex(f => f.name === name && f.path === path)
     if (existing !== -1) {
       recentFiles.value.splice(existing, 1)
     }
-    recentFiles.value.unshift({ name, path, date: now, type })
+    recentFiles.value.unshift({ name, path, date: now })
     recentFiles.value = recentFiles.value.slice(0, 10)
     localStorage.setItem(STORAGE_KEYS.RECENT_FILES, JSON.stringify(recentFiles.value))
   }
@@ -95,29 +109,6 @@ export const useUIStore = defineStore('ui', () => {
     localStorage.removeItem(STORAGE_KEYS.RECENT_FILES)
   }
 
-  // --- 模式切换 ---
-  function switchViewMode(mode: ViewMode) {
-    if (viewMode.value === mode) return
-    isLoading.value = true
-    setTimeout(() => {
-      viewMode.value = mode
-      setTimeout(() => {
-        isLoading.value = false
-      }, 100)
-    }, 50)
-  }
-
-  function switchEditMode(mode: EditMode) {
-    if (editMode.value === mode) return
-    isLoading.value = true
-    setTimeout(() => {
-      editMode.value = mode
-      setTimeout(() => {
-        isLoading.value = false
-      }, 100)
-    }, 50)
-  }
-  
   // Confirm 状态
   const confirmState = ref({
     show: false,
@@ -181,8 +172,6 @@ export const useUIStore = defineStore('ui', () => {
 
   return {
     // 导航
-    viewMode,
-    editMode,
     isLoading,
     loadingMessage,
     loadingProgress,
@@ -191,12 +180,14 @@ export const useUIStore = defineStore('ui', () => {
     stopLoading,
     recentFiles,
     editorSelection,
+    leftPanelWidth,
+    rightPanelWidth,
+    setLeftPanelWidth,
+    setRightPanelWidth,
     loadRecentFiles,
     addRecentFile,
     removeRecentFile,
     clearRecentFiles,
-    switchViewMode,
-    switchEditMode,
     // 弹窗
     activeModals,
     openModal,

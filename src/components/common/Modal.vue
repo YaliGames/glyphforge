@@ -6,19 +6,19 @@
       
       <!-- Modal Content -->
       <div 
-        class="relative bg-white dark:bg-[#252526] rounded-2xl shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden transition-colors duration-300"
+        class="relative bg-app-elevated rounded-modal shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden transition-colors duration-300"
         :class="width || 'max-w-2xl'"
         @click.stop
       >
         <!-- Header -->
-        <div class="px-6 py-4 border-b dark:border-[#333333] flex items-center justify-between shrink-0">
+        <div class="px-6 py-4 border-b border-divider flex items-center justify-between shrink-0">
           <div class="flex items-center gap-4">
             <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ title }}</h3>
             <slot name="header-extra"></slot>
           </div>
           <button 
             @click="$emit('close')"
-            class="p-2 hover:bg-gray-100 dark:hover:bg-[#37373d] rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            class="p-2 hover:bg-app-hover rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
           >
             <i class="fa-solid fa-xmark text-lg"></i>
           </button>
@@ -30,7 +30,7 @@
         </div>
         
         <!-- Footer -->
-        <div v-if="$slots.footer" class="px-6 py-4 border-t dark:border-[#333333] bg-gray-50 dark:bg-[#2d2d2d] shrink-0">
+        <div v-if="$slots.footer" class="px-6 py-4 border-t border-divider bg-app-surface shrink-0">
           <slot name="footer"></slot>
         </div>
       </div>

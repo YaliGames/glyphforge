@@ -16,7 +16,16 @@ export const getEntitySchemaTool: DecoupledTool = {
     },
     required: ['type']
   },
-  async execute() {
-    return generateAISchemaManual() || '未知类型或暂未定义 Schema';
+  async execute(args: any) {
+    const { type } = args;
+    const manual = generateAISchemaManual();
+    return {
+      status: 'success',
+      data: {
+        type,
+        schema: manual
+      },
+      message: `已获取 ${type} 的实体元数据定义。`
+    };
   }
 };

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 overflow-y-auto bg-white dark:bg-[#1e1e1e] select-none">
+  <div class="flex-1 overflow-y-auto bg-app-main select-none">
     <div class="max-w-5xl mx-auto px-8 py-12">
       <!-- Header / Logo Area -->
       <header class="flex flex-col items-center text-center mb-16">
@@ -34,9 +34,9 @@
                 v-for="link in commonLinks" 
                 :key="link.title" 
                 @click="openExternalLink(link.url)" 
-                class="group flex items-center p-3 rounded-xl border border-gray-100 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#252526] transition-all cursor-pointer"
+                class="group flex items-center p-3 rounded-main border border-divider hover:bg-app-hover transition-all cursor-pointer"
               >
-                <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#333] flex items-center justify-center mr-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div class="w-8 h-8 rounded-main bg-app-hover flex items-center justify-center mr-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <i :class="[link.icon, 'text-sm']"></i>
                 </div>
                 <div class="flex-1">
@@ -61,7 +61,7 @@
                 v-for="tip in tips" 
                 :key="tip.title" 
                 @click="openExternalLink(tip.url)"
-                class="flex gap-4 p-2 -m-2 rounded-xl hover:bg-gray-50 dark:hover:bg-[#252526] transition-all cursor-pointer group"
+                class="flex gap-4 p-2 -m-2 rounded-main hover:bg-app-hover transition-all cursor-pointer group"
               >
                 <div class="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 group-hover:scale-125 transition-transform"></div>
                 <div>
@@ -77,7 +77,7 @@
         </section>
       </div>
 
-      <footer class="mt-20 pt-8 border-t border-gray-100 dark:border-[#333] flex flex-col items-center gap-4">
+      <footer class="mt-20 pt-8 border-t border-divider flex flex-col items-center gap-4">
         <div class="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
           <button @click="openExternalLink(APP_CONFIG.links.docs)" class="hover:text-blue-500 transition-colors">服务条款</button>
           <span class="opacity-30">|</span>
@@ -100,17 +100,3 @@ const { openExternalLink } = useActions()
 const commonLinks = DESCRIPTIVE_LINKS
 const tips = QUICK_START_GUIDE
 </script>
-
-<style scoped>
-/* 隐藏滚动条但保留功能 */
-.flex-1::-webkit-scrollbar {
-  width: 4px;
-}
-.flex-1::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-}
-.dark .flex-1::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
-}
-</style>

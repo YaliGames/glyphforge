@@ -647,7 +647,6 @@ export const useAIStore = defineStore('ai', () => {
       if (error._handled) throw error;
       error._handled = true;
 
-      const uiStore = useUIStore()
       const assistantMsg = history.value.find(m => m.id === assistantMsgId)
       
       let errorText = error.message || error;

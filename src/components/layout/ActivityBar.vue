@@ -1,5 +1,5 @@
 <template>
-  <nav class="w-14 border-r dark:border-[#333333] bg-[#f3f3f3] dark:bg-[#333333] flex flex-col items-center py-4 gap-4 shrink-0 no-drag">
+  <nav class="w-14 border-r border-divider bg-app-side flex flex-col items-center py-4 gap-4 shrink-0 no-drag">
     <template v-for="(item, index) in navItems" :key="item.to || index">
       <!-- 占位符/缝隙：用于将后续菜单挤到底部 -->
       <div v-if="item.spacer" class="flex-1"></div>
@@ -8,9 +8,9 @@
       <router-link 
         v-else
         :to="item.to!" 
-        class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#444] hover:text-blue-600 dark:hover:text-blue-400"
+        class="w-10 h-10 flex items-center justify-center rounded-main transition-all duration-200 text-gray-500 dark:text-gray-400 hover:bg-app-hover hover:text-blue-600 dark:hover:text-blue-400"
         :class="{ 'opacity-30 pointer-events-none grayscale': isItemDisabled(item) }"
-        active-class="!bg-white dark:!bg-[#1e1e1e] !text-blue-600 shadow-sm"
+        active-class="!bg-app-main !text-blue-600 shadow-sm"
         :title="item.title"
       >
         <i :class="[item.icon, 'text-lg']"></i>

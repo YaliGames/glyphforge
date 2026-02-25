@@ -4,6 +4,72 @@
 
 :root {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Semantic Design Tokens - Light Mode */
+  --bg-main: #ffffff;
+  --bg-panel: #fafafa;
+  --bg-side: #f3f3f3;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --bg-active: rgba(59, 130, 246, 0.1);
+  --border-main: #e5e7eb;
+
+  /* Content Tokens */
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-tertiary: #9ca3af;
+  --text-muted: #d1d5db;
+}
+
+.dark {
+  /* Semantic Design Tokens - Dark Mode */
+  --bg-main: #1e1e1e;
+  --bg-panel: #222222;
+  --bg-side: #252526;
+  --bg-surface: #2d2d2d;
+  --bg-elevated: #3c3c3c;
+  --bg-hover: #37373d;
+  --bg-active: rgba(59, 130, 246, 0.2);
+  --border-main: #333333;
+
+  /* Content Tokens */
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+  --text-muted: #4b5563;
+}
+
+@layer utilities {
+  /* 主标题：用于主要视图页头的标题 */
+  .text-ui-title {
+    @apply text-2xl font-bold text-content-primary tracking-tight;
+  }
+
+  /* 小标题：用于侧方栏、面板顶部或区块分隔 */
+  .text-ui-header {
+    @apply text-title text-content-secondary uppercase tracking-widest;
+  }
+
+  /* 表单项标签：用于输入框上方的名称 (如：角色名、年龄) */
+  .text-ui-label {
+    @apply text-label-field text-content-primary opacity-80;
+  }
+
+  /* 项目标题：用于列表、卡片中的标题项 (默认为 text-sm，不含加粗) */
+  .text-ui-item {
+    @apply text-sm text-content-primary;
+  }
+
+  /* 辅助/说明文本：用于描述信息、脚注或次要提示 */
+  .text-ui-detail {
+    @apply text-label-detail text-content-tertiary font-normal;
+  }
+
+  /* 紧凑型信息文本 */
+  .text-ui-badge {
+    @apply text-label-detail text-content-tertiary font-mono;
+  }
 }
 
 body {
@@ -17,10 +83,9 @@ body {
   height: 100vh;
 }
 
-/* 自定义滚动条 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
@@ -28,25 +93,36 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
+  background-color: rgba(100, 100, 100, 0.2);
+  border-radius: 0;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
+  background-color: rgba(121, 121, 121, 0.2);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.15);
+  background-color: rgba(100, 100, 100, 0.4) !important;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background-color: rgba(121, 121, 121, 0.4) !important;
 }
 
-/* 兼容旧代码中的 .custom-scrollbar 类 */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(100, 100, 100, 0.6) !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* 常用动画集 */

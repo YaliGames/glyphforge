@@ -79,7 +79,7 @@ const pathData = computed(() => {
       pointerEvents: 'all',
     }" class="nodrag nopan" @click="onLabelClick">
       <div
-        class="px-3 py-1 bg-white/80 dark:bg-[#252525]/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/50 rounded-full shadow-sm text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap cursor-pointer transition-all duration-200 hover:scale-110 hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-md active:scale-95">
+        class="px-3 py-1 bg-app-surface/80 backdrop-blur-md border border-divider rounded-full shadow-sm text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap cursor-pointer transition-all duration-200 hover:scale-110 hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-md active:scale-95">
         {{ label }}
       </div>
     </div>

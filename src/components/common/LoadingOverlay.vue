@@ -1,6 +1,6 @@
 <template>
   <div v-if="uiStore.isLoading" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50">
-    <div class="bg-white dark:bg-[#1e1e1e] p-6 rounded-lg shadow-xl w-80 flex flex-col items-center gap-4">
+    <div class="bg-app-elevated p-6 rounded-main shadow-xl w-80 flex flex-col items-center gap-4">
       <div class="relative w-12 h-12">
         <svg class="animate-spin text-blue-500 w-full h-full" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

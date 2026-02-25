@@ -4,7 +4,6 @@ import type { GlyphForgeBundle } from '@/types'
 
 export interface HistoryState {
   bundle: GlyphForgeBundle
-  view: string
 }
 
 /**
@@ -22,18 +21,9 @@ export const useHistoryStore = defineStore('history', () => {
   /**
    * 记录一个检查点
    */
-  function pushState(bundle: GlyphForgeBundle, view: string) {
-    const newState = JSON.stringify({ bundle, view })
-    
-    if (past.value.length > 0 && past.value[past.value.length - 1] === newState) {
-      return false
-    }
-
-    if (past.value.length >= MAX_HISTORY) past.value.shift()
-    
-    past.value.push(newState)
-    future.value = []
-    return true
+  function pushState(bundle: GlyphForgeBundle) {
+    const newState = JSON.stringify({ bundle })
+    return pushRawState(newState)
   }
 
   function pushRawState(rawState: string) {
@@ -48,10 +38,10 @@ export const useHistoryStore = defineStore('history', () => {
     return true
   }
 
-  function undo(currentBundle: GlyphForgeBundle, currentView: string): HistoryState | null {
+  function undo(currentBundle: GlyphForgeBundle): HistoryState | null {
     if (!canUndo.value) return null
 
-    const currentJSON = JSON.stringify({ bundle: currentBundle, view: currentView })
+    const currentJSON = JSON.stringify({ bundle: currentBundle })
     
     // 如果重做条目与当前状态相同，则不再推入，避免重做空转
     if (future.value.length === 0 || future.value[future.value.length - 1] !== currentJSON) {
@@ -61,20 +51,20 @@ export const useHistoryStore = defineStore('history', () => {
     const previous = past.value.pop()!
     const state = JSON.parse(previous)
     
-    // 如果回退后的状态竟然和现在的状态一模一样，则继续往回走一步（处理失焦导致的冗余快照）
-    if (JSON.stringify(state.bundle) === JSON.stringify(currentBundle) && canUndo.value) {
-      return undo(currentBundle, currentView)
+    // 递归处理：如果回退后的内容与当前无异，继续回退
+    if (JSON.stringify(state.bundle) === currentJSON && canUndo.value) {
+      return undo(currentBundle)
     }
 
     return state
   }
 
-  function redo(currentBundle: GlyphForgeBundle, currentView: string): HistoryState | null {
+  function redo(currentBundle: GlyphForgeBundle): HistoryState | null {
     if (!canRedo.value) return null
 
-    const currentJSON = JSON.stringify({ bundle: currentBundle, view: currentView })
+    const currentJSON = JSON.stringify({ bundle: currentBundle })
     
-    // 同样，重做前先把当前状态存入撤销栈
+    // 重做前将当前状态存入撤销栈
     if (past.value.length === 0 || past.value[past.value.length - 1] !== currentJSON) {
       past.value.push(currentJSON)
     }
@@ -82,9 +72,9 @@ export const useHistoryStore = defineStore('history', () => {
     const next = future.value.pop()!
     const state = JSON.parse(next)
     
-    // 如果重做后的状态和现在一模一样，递归寻找真正的下一个状态
-    if (JSON.stringify(state.bundle) === JSON.stringify(currentBundle) && canRedo.value) {
-      return redo(currentBundle, currentView)
+    // 递归处理：如果重做后的内容与当前无异，继续重做
+    if (JSON.stringify(state.bundle) === currentJSON && canRedo.value) {
+      return redo(currentBundle)
     }
 
     return state
@@ -95,6 +85,10 @@ export const useHistoryStore = defineStore('history', () => {
     future.value = []
   }
 
+  function clearRedo() {
+    future.value = []
+  }
+
   return {
     canUndo,
     canRedo,
@@ -102,6 +96,7 @@ export const useHistoryStore = defineStore('history', () => {
     pushRawState,
     undo,
     redo,
-    clear
+    clear,
+    clearRedo
   }
 })

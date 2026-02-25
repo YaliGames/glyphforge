@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center justify-center shrink-0 w-[60px] h-5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+  <div class="flex items-center justify-center shrink-0 h-5 transition-opacity duration-200">
     <IconButton
       icon="fa-solid fa-chevron-up"
       size="xs"

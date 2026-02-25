@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-wrap gap-2 p-2 min-h-[38px] bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg focus-within:border-blue-500 transition-colors cursor-text" @click="focusInput">
+  <div class="flex flex-wrap gap-2 p-2 min-h-[38px] bg-app-main border border-divider rounded-main focus-within:border-blue-500 transition-colors cursor-text" @click="focusInput">
     <div 
       v-for="(chip, index) in modelValue" 
       :key="index"
@@ -17,7 +17,7 @@
       ref="inputRef"
       v-model="inputValue"
       type="text"
-      :placeholder="modelValue.length === 0 ? placeholder : ''"
+      :placeholder="modelValue?.length === 0 ? placeholder : ''"
       class="flex-1 bg-transparent border-none outline-none text-xs min-w-[80px] dark:text-gray-300"
       @keydown.enter.prevent="addChip"
       @keydown.backspace="handleBackspace"

@@ -41,6 +41,12 @@
       v-if="uiStore.isModalOpen('ai-snapshot')"
       @close="uiStore.closeModal('ai-snapshot')"
     />
+
+    <!-- 检查更新 -->
+    <UpdateModal
+      v-if="uiStore.isModalOpen('check-updates')"
+      @close="uiStore.closeModal('check-updates')"
+    />
   </div>
 </template>
 
@@ -53,6 +59,7 @@ import PromptLibraryModal from '@/components/features/ai/PromptLibraryModal.vue'
 import BuildInfoModal from './BuildInfoModal.vue'
 import NewCategoryModal from '@/components/features/worldview/NewCategoryModal.vue'
 import SnapshotModal from '@/components/features/ai/SnapshotModal.vue'
+import UpdateModal from './UpdateModal.vue'
 
 const uiStore = useUIStore()
 </script>

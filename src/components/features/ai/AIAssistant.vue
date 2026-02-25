@@ -1,643 +1,651 @@
 <template>
-  <transition name="slide-right">
-    <div v-if="aiStore.isVisible" class="fixed right-0 top-10 bottom-6 w-[400px] bg-white dark:bg-[#1e1e1e] border-l dark:border-[#333] shadow-2xl z-[100] flex flex-col overflow-hidden">
-      <!-- 头部 -->
-      <header class="h-14 border-b dark:border-[#333] px-4 flex items-center justify-between bg-gray-50/50 dark:bg-[#252525]/50 backdrop-blur-md shrink-0">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
-            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
-          </div>
-          <div class="flex flex-col">
-            <span class="text-[11px] font-bold dark:text-gray-200 leading-none">AI 创作助手</span>
-            <span class="text-[9px] text-gray-400 mt-1 uppercase tracking-wider">{{ settingsStore.activeAIProfile?.name }}</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-1">
-          <IconButton
-            icon="fa-solid fa-gear"
-            icon-class="group-hover:rotate-45 transition-transform"
-            title="AI 设置"
-            @click="goToSettings('ai')"
-            class="group"
-          />
-          <IconButton
-            icon="fa-solid fa-xmark"
-            @click="aiStore.toggle()"
-          />
-        </div>
-      </header>
+  <div v-if="aiStore.isVisible" 
+    ref="containerRef"
+    class="h-full bg-white dark:bg-[#1e1e1e] border-l dark:border-[#333] flex flex-col overflow-hidden shrink-0 z-10 relative"
+    :style="{ width: `${uiStore.rightPanelWidth}px` }"
+  >
+    <!-- Resize Handle -->
+    <div 
+      class="absolute top-0 bottom-0 left-0 w-1 cursor-col-resize z-50 hover:bg-purple-500/30 transition-colors"
+      @mousedown="startResize"
+    ></div>
 
-      <!-- 中间内容区容器 -->
-      <div class="flex-1 relative overflow-hidden">
-        <!-- 聊天记录滚动区 -->
-        <div class="absolute inset-0 overflow-y-auto p-4 space-y-2 custom-scrollbar flex flex-col pb-8" ref="historyBox">
-          <EmptyState
-            v-if="aiStore.history.length === 0"
-            icon="fa-comment-dots"
-            size="xl"
-            :circle="false"
-            subtitle="选择要提供给AI参考内容，并开始对话"
-          />
+    <!-- 头部 -->
+    <header class="h-14 border-b dark:border-[#333] px-4 flex items-center justify-between bg-gray-50/50 dark:bg-[#252525]/50 backdrop-blur-md shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
+          <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-[11px] font-bold dark:text-gray-200 leading-none">AI 创作助手</span>
+          <span class="text-[9px] text-gray-400 mt-1 uppercase tracking-wider">{{ settingsStore.activeAIProfile?.name }}</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-1">
+        <IconButton
+          icon="fa-solid fa-gear"
+          icon-class="group-hover:rotate-45 transition-transform"
+          title="AI 模型管理"
+          @click="uiStore.openModal('ai-profile')"
+          class="group"
+        />
+        <IconButton
+          icon="fa-solid fa-xmark"
+          @click="aiStore.toggle()"
+        />
+      </div>
+    </header>
 
-          <div v-for="msg in aiStore.history" :key="msg.id">
-            <div 
-              v-if="msg.role !== 'tool' && (msg.content?.trim() || (msg.toolCalls && msg.toolCalls.length > 0))" 
-              class="flex flex-col gap-2 shrink-0 group/msg" 
-              :class="msg.role === 'user' ? 'items-end' : 'items-start'"
-            >
-              <div class="flex items-center gap-2 px-1 text-[10px] text-gray-400 w-full" :class="msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'">
-                <!-- 发送人标识 -->
-                <div class="flex items-center gap-2 shrink-0">
-                  <i :class="msg.role === 'user' ? 'fa-solid fa-user' : 'fa-solid fa-robot'"></i>
-                  <span>{{ msg.role === 'user' ? '你' : 'G-Forge AI' }}</span>
+    <!-- 中间内容区容器 -->
+    <div class="flex-1 relative overflow-hidden">
+      <!-- 聊天记录滚动区 -->
+      <div class="absolute inset-0 overflow-y-auto p-4 space-y-2 flex flex-col pb-8" ref="historyBox">
+        <EmptyState
+          v-if="aiStore.history.length === 0"
+          icon="fa-comment-dots"
+          size="xl"
+          :circle="false"
+          subtitle="选择要提供给AI参考内容，并开始对话"
+        />
+
+        <div v-for="msg in aiStore.history" :key="msg.id">
+          <div 
+            v-if="msg.role !== 'tool' && (msg.content?.trim() || (msg.toolCalls && msg.toolCalls.length > 0))" 
+            class="flex flex-col gap-2 shrink-0 group/msg" 
+            :class="msg.role === 'user' ? 'items-end' : 'items-start'"
+          >
+            <div class="flex items-center gap-2 px-1 text-[10px] text-gray-400 w-full" :class="msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'">
+              <!-- 发送人标识 -->
+              <div class="flex items-center gap-2 shrink-0">
+                <i :class="msg.role === 'user' ? 'fa-solid fa-user' : 'fa-solid fa-robot'"></i>
+                <span>{{ msg.role === 'user' ? '你' : 'G-Forge AI' }}</span>
+              </div>
+
+              <!-- 复制按钮：显示在发送人标记的另一侧 -->
+              <IconButton
+                v-if="msg.content"
+                icon="fa-regular fa-copy"
+                size="xs"
+                title="复制原始 MD 内容"
+                class="opacity-0 group-hover/msg:opacity-100 transition-opacity hover:!text-purple-600"
+                @click="copyContent(msg.content)"
+              />
+          </div>
+          
+          <div 
+            class="max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed relative group/msg cursor-text select-text overflow-hidden"
+            :class="[
+              msg.role === 'user' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/10' : 'bg-gray-100 dark:bg-[#2d2d2d] dark:text-gray-200',
+              msg.isError ? '!bg-red-50 dark:!bg-red-900/10 border border-red-200 dark:border-red-900/50 !text-red-600 dark:!text-red-400' : ''
+            ]"
+          >
+            <!-- 文本内容区 -->
+            <div v-if="msg.isError" class="flex flex-col gap-3">
+                <div class="flex items-start gap-2">
+                  <i class="fa-solid fa-triangle-exclamation mt-1 shrink-0"></i>
+                  <div class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
                 </div>
-
-                <!-- 复制按钮：显示在发送人标记的另一侧 -->
-                <IconButton
-                  v-if="msg.content"
-                  icon="fa-regular fa-copy"
-                  size="xs"
-                  title="复制原始 MD 内容"
-                  class="opacity-0 group-hover/msg:opacity-100 transition-opacity hover:!text-purple-600"
-                  @click="copyContent(msg.content)"
-                />
-            </div>
-            
-            <div 
-              class="max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed relative group/msg cursor-text select-text overflow-hidden"
-              :class="[
-                msg.role === 'user' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/10' : 'bg-gray-100 dark:bg-[#2d2d2d] dark:text-gray-200',
-                msg.isError ? '!bg-red-50 dark:!bg-red-900/10 border border-red-200 dark:border-red-900/50 !text-red-600 dark:!text-red-400' : ''
-              ]"
-            >
-              <!-- 文本内容区 -->
-              <div v-if="msg.isError" class="flex flex-col gap-3">
-                 <div class="flex items-start gap-2">
-                    <i class="fa-solid fa-triangle-exclamation mt-1 shrink-0"></i>
-                    <div class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
-                 </div>
-                 <button 
-                   v-if="msg.retryParams && !aiStore.isProcessing"
-                   @click="aiStore.retryMessage(msg.id)"
-                   class="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-all active:scale-95 shadow-md shadow-red-500/20"
-                 >
-                    <i class="fa-solid fa-rotate-right text-[10px]"></i>
-                    立即重试任务
-                 </button>
-              </div>
-              <div v-else class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
-
-              <!-- 智能建议操作卡片 -->
-              <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="mt-2 space-y-2">
-                 <div v-for="call in msg.toolCalls" :key="call.id" 
-                   class="group/tool relative border transition-all duration-200 overflow-hidden"
-                   :class="[
-                     (aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name))
-                      ? 'bg-transparent border-gray-200 dark:border-white/5 opacity-60' 
-                      : 'bg-[#f8f9fb] dark:bg-[#252526] border-[#e1e4e8] dark:border-[#3e3e42] rounded-lg shadow-sm hover:border-blue-400/50'
-                   ]"
-                 >
-                    <div class="p-3">
-                       <!-- 核心概览行：始终可见 -->
-                       <div class="flex items-start gap-3 cursor-pointer select-none" @click="expandedToolCallIds.has(call.id) ? expandedToolCallIds.delete(call.id) : expandedToolCallIds.add(call.id)">
-                          <!-- 状态图标 -->
-                          <div class="mt-0.5 shrink-0 w-5 h-5 rounded flex items-center justify-center text-[10px]"
-                            :class="[
-                              readOnlyTools.includes(call.function.name) || (aiStore.executedToolCallIds.has(call.id) && !isToolRejected(call.id) && !isToolFailed(call.id)) ? 'text-green-500 bg-green-500/5' : '',
-                              isToolRejected(call.id) ? 'text-gray-400 bg-gray-100 dark:bg-white/5' : '',
-                              isToolFailed(call.id) ? 'text-red-500 bg-red-500/5' : '',
-                              !aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) ? 'text-blue-500 bg-blue-500/5 dark:bg-blue-400/10' : ''
-                            ]"
-                          >
-                            <i v-if="readOnlyTools.includes(call.function.name) || (aiStore.executedToolCallIds.has(call.id) && !isToolRejected(call.id) && !isToolFailed(call.id))" class="fa-solid fa-square-check"></i>
-                            <i v-else-if="isToolRejected(call.id)" class="fa-solid fa-ban"></i>
-                            <i v-else-if="isToolFailed(call.id)" class="fa-solid fa-triangle-exclamation"></i>
-                            <i v-else class="fa-solid fa-wand-magic-sparkles"></i>
-                          </div>
-
-                          <div class="flex-1 min-w-0">
-                             <div class="text-[12px] leading-relaxed text-gray-700 dark:text-gray-300 font-medium">
-                               <span v-if="readOnlyTools.includes(call.function.name)" class="text-[10px] opacity-60 font-bold uppercase mr-1">[已自动]</span>
-                               <span v-else-if="isToolRejected(call.id)" class="text-[10px] text-gray-400 font-bold uppercase mr-1">[已拒绝]</span>
-                               <span v-else-if="isToolFailed(call.id)" class="text-[10px] text-red-600 dark:text-red-500 font-bold uppercase mr-1">[执行失败]</span>
-                               <span v-else-if="aiStore.executedToolCallIds.has(call.id)" class="text-[10px] text-green-600 dark:text-green-500 opacity-80 font-bold uppercase mr-1">[已执行]</span>
-                               {{ getToolSummary(call) }}
-                             </div>
-
-                             <!-- 修改动作按钮：始终可见 -->
-                             <div v-if="!aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) && !aiStore.isProcessing" class="mt-2.5 flex items-center gap-2">
-                               <button 
-                                 @click.stop="handleApplyTool(msg.id, call)"
-                                 class="text-[10px] bg-[#007acc] hover:bg-[#0062a3] text-white px-3 py-1.5 rounded transition-all font-bold shadow-md flex items-center gap-1.5 active:scale-95"
-                               >
-                                 <i class="fa-solid fa-bolt-lightning text-[9px]"></i>
-                                 确认执行
-                               </button>
-                               <button 
-                                 @click.stop="handleRejectTool(msg.id, call)"
-                                 class="text-[10px] bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded transition-all font-bold flex items-center gap-1.5 active:scale-95"
-                               >
-                                 <i class="fa-solid fa-ban text-[8px]"></i>
-                                 拒绝
-                               </button>
-                             </div>
-                          </div>
-
-                          <!-- 展开指示 -->
-                          <div class="text-[9px] text-gray-400 self-center">
-                            <i class="fa-solid" :class="expandedToolCallIds.has(call.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                          </div>
-                       </div>
-
-                       <!-- 展开详情区 -->
-                       <div v-if="expandedToolCallIds.has(call.id)" class="mt-3 pt-3 border-t dark:border-white/5 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                          <!-- 1. 技术详情 -->
-                          <div class="space-y-1">
-                             <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                               <i class="fa-solid fa-terminal text-[8px]"></i>
-                               技术接口 (API)
-                             </div>
-                             <div class="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-500/5 inline-block px-1.5 py-0.5 rounded border border-blue-500/10">
-                               {{ call.function.name }}
-                             </div>
-                          </div>
-
-                          <!-- 2. AI 传入参数 -->
-                          <div class="space-y-1">
-                             <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                               <i class="fa-solid fa-sliders text-[8px]"></i>
-                               执行参数
-                             </div>
-                             <pre class="p-2 bg-gray-50 dark:bg-black/20 rounded border dark:border-white/5 text-[10px] text-gray-500 overflow-x-auto whitespace-pre-wrap leading-tight max-h-[150px] custom-scrollbar">{{ formatArgs(call.function.arguments) }}</pre>
-                          </div>
-
-                          <!-- 3. 执行结果反馈 -->
-                          <div v-if="getToolResultForCall(call.id)" class="space-y-1">
-                             <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                               <i class="fa-solid fa-reply-all text-[8px]"></i>
-                               执行结果
-                             </div>
-                             <div 
-                               class="p-2 rounded border text-[10px] font-mono leading-relaxed"
-                               :class="isToolRejected(call.id) ? 'bg-gray-500/5 border-gray-500/10 text-gray-500' : 'bg-green-500/5 dark:bg-green-500/10 border-green-500/10 text-green-600 dark:text-green-400/80'"
-                             >
-                                {{ isToolRejected(call.id) ? '用户拒绝了此项操作。' : getToolResultForCall(call.id)?.content }}
-                             </div>
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-
-              <!-- 上下文引用 Chips：移动至泡泡右下角 -->
-              <div v-if="msg.selectedReferences && msg.selectedReferences.length > 0" class="mt-2 flex flex-wrap justify-end gap-1 border-t border-black/5 dark:border-white/5 pt-2">
-                <div v-for="(ref, ridx) in msg.selectedReferences" :key="ridx" 
-                  class="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full border transition-colors shadow-sm"
-                  :class="msg.role === 'user' 
-                    ? 'bg-white/20 border-white/20 text-white' 
-                    : 'bg-purple-50 dark:bg-purple-900/40 border-purple-100 dark:border-purple-800 text-purple-600 dark:text-purple-400'"
+                <button 
+                  v-if="msg.retryParams && !aiStore.isProcessing"
+                  @click="aiStore.retryMessage(msg.id)"
+                  class="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-all active:scale-95 shadow-md shadow-red-500/20"
                 >
-                  <i class="fa-solid fa-at text-[7px] opacity-70"></i>
-                  <span>{{ ref.label }}</span>
+                  <i class="fa-solid fa-rotate-right text-[10px]"></i>
+                  立即重试任务
+                </button>
+            </div>
+            <div v-else class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
+
+            <!-- 智能建议操作卡片 -->
+            <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="mt-2 space-y-2">
+                <div v-for="call in msg.toolCalls" :key="call.id" 
+                  class="group/tool relative border transition-all duration-200 overflow-hidden"
+                  :class="[
+                    (aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name))
+                    ? 'bg-transparent border-gray-200 dark:border-white/5 opacity-60' 
+                    : 'bg-[#f8f9fb] dark:bg-[#252526] border-[#e1e4e8] dark:border-[#3e3e42] rounded-lg shadow-sm hover:border-blue-400/50'
+                  ]"
+                >
+                  <div class="p-3">
+                      <!-- 核心概览行：始终可见 -->
+                      <div class="flex items-start gap-3 cursor-pointer select-none" @click="expandedToolCallIds.has(call.id) ? expandedToolCallIds.delete(call.id) : expandedToolCallIds.add(call.id)">
+                        <!-- 状态图标 -->
+                        <div class="mt-0.5 shrink-0 w-5 h-5 rounded flex items-center justify-center text-[10px]"
+                          :class="[
+                            readOnlyTools.includes(call.function.name) || (aiStore.executedToolCallIds.has(call.id) && !isToolRejected(call.id) && !isToolFailed(call.id)) ? 'text-green-500 bg-green-500/5' : '',
+                            isToolRejected(call.id) ? 'text-gray-400 bg-gray-100 dark:bg-white/5' : '',
+                            isToolFailed(call.id) ? 'text-red-500 bg-red-500/5' : '',
+                            !aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) ? 'text-blue-500 bg-blue-500/5 dark:bg-blue-400/10' : ''
+                          ]"
+                        >
+                          <i v-if="readOnlyTools.includes(call.function.name) || (aiStore.executedToolCallIds.has(call.id) && !isToolRejected(call.id) && !isToolFailed(call.id))" class="fa-solid fa-square-check"></i>
+                          <i v-else-if="isToolRejected(call.id)" class="fa-solid fa-ban"></i>
+                          <i v-else-if="isToolFailed(call.id)" class="fa-solid fa-triangle-exclamation"></i>
+                          <i v-else class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[12px] leading-relaxed text-gray-700 dark:text-gray-300 font-medium">
+                              <span v-if="readOnlyTools.includes(call.function.name)" class="text-[10px] opacity-60 font-bold uppercase mr-1">[已自动]</span>
+                              <span v-else-if="isToolRejected(call.id)" class="text-[10px] text-gray-400 font-bold uppercase mr-1">[已拒绝]</span>
+                              <span v-else-if="isToolFailed(call.id)" class="text-[10px] text-red-600 dark:text-red-500 font-bold uppercase mr-1">[执行失败]</span>
+                              <span v-else-if="aiStore.executedToolCallIds.has(call.id)" class="text-[10px] text-green-600 dark:text-green-500 opacity-80 font-bold uppercase mr-1">[已执行]</span>
+                              {{ getToolSummary(call) }}
+                            </div>
+
+                            <!-- 修改动作按钮：始终可见 -->
+                            <div v-if="!aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) && !aiStore.isProcessing" class="mt-2.5 flex items-center gap-2">
+                              <button 
+                                @click.stop="handleApplyTool(msg.id, call)"
+                                class="text-[10px] bg-[#007acc] hover:bg-[#0062a3] text-white px-3 py-1.5 rounded transition-all font-bold shadow-md flex items-center gap-1.5 active:scale-95"
+                              >
+                                <i class="fa-solid fa-bolt-lightning text-[9px]"></i>
+                                确认执行
+                              </button>
+                              <button 
+                                @click.stop="handleRejectTool(msg.id, call)"
+                                class="text-[10px] bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded transition-all font-bold flex items-center gap-1.5 active:scale-95"
+                              >
+                                <i class="fa-solid fa-ban text-[8px]"></i>
+                                拒绝
+                              </button>
+                            </div>
+                        </div>
+
+                        <!-- 展开指示 -->
+                        <div class="text-[9px] text-gray-400 self-center">
+                          <i class="fa-solid" :class="expandedToolCallIds.has(call.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                        </div>
+                      </div>
+
+                      <!-- 展开详情区 -->
+                      <div v-if="expandedToolCallIds.has(call.id)" class="mt-3 pt-3 border-t dark:border-white/5 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <!-- 1. 技术详情 -->
+                        <div class="space-y-1">
+                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                              <i class="fa-solid fa-terminal text-[8px]"></i>
+                              技术接口 (API)
+                            </div>
+                            <div class="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-500/5 inline-block px-1.5 py-0.5 rounded border border-blue-500/10">
+                              {{ call.function.name }}
+                            </div>
+                        </div>
+
+                        <!-- 2. AI 传入参数 -->
+                        <div class="space-y-1">
+                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                              <i class="fa-solid fa-sliders text-[8px]"></i>
+                              执行参数
+                            </div>
+                            <pre class="p-2 bg-gray-50 dark:bg-black/20 rounded border dark:border-white/5 text-[10px] text-gray-500 overflow-x-auto whitespace-pre-wrap leading-tight max-h-[150px]">{{ formatArgs(call.function.arguments) }}</pre>
+                        </div>
+
+                        <!-- 3. 执行结果反馈 -->
+                        <div v-if="getToolResultForCall(call.id)" class="space-y-1">
+                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                              <i class="fa-solid fa-reply-all text-[8px]"></i>
+                              执行结果
+                            </div>
+                            <div 
+                              class="p-2 rounded border text-[10px] font-mono leading-relaxed"
+                              :class="isToolRejected(call.id) ? 'bg-gray-500/5 border-gray-500/10 text-gray-500' : 'bg-green-500/5 dark:bg-green-500/10 border-green-500/10 text-green-600 dark:text-green-400/80'"
+                            >
+                              {{ isToolRejected(call.id) ? '用户拒绝了此项操作。' : getToolResultForCall(call.id)?.content }}
+                            </div>
+                        </div>
+                      </div>
+                  </div>
+                </div>
+            </div>
+
+            <!-- 上下文引用 Chips：移动至泡泡右下角 -->
+            <div v-if="msg.selectedReferences && msg.selectedReferences.length > 0" class="mt-2 flex flex-wrap justify-end gap-1 border-t border-black/5 dark:border-white/5 pt-2">
+              <div v-for="(ref, ridx) in msg.selectedReferences" :key="ridx" 
+                class="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full border transition-colors shadow-sm"
+                :class="msg.role === 'user' 
+                  ? 'bg-white/20 border-white/20 text-white' 
+                  : 'bg-purple-50 dark:bg-purple-900/40 border-purple-100 dark:border-purple-800 text-purple-600 dark:text-purple-400'"
+              >
+                <i class="fa-solid fa-at text-[7px] opacity-70"></i>
+                <span>{{ ref.label }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 处理中表现：仅在没有正在生成的回复内容时显示 -->
+        <div v-if="aiStore.isProcessing && (!aiStore.history.length || (aiStore.history[aiStore.history.length-1].role !== 'assistant' || (!aiStore.history[aiStore.history.length-1].content?.trim() && !aiStore.history[aiStore.history.length-1].toolCalls?.length)))" class="flex flex-col gap-2 items-start shrink-0">
+          <div class="flex items-center justify-between gap-2 px-1 text-[10px] text-gray-400 w-full">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-robot animate-pulse"></i>
+                <span>G-Forge AI 正在思考...</span>
+              </div>
+              <button 
+                @click="aiStore.stopGeneration"
+                class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors border border-red-100 dark:bg-red-900/20 dark:border-red-900/30 dark:text-red-400 text-[9px] font-bold"
+              >
+                <i class="fa-solid fa-stop text-[8px]"></i>
+                终止生成
+              </button>
+          </div>
+          <div class="bg-gray-100 dark:bg-[#2d2d2d] rounded-2xl px-4 py-3 flex gap-1">
+            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 面板覆盖层 (不再作为滚动区的子项) -->
+      <transition name="panel-slide">
+        <div v-if="activePanel" class="absolute inset-0 bg-white/95 dark:bg-[#1e1e1e]/95 backdrop-blur-md z-40 flex flex-col shadow-inner overflow-hidden">
+          <header class="h-12 border-b dark:border-[#333] px-4 flex items-center justify-between shrink-0 bg-gray-50/50 dark:bg-[#252525]/50">
+            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+              <i :class="[
+                activePanel === 'context' ? 'fa-solid fa-database text-blue-500' : 'fa-solid fa-wand-sparkles text-purple-500'
+              ]"></i>
+              {{ activePanel === 'context' ? '参考上下文配置' : '指令模板库' }}
+            </span>
+            <div class="flex items-center gap-1">
+              <button v-if="activePanel === 'prompts'" @click="uiStore.openModal('prompt-library')" class="w-8 h-8 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded-lg text-purple-500 transition-colors" title="管理库">
+                <i class="fa-solid fa-gear text-xs"></i>
+              </button>
+              <button @click="activePanel = null" class="w-8 h-8 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#333] rounded-lg text-gray-400">
+                <i class="fa-solid fa-chevron-down text-sm"></i>
+              </button>
+            </div>
+          </header>
+          
+          <div class="flex-1 overflow-y-auto p-5 space-y-8">
+            <!-- 参考内容配置面板 -->
+            <div v-if="activePanel === 'context'" class="space-y-8">
+              <!-- 基础信息组 -->
+              <div class="space-y-3">
+                <div class="text-ui-header px-1">基础 & 备忘</div>
+                <div class="grid grid-cols-2 gap-3">
+                  <button 
+                    v-for="val in ['project', 'authorNotes']" 
+                    :key="val"
+                    @click="toggleContext(val)"
+                    class="flex items-center justify-between p-3 rounded-2xl border text-left transition-all hover:shadow-md relative"
+                    :class="aiStore.referenceKeys.includes(val) 
+                      ? 'bg-purple-50 border-purple-200 dark:bg-purple-900/10 dark:border-purple-800 ring-2 ring-purple-100/50 dark:ring-purple-900/30' 
+                      : 'bg-white dark:bg-[#252525] border-gray-100 dark:border-white/5 shadow-sm'"
+                  >
+                    <div class="flex items-center gap-3">
+                      <i class="text-xs" :class="[
+                        val === 'project' ? 'fa-solid fa-file-invoice' : 'fa-solid fa-note-sticky',
+                        aiStore.referenceKeys.includes(val) ? 'text-purple-600' : 'text-gray-400'
+                      ]"></i>
+                      <span class="text-[11px] font-bold" :class="aiStore.referenceKeys.includes(val) ? 'text-purple-700' : 'text-gray-600 dark:text-gray-400'">
+                        {{ findNodeByValue(val)?.label }}
+                      </span>
+                    </div>
+                    <!-- 红点数量 -->
+                    <span v-if="aiStore.referenceKeys.includes(val)" 
+                      class="text-[9px] bg-red-500 text-white min-w-[14px] h-[14px] flex items-center justify-center rounded-full px-1 shadow-sm font-bold scale-90"
+                    >
+                      1
+                    </span>
+                  </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- 处理中表现：仅在没有正在生成的回复内容时显示 -->
-          <div v-if="aiStore.isProcessing && (!aiStore.history.length || (aiStore.history[aiStore.history.length-1].role !== 'assistant' || (!aiStore.history[aiStore.history.length-1].content?.trim() && !aiStore.history[aiStore.history.length-1].toolCalls?.length)))" class="flex flex-col gap-2 items-start shrink-0">
-            <div class="flex items-center justify-between gap-2 px-1 text-[10px] text-gray-400 w-full">
-               <div class="flex items-center gap-2">
-                 <i class="fa-solid fa-robot animate-pulse"></i>
-                 <span>G-Forge AI 正在思考...</span>
-               </div>
-               <button 
-                 @click="aiStore.stopGeneration"
-                 class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors border border-red-100 dark:bg-red-900/20 dark:border-red-900/30 dark:text-red-400 text-[9px] font-bold"
-               >
-                 <i class="fa-solid fa-stop text-[8px]"></i>
-                 终止生成
-               </button>
-            </div>
-            <div class="bg-gray-100 dark:bg-[#2d2d2d] rounded-2xl px-4 py-3 flex gap-1">
-              <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-              <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-              <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 面板覆盖层 (不再作为滚动区的子项) -->
-        <transition name="panel-slide">
-          <div v-if="activePanel" class="absolute inset-0 bg-white/95 dark:bg-[#1e1e1e]/95 backdrop-blur-md z-40 flex flex-col shadow-inner overflow-hidden">
-            <header class="h-12 border-b dark:border-[#333] px-4 flex items-center justify-between shrink-0 bg-gray-50/50 dark:bg-[#252525]/50">
-              <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                <i :class="[
-                  activePanel === 'context' ? 'fa-solid fa-database text-blue-500' : 'fa-solid fa-wand-sparkles text-purple-500'
-                ]"></i>
-                {{ activePanel === 'context' ? '参考上下文配置' : '指令模板库' }}
-              </span>
-              <div class="flex items-center gap-1">
-                <button v-if="activePanel === 'prompts'" @click="uiStore.openModal('prompt-library')" class="w-8 h-8 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded-lg text-purple-500 transition-colors" title="管理库">
-                  <i class="fa-solid fa-gear text-xs"></i>
-                </button>
-                <button @click="activePanel = null" class="w-8 h-8 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#333] rounded-lg text-gray-400">
-                  <i class="fa-solid fa-chevron-down text-sm"></i>
-                </button>
-              </div>
-            </header>
-            
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-8">
-              <!-- 参考内容配置面板 -->
-              <div v-if="activePanel === 'context'" class="space-y-8">
-                <!-- 基础信息组 -->
-                <div class="space-y-3">
-                  <div class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase px-1 tracking-wider">基础 & 备忘</div>
-                  <div class="grid grid-cols-2 gap-3">
+              <!-- 正文结构组 -->
+              <div class="space-y-3">
+                <div class="text-ui-header px-1">正文 & 结构</div>
+                <div class="space-y-4">
+                  <div v-for="val in ['manuscript', 'outline', 'chapters']" :key="val" class="space-y-2">
                     <button 
-                      v-for="val in ['project', 'authorNotes']" 
-                      :key="val"
                       @click="toggleContext(val)"
-                      class="flex items-center justify-between p-3 rounded-2xl border text-left transition-all hover:shadow-md relative"
+                      class="w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all hover:shadow-md group"
                       :class="aiStore.referenceKeys.includes(val) 
-                        ? 'bg-purple-50 border-purple-200 dark:bg-purple-900/10 dark:border-purple-800 ring-2 ring-purple-100/50 dark:ring-purple-900/30' 
+                        ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800 ring-2 ring-blue-100/50 dark:ring-blue-900/30' 
                         : 'bg-white dark:bg-[#252525] border-gray-100 dark:border-white/5 shadow-sm'"
                     >
-                      <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-3 truncate">
                         <i class="text-xs" :class="[
-                          val === 'project' ? 'fa-solid fa-file-invoice' : 'fa-solid fa-note-sticky',
-                          aiStore.referenceKeys.includes(val) ? 'text-purple-600' : 'text-gray-400'
+                          val === 'manuscript' ? 'fa-solid fa-pen-nib' : val === 'outline' ? 'fa-solid fa-diagram-project' : 'fa-solid fa-list-ul',
+                          aiStore.referenceKeys.includes(val) ? 'text-blue-600' : 'text-gray-400'
                         ]"></i>
-                        <span class="text-[11px] font-bold" :class="aiStore.referenceKeys.includes(val) ? 'text-purple-700' : 'text-gray-600 dark:text-gray-400'">
+                        <span class="text-[11px] font-bold truncate" :class="aiStore.referenceKeys.includes(val) ? 'text-blue-700' : 'text-gray-600 dark:text-gray-400'">
                           {{ findNodeByValue(val)?.label }}
                         </span>
                       </div>
-                      <!-- 红点数量 -->
-                      <span v-if="aiStore.referenceKeys.includes(val)" 
-                        class="text-[9px] bg-red-500 text-white min-w-[14px] h-[14px] flex items-center justify-center rounded-full px-1 shadow-sm font-bold scale-90"
-                      >
-                        1
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- 正文结构组 -->
-                <div class="space-y-3">
-                  <div class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase px-1 tracking-wider">正文 & 结构</div>
-                  <div class="space-y-4">
-                    <div v-for="val in ['manuscript', 'outline', 'chapters']" :key="val" class="space-y-2">
-                      <button 
-                        @click="toggleContext(val)"
-                        class="w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all hover:shadow-md group"
-                        :class="aiStore.referenceKeys.includes(val) 
-                          ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800 ring-2 ring-blue-100/50 dark:ring-blue-900/30' 
-                          : 'bg-white dark:bg-[#252525] border-gray-100 dark:border-white/5 shadow-sm'"
-                      >
-                        <div class="flex items-center gap-3 truncate">
-                          <i class="text-xs" :class="[
-                            val === 'manuscript' ? 'fa-solid fa-pen-nib' : val === 'outline' ? 'fa-solid fa-diagram-project' : 'fa-solid fa-list-ul',
-                            aiStore.referenceKeys.includes(val) ? 'text-blue-600' : 'text-gray-400'
-                          ]"></i>
-                          <span class="text-[11px] font-bold truncate" :class="aiStore.referenceKeys.includes(val) ? 'text-blue-700' : 'text-gray-600 dark:text-gray-400'">
-                            {{ findNodeByValue(val)?.label }}
-                          </span>
-                        </div>
-                        
-                        <div class="flex items-center gap-2">
-                          <!-- 红点数量 -->
-                          <span v-if="granularSelections[val]?.length > 0" 
-                            class="text-[9px] bg-red-500 text-white min-w-[14px] h-[14px] flex items-center justify-center rounded-full px-1 shadow-sm font-bold scale-90"
-                          >
-                            {{ granularSelections[val].length }}
-                          </span>
-                          <i v-if="findNodeByValue(val)?.isGranular" 
-                            class="fa-solid fa-chevron-right text-[8px] text-gray-300 group-hover:translate-x-0.5 transition-transform"
-                            :class="{ 'rotate-90': expandedKeys.includes(val) }"
-                          ></i>
-                        </div>
-                      </button>
                       
-                      <!-- 在其下方展开筛选框 -->
-                      <div v-if="expandedKeys.includes(val) && findNodeByValue(val)?.isGranular" 
-                           class="bg-indigo-50/30 dark:bg-indigo-900/5 border border-indigo-100/50 dark:border-indigo-800/30 rounded-2xl p-3 shadow-inner">
-                        <div class="mb-2 flex items-center justify-between">
-                          <div class="text-[9px] font-bold text-indigo-400 dark:text-indigo-500/50 uppercase tracking-widest flex items-center gap-2">
-                            <i class="fa-solid fa-filter text-[8px]"></i>
-                            针对 {{ findNodeByValue(val)?.label }} 的筛选
-                          </div>
-                          <!-- 全选按钮 (手稿正文不显示) -->
-                          <button 
-                            v-if="val !== 'manuscript'"
-                            @click="toggleSelectAll(val)"
-                            class="text-[9px] font-bold px-2 py-0.5 rounded bg-white dark:bg-black/20 border dark:border-white/10 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm"
-                          >
-                            {{ (granularSelections[val]?.length || 0) === getOptionsForValue(val).length ? '取消全选' : '全选' }}
-                          </button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-1.5 max-h-[130px] overflow-y-auto custom-scrollbar pr-1">
-                          <button 
-                            v-for="item in getOptionsForValue(val)" 
-                            :key="item.id"
-                            @click="toggleGranularItem(val, item.id)"
-                            class="px-2 py-1.5 rounded-lg text-[10px] border transition-all truncate text-left"
-                            :class="granularSelections[val]?.includes(item.id) 
-                              ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm' 
-                              : 'bg-white dark:bg-[#111] border-gray-100 dark:border-white/5 text-gray-500'"
-                          >
-                            {{ item.label }}
-                          </button>
-                        </div>
+                      <div class="flex items-center gap-2">
+                        <!-- 红点数量 -->
+                        <span v-if="granularSelections[val]?.length > 0" 
+                          class="text-[9px] bg-red-500 text-white min-w-[14px] h-[14px] flex items-center justify-center rounded-full px-1 shadow-sm font-bold scale-90"
+                        >
+                          {{ granularSelections[val].length }}
+                        </span>
+                        <i v-if="findNodeByValue(val)?.isGranular" 
+                          class="fa-solid fa-chevron-right text-[8px] text-gray-300 group-hover:translate-x-0.5 transition-transform"
+                          :class="{ 'rotate-90': expandedKeys.includes(val) }"
+                        ></i>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 世界角色组 -->
-                <div class="space-y-3">
-                  <div class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase px-1 tracking-wider">世界 & 角色</div>
-                  <div class="space-y-4">
-                    <div v-for="val in ['worldview', 'timeline', 'character']" :key="val" class="space-y-2">
-                      <button 
-                        @click="toggleContext(val)"
-                        class="w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all hover:shadow-md group"
-                        :class="aiStore.referenceKeys.includes(val) 
-                          ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/10 dark:border-orange-800 ring-2 ring-orange-100/50 dark:ring-orange-900/30' 
-                          : 'bg-white dark:bg-[#252525] border-gray-100 dark:border-white/5 shadow-sm'"
-                      >
-                        <div class="flex items-center gap-3 truncate">
-                          <i class="text-xs" :class="[
-                            val === 'worldview' ? 'fa-solid fa-earth-asia' : val === 'timeline' ? 'fa-solid fa-clock-rotate-left' : 'fa-solid fa-users',
-                            aiStore.referenceKeys.includes(val) ? 'text-orange-600' : 'text-gray-400'
-                          ]"></i>
-                          <span class="text-[11px] font-bold truncate" :class="aiStore.referenceKeys.includes(val) ? 'text-orange-700' : 'text-gray-600 dark:text-gray-400'">
-                            {{ findNodeByValue(val)?.label }}
-                          </span>
+                    </button>
+                    
+                    <!-- 在其下方展开筛选框 -->
+                    <div v-if="expandedKeys.includes(val) && findNodeByValue(val)?.isGranular" 
+                          class="bg-indigo-50/30 dark:bg-indigo-900/5 border border-indigo-100/50 dark:border-indigo-800/30 rounded-2xl p-3 shadow-inner">
+                      <div class="mb-2 flex items-center justify-between">
+                        <div class="text-ui-header flex items-center gap-2">
+                          <i class="fa-solid fa-filter text-[8px]"></i>
+                          针对 {{ findNodeByValue(val)?.label }} 的筛选
                         </div>
-                        
-                        <div class="flex items-center gap-2">
-                          <!-- 红点数量 -->
-                          <span v-if="granularSelections[val]?.length > 0" 
-                            class="text-[9px] bg-red-500 text-white min-w-[14px] h-[14px] flex items-center justify-center rounded-full px-1 shadow-sm font-bold scale-90"
-                          >
-                            {{ granularSelections[val].length }}
-                          </span>
-                          <i v-if="findNodeByValue(val)?.isGranular" 
-                            class="fa-solid fa-chevron-right text-[8px] text-gray-300 group-hover:translate-x-0.5 transition-transform"
-                            :class="{ 'rotate-90': expandedKeys.includes(val) }"
-                          ></i>
-                        </div>
-                      </button>
-
-                      <div v-if="expandedKeys.includes(val) && findNodeByValue(val)?.isGranular" 
-                           class="bg-indigo-50/30 dark:bg-indigo-900/5 border border-indigo-100/50 dark:border-indigo-800/30 rounded-2xl p-3 shadow-inner">
-                        <div class="mb-2 flex items-center justify-between">
-                          <div class="text-[9px] font-bold text-indigo-400 dark:text-indigo-500/50 uppercase tracking-widest flex items-center gap-2">
-                            <i class="fa-solid fa-filter text-[8px]"></i>
-                            针对 {{ findNodeByValue(val)?.label }} 的筛选 
-                          </div>
-                          <!-- 全选按钮 (手稿正文不显示) -->
-                          <button 
-                            v-if="val !== 'manuscript'"
-                            @click="toggleSelectAll(val)"
-                            class="text-[9px] font-bold px-2 py-0.5 rounded bg-white dark:bg-black/20 border dark:border-white/10 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm"
-                          >
-                            {{ (granularSelections[val]?.length || 0) === getOptionsForValue(val).length ? '取消全选' : '全选' }}
-                          </button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-1.5 max-h-[130px] overflow-y-auto custom-scrollbar pr-1">
-                          <button 
-                            v-for="item in getOptionsForValue(val)" 
-                            :key="item.id"
-                            @click="toggleGranularItem(val, item.id)"
-                            class="px-2 py-1.5 rounded-lg text-[10px] border transition-all truncate text-left"
-                            :class="granularSelections[val]?.includes(item.id) 
-                              ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm' 
-                              : 'bg-white dark:bg-[#111] border-gray-100 dark:border-white/5 text-gray-500'"
-                          >
-                            {{ item.label }}
-                          </button>
-                        </div>
+                        <!-- 全选按钮 (手稿正文不显示) -->
+                        <button 
+                          v-if="val !== 'manuscript'"
+                          @click="toggleSelectAll(val)"
+                          class="text-[9px] font-bold px-2 py-0.5 rounded bg-white dark:bg-black/20 border dark:border-white/10 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm"
+                        >
+                          {{ (granularSelections[val]?.length || 0) === getOptionsForValue(val).length ? '取消全选' : '全选' }}
+                        </button>
+                      </div>
+                      <div class="grid grid-cols-2 gap-1.5 max-h-[130px] overflow-y-auto custom-scrollbar pr-1">
+                        <button 
+                          v-for="item in getOptionsForValue(val)" 
+                          :key="item.id"
+                          @click="toggleGranularItem(val, item.id)"
+                          class="px-2 py-1.5 rounded-lg text-[10px] border transition-all truncate text-left"
+                          :class="granularSelections[val]?.includes(item.id) 
+                            ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm' 
+                            : 'bg-white dark:bg-[#111] border-gray-100 dark:border-white/5 text-gray-500'"
+                        >
+                          {{ item.label }}
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- 指令模板列表 -->
-              <div v-if="activePanel === 'prompts'" class="space-y-4 pb-12">
-                <div v-for="p in aiStore.allPrompts" :key="p.id" 
-                  @click="selectedPromptId = p.id; activePanel = null"
-                  class="p-4 rounded-3xl border transition-all cursor-pointer group hover:shadow-xl hover:-translate-y-0.5 relative"
-                  :class="selectedPromptId === p.id 
-                    ? 'bg-purple-50 border-purple-200 dark:bg-purple-900/10 dark:border-purple-800 ring-2 ring-purple-100 dark:ring-purple-900/20' 
-                    : 'bg-white dark:bg-[#252525] border-gray-100 dark:border-white/5 shadow-sm'"
-                >
-                  <div class="flex justify-between items-start mb-1">
-                    <div class="flex items-center gap-2">
-                       <i class="fa-solid" :class="[
-                         p.id.startsWith('builtin-') ? 'fa-shield-halved text-[9px] text-blue-400' : 'fa-wand-magic-sparkles text-[10px]',
-                         selectedPromptId === p.id ? 'text-purple-600' : 'text-gray-400'
-                       ]"></i>
-                       <span class="text-[11px] font-bold" :class="selectedPromptId === p.id ? 'text-purple-700' : 'text-gray-600 dark:text-gray-400'">
-                        {{ p.label }}
-                       </span>
+              <!-- 世界角色组 -->
+              <div class="space-y-3">
+                <div class="text-ui-header px-1">世界 & 角色</div>
+                <div class="space-y-4">
+                  <div v-for="val in ['worldview', 'timeline', 'character']" :key="val" class="space-y-2">
+                    <button 
+                      @click="toggleContext(val)"
+                      class="w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all hover:shadow-md group"
+                      :class="aiStore.referenceKeys.includes(val) 
+                        ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/10 dark:border-orange-800 ring-2 ring-orange-100/50 dark:ring-orange-900/30' 
+                        : 'bg-white dark:bg-[#252525] border-gray-100 dark:border-white/5 shadow-sm'"
+                    >
+                      <div class="flex items-center gap-3 truncate">
+                        <i class="text-xs" :class="[
+                          val === 'worldview' ? 'fa-solid fa-earth-asia' : val === 'timeline' ? 'fa-solid fa-clock-rotate-left' : 'fa-solid fa-users',
+                          aiStore.referenceKeys.includes(val) ? 'text-orange-600' : 'text-gray-400'
+                        ]"></i>
+                        <span class="text-[11px] font-bold truncate" :class="aiStore.referenceKeys.includes(val) ? 'text-orange-700' : 'text-gray-600 dark:text-gray-400'">
+                          {{ findNodeByValue(val)?.label }}
+                        </span>
+                      </div>
+                      
+                      <div class="flex items-center gap-2">
+                        <!-- 红点数量 -->
+                        <span v-if="granularSelections[val]?.length > 0" 
+                          class="text-[9px] bg-red-500 text-white min-w-[14px] h-[14px] flex items-center justify-center rounded-full px-1 shadow-sm font-bold scale-90"
+                        >
+                          {{ granularSelections[val].length }}
+                        </span>
+                        <i v-if="findNodeByValue(val)?.isGranular" 
+                          class="fa-solid fa-chevron-right text-[8px] text-gray-300 group-hover:translate-x-0.5 transition-transform"
+                          :class="{ 'rotate-90': expandedKeys.includes(val) }"
+                        ></i>
+                      </div>
+                    </button>
+
+                    <div v-if="expandedKeys.includes(val) && findNodeByValue(val)?.isGranular" 
+                         class="bg-indigo-50/30 dark:bg-indigo-900/5 border border-indigo-100/50 dark:border-indigo-800/30 rounded-2xl p-3 shadow-inner">
+                      <div class="mb-2 flex items-center justify-between">
+                        <div class="text-ui-header flex items-center gap-2">
+                          <i class="fa-solid fa-filter text-[8px]"></i>
+                          针对 {{ findNodeByValue(val)?.label }} 的筛选
+                        </div>
+                        <!-- 全选按钮 (手稿正文不显示) -->
+                        <button 
+                          v-if="val !== 'manuscript'"
+                          @click="toggleSelectAll(val)"
+                          class="text-[9px] font-bold px-2 py-0.5 rounded bg-white dark:bg-black/20 border dark:border-white/10 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm"
+                        >
+                          {{ (granularSelections[val]?.length || 0) === getOptionsForValue(val).length ? '取消全选' : '全选' }}
+                        </button>
+                      </div>
+                      <div class="grid grid-cols-2 gap-1.5 max-h-[130px] overflow-y-auto custom-scrollbar pr-1">
+                        <button 
+                          v-for="item in getOptionsForValue(val)" 
+                          :key="item.id"
+                          @click="toggleGranularItem(val, item.id)"
+                          class="px-2 py-1.5 rounded-lg text-[10px] border transition-all truncate text-left"
+                          :class="granularSelections[val]?.includes(item.id) 
+                            ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm' 
+                            : 'bg-white dark:bg-[#111] border-gray-100 dark:border-white/5 text-gray-500'"
+                        >
+                          {{ item.label }}
+                        </button>
+                      </div>
                     </div>
-                    <span class="text-[8px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-black/20 text-gray-400 uppercase tracking-tighter">
-                      {{ p.category }}
-                    </span>
                   </div>
-                  <p class="text-[10px] text-gray-400 leading-relaxed italic line-clamp-2">
-                    {{ p.description }}
-                  </p>
                 </div>
               </div>
             </div>
+
+            <!-- 指令模板列表 -->
+            <div v-if="activePanel === 'prompts'" class="space-y-4 pb-12">
+              <div v-for="p in aiStore.allPrompts" :key="p.id" 
+                @click="selectedPromptId = p.id; activePanel = null"
+                class="p-4 rounded-3xl border transition-all cursor-pointer group hover:shadow-xl hover:-translate-y-0.5 relative"
+                :class="selectedPromptId === p.id 
+                  ? 'bg-purple-50 border-purple-200 dark:bg-purple-900/10 dark:border-purple-800 ring-2 ring-purple-100 dark:ring-purple-900/20' 
+                  : 'bg-white dark:bg-[#252525] border-gray-100 dark:border-white/5 shadow-sm'"
+              >
+                <div class="flex justify-between items-start mb-1">
+                  <div class="flex items-center gap-2">
+                      <i class="fa-solid" :class="[
+                        p.id.startsWith('builtin-') ? 'fa-shield-halved text-[9px] text-blue-400' : 'fa-wand-magic-sparkles text-[10px]',
+                        selectedPromptId === p.id ? 'text-purple-600' : 'text-gray-400'
+                      ]"></i>
+                      <span class="text-[11px] font-bold" :class="selectedPromptId === p.id ? 'text-purple-700' : 'text-gray-600 dark:text-gray-400'">
+                      {{ p.label }}
+                      </span>
+                  </div>
+                  <span class="text-[8px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-black/20 text-gray-400 uppercase tracking-tighter">
+                    {{ p.category }}
+                  </span>
+                </div>
+                <p class="text-[10px] text-gray-400 leading-relaxed italic line-clamp-2">
+                  {{ p.description }}
+                </p>
+              </div>
+            </div>
           </div>
-        </transition>
+        </div>
+      </transition>
+    </div>
+
+
+    <!-- 输入区 (4行设计) -->
+    <footer class="p-4 border-t dark:border-[#333] bg-gray-50/50 dark:bg-[#252525]/50 backdrop-blur-md shrink-0 space-y-2">
+      <!-- 第一行：任务与上下文控制区 -->
+      <div class="flex items-center gap-2">
+        <!-- 提示词选择 -->
+        <div class="relative flex-1 group">
+          <button 
+            @click="activePanel = activePanel === 'prompts' ? null : 'prompts'"
+            class="w-full h-9 flex items-center justify-between gap-2 px-3 rounded-xl border text-[11px] font-bold transition-all bg-white dark:bg-[#1e1e1e] border-gray-100 dark:border-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            :class="{ 'border-purple-500/50 text-purple-600': selectedPromptId }"
+          >
+            <div class="flex items-center gap-2 truncate">
+              <i class="fa-solid fa-wand-sparkles text-[9px]"></i>
+              <span class="truncate">{{ selectedPromptId ? (aiStore.allPrompts.find(p => p.id === selectedPromptId)?.label) : '选择任务模板' }}</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-[8px] opacity-50"></i>
+          </button>
+          <button v-if="selectedPromptId" @click.stop="selectedPromptId = ''" class="absolute -top-1 -right-1 w-4 h-4 bg-gray-100 dark:bg-[#333] rounded-full flex items-center justify-center text-[8px] hover:text-red-500 transition-colors">
+              <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- 实体选择开关 (手动面板) -->
+        <button 
+          @click="activePanel = activePanel === 'context' ? null : 'context'"
+          class="w-9 h-9 flex items-center justify-center rounded-xl border text-[11px] transition-all"
+          :class="activePanel === 'context' 
+            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' 
+            : 'bg-white dark:bg-[#1e1e1e] border-gray-100 dark:border-white/5 text-gray-400'"
+          title="手动选择参考上下文"
+        >
+          <i class="fa-solid fa-database text-[10px]"></i>
+        </button>
+
+        <!-- 添加当前到参考 -->
+        <button 
+          @click="addCurrentEntityToReference"
+          :disabled="!canReferenceCurrent"
+          class="w-9 h-9 flex items-center justify-center rounded-xl border transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+          :class="canReferenceCurrent 
+            ? 'border-indigo-100 dark:border-indigo-800/50 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:scale-105 shadow-sm shadow-indigo-500/10' 
+            : 'border-gray-100 dark:border-white/5 bg-white dark:bg-[#1e1e1e] text-gray-400'"
+          title="添加当前页面实体到参考"
+        >
+          <i class="fa-solid fa-link text-[10px]"></i>
+        </button>
       </div>
 
-
-      <!-- 输入区 (4行设计) -->
-      <footer class="p-4 border-t dark:border-[#333] bg-gray-50/50 dark:bg-[#252525]/50 backdrop-blur-md shrink-0 space-y-2">
-        <!-- 第一行：任务与上下文控制区 -->
-        <div class="flex items-center gap-2">
-          <!-- 提示词选择 -->
-          <div class="relative flex-1 group">
-            <button 
-              @click="activePanel = activePanel === 'prompts' ? null : 'prompts'"
-              class="w-full h-9 flex items-center justify-between gap-2 px-3 rounded-xl border text-[11px] font-bold transition-all bg-white dark:bg-[#1e1e1e] border-gray-100 dark:border-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              :class="{ 'border-purple-500/50 text-purple-600': selectedPromptId }"
-            >
-              <div class="flex items-center gap-2 truncate">
-                <i class="fa-solid fa-wand-sparkles text-[9px]"></i>
-                <span class="truncate">{{ selectedPromptId ? (aiStore.allPrompts.find(p => p.id === selectedPromptId)?.label) : '选择任务模板' }}</span>
-              </div>
-              <i class="fa-solid fa-chevron-down text-[8px] opacity-50"></i>
-            </button>
-            <button v-if="selectedPromptId" @click.stop="selectedPromptId = ''" class="absolute -top-1 -right-1 w-4 h-4 bg-gray-100 dark:bg-[#333] rounded-full flex items-center justify-center text-[8px] hover:text-red-500 transition-colors">
-               <i class="fa-solid fa-xmark"></i>
-            </button>
-          </div>
-
-          <!-- 实体选择开关 (手动面板) -->
-          <button 
-            @click="activePanel = activePanel === 'context' ? null : 'context'"
-            class="w-9 h-9 flex items-center justify-center rounded-xl border text-[11px] transition-all"
-            :class="activePanel === 'context' 
-              ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' 
-              : 'bg-white dark:bg-[#1e1e1e] border-gray-100 dark:border-white/5 text-gray-400'"
-            title="手动选择参考上下文"
-          >
-            <i class="fa-solid fa-database text-[10px]"></i>
-          </button>
-
-          <!-- 添加当前到参考 -->
-          <button 
-            @click="addCurrentEntityToReference"
-            :disabled="!canReferenceCurrent"
-            class="w-9 h-9 flex items-center justify-center rounded-xl border transition-all disabled:opacity-20 disabled:cursor-not-allowed"
-            :class="canReferenceCurrent 
-              ? 'border-indigo-100 dark:border-indigo-800/50 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:scale-105 shadow-sm shadow-indigo-500/10' 
-              : 'border-gray-100 dark:border-white/5 bg-white dark:bg-[#1e1e1e] text-gray-400'"
-            title="添加当前页面实体到参考"
-          >
-            <i class="fa-solid fa-link text-[10px]"></i>
+      <!-- 第二行：参考实体展示行 -->
+      <div v-if="activeReferences.length > 0" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-h-[28px]">
+        <div 
+          v-for="(ref, idx) in activeReferences" 
+          :key="idx"
+          class="flex items-center gap-1.5 px-2.5 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 text-[10px] text-indigo-600 dark:text-indigo-400 group shrink-0"
+        >
+          <i class="fa-solid" :class="[
+            ref.type === 'character' ? 'fa-user' : 
+            ref.type === 'manuscript' ? 'fa-file-lines' : 
+            ref.type === 'outline' ? 'fa-scroll' :
+            ref.type === 'worldview' ? 'fa-earth-asia' : 
+            ref.type === 'timeline' ? 'fa-clock-rotate-left' : 
+            ref.type === 'chapters' ? 'fa-list-ul' : 'fa-tag'
+          ]"></i>
+          <span class="font-bold">@{{ ref.label }}</span>
+          <button @click="removeReference(ref)" class="hover:text-red-500 transition-colors ml-0.5">
+            <i class="fa-solid fa-circle-xmark opacity-60"></i>
           </button>
         </div>
+      </div>
 
-        <!-- 第二行：参考实体展示行 -->
-        <div v-if="activeReferences.length > 0" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-h-[28px]">
-          <div 
-            v-for="(ref, idx) in activeReferences" 
-            :key="idx"
-            class="flex items-center gap-1.5 px-2.5 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 text-[10px] text-indigo-600 dark:text-indigo-400 group shrink-0"
+      <!-- 第三行：输入区 -->
+      <div class="relative group">
+        <Input 
+          ref="inputAreaRef"
+          v-model="input"
+          type="textarea"
+          :rows="4"
+          color="purple"
+          input-class="!rounded-2xl pl-4 pr-12 py-3 text-[13px] leading-relaxed shadow-sm"
+          placeholder="输入任务描述，支持 @ 引用实体..."
+          @input="handleAtInput"
+          @blur="handleAtBlur"
+          @keydown="handleAtKeydown"
+          @keydown.enter.ctrl.exact="send"
+        />
+      </div>
+
+      <!-- 第四行：执行控制区 -->
+      <div class="flex items-center justify-between gap-2 h-9">
+        <div class="flex items-center gap-2 h-full">
+          <!-- 模式选择 -->
+          <select 
+            v-model="executionMode"
+            class="h-full bg-white dark:bg-[#1e1e1e] border border-gray-100 dark:border-white/10 rounded-xl px-2.5 text-[11px] font-bold outline-none transition-all cursor-pointer"
+            :class="executionMode === 'agent' ? 'text-orange-500 border-orange-500/30' : 'text-blue-500 border-blue-500/30'"
           >
-            <i class="fa-solid" :class="[
-              ref.type === 'character' ? 'fa-user' : 
-              ref.type === 'manuscript' ? 'fa-file-lines' : 
-              ref.type === 'outline' ? 'fa-scroll' :
-              ref.type === 'worldview' ? 'fa-earth-asia' : 
-              ref.type === 'timeline' ? 'fa-clock-rotate-left' : 
-              ref.type === 'chapters' ? 'fa-list-ul' : 'fa-tag'
-            ]"></i>
-            <span class="font-bold">@{{ ref.label }}</span>
-            <button @click="removeReference(ref)" class="hover:text-red-500 transition-colors ml-0.5">
-              <i class="fa-solid fa-circle-xmark opacity-60"></i>
-            </button>
+            <option value="chat">Chat</option>
+            <option value="agent">Agent</option>
+          </select>
+
+          <!-- 模型选择 (从 settingsStore 获取) -->
+          <div class="h-full flex items-center px-3 text-[11px] text-gray-400 font-mono bg-white/50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 truncate max-w-[140px]">
+            <i class="fa-solid fa-microchip text-[9px] mr-2 opacity-50"></i>
+            {{ settingsStore.activeAIProfile?.model || '未选模型' }}
           </div>
         </div>
 
-        <!-- 第三行：输入区 -->
-        <div class="relative group">
-          <Input 
-            ref="inputAreaRef"
-            v-model="input"
-            type="textarea"
-            :rows="4"
-            color="purple"
-            input-class="!rounded-2xl pl-4 pr-12 py-3 text-[13px] leading-relaxed shadow-sm"
-            placeholder="输入任务描述，支持 @ 引用实体..."
-            @input="handleAtInput"
-            @blur="handleAtBlur"
-            @keydown="handleAtKeydown"
-            @keydown.enter.ctrl.exact="send"
-          />
+        <div class="flex items-center gap-3 h-full">
+          <span class="text-[9px] text-gray-400 font-medium">Ctrl+Enter</span>
+          <button 
+            @click="send"
+            :disabled="!input.trim() || aiStore.isProcessing"
+            class="h-full flex items-center px-4 bg-purple-600 text-white rounded-xl text-[11px] font-bold hover:bg-purple-700 disabled:opacity-30 transition-all shadow-md shadow-purple-500/20 active:scale-95"
+          >
+            <i v-if="!aiStore.isProcessing" class="fa-solid fa-paper-plane text-[9px]"></i>
+            <i v-else class="fa-solid fa-circle-notch fa-spin text-[9px]"></i>
+          </button>
         </div>
+      </div>
+    </footer>
 
-        <!-- 第四行：执行控制区 -->
-        <div class="flex items-center justify-between gap-2 h-9">
-          <div class="flex items-center gap-2 h-full">
-            <!-- 模式选择 -->
-            <select 
-              v-model="executionMode"
-              class="h-full bg-white dark:bg-[#1e1e1e] border border-gray-100 dark:border-white/10 rounded-xl px-2.5 text-[11px] font-bold outline-none transition-all cursor-pointer"
-              :class="executionMode === 'agent' ? 'text-orange-500 border-orange-500/30' : 'text-blue-500 border-blue-500/30'"
-            >
-              <option value="chat">Chat</option>
-              <option value="agent">Agent</option>
-            </select>
-
-            <!-- 模型选择 (从 settingsStore 获取) -->
-            <div class="h-full flex items-center px-3 text-[11px] text-gray-400 font-mono bg-white/50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 truncate max-w-[140px]">
-              <i class="fa-solid fa-microchip text-[9px] mr-2 opacity-50"></i>
-              {{ settingsStore.activeAIProfile?.model || '未选模型' }}
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 h-full">
-            <span class="text-[9px] text-gray-400 font-medium">Ctrl+Enter</span>
-            <button 
-              @click="send"
-              :disabled="!input.trim() || aiStore.isProcessing"
-              class="h-full flex items-center px-4 bg-purple-600 text-white rounded-xl text-[11px] font-bold hover:bg-purple-700 disabled:opacity-30 transition-all shadow-md shadow-purple-500/20 active:scale-95"
-            >
-              <i v-if="!aiStore.isProcessing" class="fa-solid fa-paper-plane text-[9px]"></i>
-              <i v-else class="fa-solid fa-circle-notch fa-spin text-[9px]"></i>
-            </button>
-          </div>
+    <!-- @Mention 菜单 (浮层) -->
+    <div v-if="atMenu.visible" class="absolute inset-0 z-[95]" @click="closeAtMenu"></div>
+    <div 
+      v-if="atMenu.visible"
+      @mousedown.prevent
+      class="absolute bottom-[200px] left-4 z-[100] bg-white dark:bg-[#222] border dark:border-[#333] rounded-xl shadow-2xl w-56 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150"
+    >
+      <div v-if="atMenu.step === 1" class="py-1">
+        <div class="px-3 py-2 text-ui-header border-b border-divider mb-1 flex items-center gap-2">
+          <i class="fa-solid fa-at text-purple-500"></i>
+          引用实体类型
         </div>
-      </footer>
-
-      <!-- @Mention 菜单 (浮层) -->
-      <div v-if="atMenu.visible" class="absolute inset-0 z-[95]" @click="closeAtMenu"></div>
-      <div 
-        v-if="atMenu.visible"
-        @mousedown.prevent
-        class="absolute bottom-[200px] left-4 z-[100] bg-white dark:bg-[#222] border dark:border-[#333] rounded-xl shadow-2xl w-56 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150"
-      >
-        <div v-if="atMenu.step === 1" class="py-1">
-          <div class="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b dark:border-white/5 mb-1 flex items-center gap-2">
-            <i class="fa-solid fa-at text-purple-500"></i>
-            引用实体类型
-          </div>
-          <div ref="atScrollContainer1" class="max-h-[300px] overflow-y-auto custom-scrollbar">
-            <button 
-              v-for="(type, idx) in atMenu.types" 
-              :key="type.value"
-              @click="selectAtType(type)"
-              class="w-full flex items-center gap-3 px-3 py-2.5 text-[13px] transition-colors"
-              :class="atMenu.selectedIndex === idx ? 'bg-purple-600 text-white active-at-item' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'"
-            >
-              <i class="fa-solid w-4 text-center" :class="type.icon"></i>
-              {{ type.label }}
-              <i class="fa-solid fa-chevron-right ml-auto text-[9px] opacity-30"></i>
-            </button>
-          </div>
+        <div ref="atScrollContainer1" class="max-h-[300px] overflow-y-auto custom-scrollbar">
+          <button 
+            v-for="(type, idx) in atMenu.types" 
+            :key="type.value"
+            @click="selectAtType(type)"
+            class="w-full flex items-center gap-3 px-3 py-2.5 text-[13px] transition-colors"
+            :class="atMenu.selectedIndex === idx ? 'bg-purple-600 text-white active-at-item' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'"
+          >
+            <i class="fa-solid w-4 text-center" :class="type.icon"></i>
+            {{ type.label }}
+            <i class="fa-solid fa-chevron-right ml-auto text-[9px] opacity-30"></i>
+          </button>
         </div>
-        <div v-else class="py-1 flex flex-col max-h-[320px]">
-          <div class="px-3 py-2 flex items-center justify-between border-b dark:border-white/5 mb-1 bg-gray-50/50 dark:bg-white/5">
-            <span class="text-[10px] font-black text-purple-500 uppercase tracking-widest flex items-center gap-2">
-               <button @click="atMenu.step = 1" class="hover:text-purple-700"><i class="fa-solid fa-arrow-left"></i></button>
-               选择{{ atMenu.types.find(t => t.value === atMenu.selectedType)?.label }}
-            </span>
-            <span v-if="atMenu.search" class="text-[9px] bg-purple-100 dark:bg-purple-900/40 px-1.5 py-0.5 rounded text-purple-600">{{ atMenu.search }}</span>
-          </div>
-          <div ref="atScrollContainer2" class="flex-1 overflow-y-auto custom-scrollbar pr-0.5">
-            <button 
-              v-for="(item, idx) in filteredAtInstances" 
-              :key="item.id"
-              @click="confirmAtReference(item)"
-              class="w-full text-left px-3 py-2.5 text-[13px] transition-colors truncate border-b border-gray-50 dark:border-white/5 last:border-0"
-              :class="atMenu.selectedIndex === idx ? 'bg-purple-600 text-white active-at-item' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'"
-            >
-              <i class="fa-solid fa-check-circle mr-2 text-[10px]" :class="atMenu.selectedIndex === idx ? 'opacity-100' : 'opacity-0'"></i>
-              {{ item.label }}
-            </button>
-            <div v-if="filteredAtInstances.length === 0" class="px-3 py-8 text-center">
-              <i class="fa-solid fa-magnifying-glass text-gray-300 mb-2 block"></i>
-              <span class="text-xs text-gray-400">未找到相关项</span>
-            </div>
+      </div>
+      <div v-else class="py-1 flex flex-col max-h-[320px]">
+        <div class="px-3 py-2 flex items-center justify-between border-b border-divider mb-1 bg-app-side">
+          <span class="text-ui-header flex items-center gap-2">
+             <button @click="atMenu.step = 1" class="hover:text-purple-700"><i class="fa-solid fa-arrow-left"></i></button>
+             选择{{ atMenu.types.find(t => t.value === atMenu.selectedType)?.label }}
+          </span>
+          <span v-if="atMenu.search" class="text-[9px] bg-purple-100 dark:bg-purple-900/40 px-1.5 py-0.5 rounded text-purple-600">{{ atMenu.search }}</span>
+        </div>
+        <div ref="atScrollContainer2" class="flex-1 overflow-y-auto custom-scrollbar pr-0.5">
+          <button 
+            v-for="(item, idx) in filteredAtInstances" 
+            :key="item.id"
+            @click="confirmAtReference(item)"
+            class="w-full text-left px-3 py-2.5 text-[13px] transition-colors truncate border-b border-gray-50 dark:border-white/5 last:border-0"
+            :class="atMenu.selectedIndex === idx ? 'bg-purple-600 text-white active-at-item' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'"
+          >
+            <i class="fa-solid fa-check-circle mr-2 text-[10px]" :class="atMenu.selectedIndex === idx ? 'opacity-100' : 'opacity-0'"></i>
+            {{ item.label }}
+          </button>
+          <div v-if="filteredAtInstances.length === 0" class="px-3 py-8 text-center">
+            <i class="fa-solid fa-magnifying-glass text-gray-300 mb-2 block"></i>
+            <span class="text-xs text-gray-400">未找到相关项</span>
           </div>
         </div>
       </div>
     </div>
-  </transition>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed, reactive } from 'vue'
+import { ref, watch, nextTick, computed, reactive, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import { useAIStore } from '@/store/ai'
 import { useProjectStore } from '@/store/project'
@@ -662,6 +670,7 @@ const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
 const router = useRouter()
 
+const containerRef = ref<HTMLElement | null>(null)
 const input = ref('')
 const expandedToolCallIds = reactive(new Set<string>())
 const historyBox = ref<HTMLElement | null>(null)
@@ -1248,14 +1257,17 @@ async function handleApplyTool(messageId: string, call: AIToolCall) {
     console.log('Tool execution successful:', result);
     aiStore.executedToolCallIds.add(call.id)
     expandedToolCallIds.delete(call.id) 
-    uiStore.showToast(result, 'success')
+
+    uiStore.showToast(result.message || '操作成功', 'success')
     projectStore.markDirty()
 
+    const toolOutput = result;
+
     // 将结果反馈给 AI 历史
-    aiStore.addHistory('tool', result, 'text', {
+    aiStore.addHistory('tool', result.message || '操作成功', 'text', {
       toolResults: [{
         toolCallId: call.id,
-        content: JSON.stringify({ status: 'success', message: result })
+        content: JSON.stringify(toolOutput)
       }]
     })
 
@@ -1528,13 +1540,6 @@ watch(() => aiStore.history.length, async () => {
   }
 })
 
-function goToSettings(section?: string) {
-  router.push({
-    path: '/settings',
-    query: { section: section || 'ai' }
-  })
-}
-
 async function copyContent(text: string) {
   try {
     await navigator.clipboard.writeText(text)
@@ -1543,17 +1548,49 @@ async function copyContent(text: string) {
     uiStore.showToast('复制失败', 'error')
   }
 }
+
+// 宽度调整逻辑
+let isResizing = false
+
+function startResize(e: MouseEvent) {
+  isResizing = true
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+function handleResize(e: MouseEvent) {
+  if (!isResizing || !containerRef.value) return
+  const rect = containerRef.value.getBoundingClientRect()
+  const newWidth = rect.right - e.clientX
+  uiStore.setRightPanelWidth(newWidth)
+}
+
+function stopResize() {
+  if (!isResizing) return
+  isResizing = false
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
+onUnmounted(() => {
+  stopResize()
+})
 </script>
 
 <style scoped>
 .slide-right-enter-active,
 .slide-right-leave-active {
-  transition: transform 0.3s ease-out, opacity 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slide-right-enter-from,
 .slide-right-leave-to {
   transform: translateX(100%);
+  width: 0 !important;
   opacity: 0;
 }
 
