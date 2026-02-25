@@ -27,16 +27,16 @@
         </span>
       </div>
 
-      <!-- Right Side Area: Fixed width to prevent jumping -->
-      <div class="flex items-center justify-end h-5 w-[60px] relative">
+      <!-- Right Side Area -->
+      <div class="flex items-center justify-end h-5 w-6 group-hover:w-[60px] transition-all duration-200 relative overflow-hidden shrink-0">
         <!-- Line Number: Visible on Idle, fades out on hover -->
-        <span class="text-[10px] font-mono text-gray-400 px-1 transition-opacity duration-200 group-hover:opacity-0">
+        <span class="text-[10px] font-mono text-gray-400 px-1 transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none">
           {{ node.anchorLineNumber }}
         </span>
 
         <!-- Actions: Shared space, fades in on hover -->
         <SidebarActionGroup 
-          class="absolute right-0 top-1/2 -translate-y-1/2"
+          class="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100"
           :can-move-up="node.depth > 0"
           :can-move-down="node.depth < maxDepth"
           move-up-title="提升层级"

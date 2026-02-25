@@ -29,8 +29,10 @@
                 <div class="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0"></div>
                 <span class="text-xs truncate font-medium pr-1">{{ event.title || '未命名事件' }}</span>
               </div>
-              <div class="flex items-center w-[60px] justify-end shrink-0">
-                <SidebarActionGroup :can-move-up="worldviewStore.worldview?.timeline.indexOf(event) !== 0"
+              <div class="flex items-center w-0 group-hover:w-[60px] transition-all duration-200 justify-end shrink-0 overflow-hidden">
+                <SidebarActionGroup 
+                  class="opacity-0 group-hover:opacity-100"
+                  :can-move-up="worldviewStore.worldview?.timeline.indexOf(event) !== 0"
                   :can-move-down="worldviewStore.worldview?.timeline.indexOf(event) !== (worldviewStore.worldview?.timeline.length ?? 0) - 1"
                   @move-up="worldviewStore.moveTimelineEvent(event.id, 'up')"
                   @move-down="worldviewStore.moveTimelineEvent(event.id, 'down')"

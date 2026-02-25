@@ -17,16 +17,18 @@
               : 'hover:bg-app-hover text-gray-600 dark:text-gray-400'
           ]">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <i class="fa-solid fa-user-circle text-[10px] opacity-50"></i>
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="fa-solid fa-user-circle text-[10px] opacity-50 shrink-0"></i>
                 <span class="text-xs truncate font-medium pr-1">
                   {{ char.name || '未命名角色' }}
                 </span>
                 <i v-if="currentPhaseId && hasOverride(char, currentPhaseId)"
-                  class="fa-solid fa-pen-nib text-[10px] text-orange-400" title="此阶段有特定变更"></i>
+                  class="fa-solid fa-pen-nib text-[10px] text-orange-400 shrink-0" title="此阶段有特定变更"></i>
               </div>
-              <div class="flex items-center w-[60px] justify-end shrink-0">
-                <SidebarActionGroup :can-move-up="characterStore.rawCharacters.indexOf(char._original) !== 0"
+              <div class="flex items-center w-0 group-hover:w-[60px] transition-all duration-200 justify-end shrink-0 overflow-hidden">
+                <SidebarActionGroup 
+                  class="opacity-0 group-hover:opacity-100"
+                  :can-move-up="characterStore.rawCharacters.indexOf(char._original) !== 0"
                   :can-move-down="characterStore.rawCharacters.indexOf(char._original) !== characterStore.rawCharacters.length - 1"
                   @move-up="characterStore.moveCharacter(char.id, 'up')"
                   @move-down="characterStore.moveCharacter(char.id, 'down')" @delete="removeCharacter(char.id)" />
