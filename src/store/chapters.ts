@@ -6,23 +6,25 @@ import { ChapterParser } from '@/core/chapterParser'
 
 export const DEFAULT_RECOGNITION_RULES: RecognitionRules = {
   patterns: {
-    volume: [
-      '^第\\s*(\\d+|[一二三四五六七八九十百千万]+)\\s*[卷部]',
-      '^[卷部]\\s*(\\d+|[一二三四五六七八九十百千万]+)',
-      '^Volume\\s*\\d+',
-      '^正文$'
-    ],
-    chapter: [
-      '^第\\s*(\\d+|[一二三四五六七八九十百千万零〇]+)\\s*[章回节]',
-      '^(\\d+|[一二三四五六七八九十百千万零〇]+)\\s*[章回节]',
-      '^Chapter\\s*\\d+',
-      '^\\d+\\s*[\\.、\\s]',
-      '^【\\s*第?\\s*(\\d+|[一二三四五六七八九十百千万零〇]+)\\s*[章回节]\\s*】'
-    ],
-    special: [
-      '^(番外|外传|后日谈|IF线|平行世界|前言|序言|自序|后记|跋|感言|小剧场|特别篇|特典)',
-      '^[·:：\\s]?(番外|外传|后日谈|IF线|平行世界|小剧场|特别篇|特典)[·:：\\s]?.+'
-    ]
+    hierarchies: {
+      0: [
+        '^第\\s*(\\d+|[一二三四五六七八九十百千万]+)\\s*[卷部]',
+        '^[卷部]\\s*(\\d+|[一二三四五六七八九十百千万]+)',
+        '^Volume\\s*\\d+',
+        '^正文$'
+      ],
+      1: [
+        '^第\\s*(\\d+|[一二三四五六七八九十百千万零〇]+)\\s*[章回节]',
+        '^(\\d+|[一二三四五六七八九十百千万零〇]+)\\s*[章回节]',
+        '^Chapter\\s*\\d+',
+        '^\\d+\\s*[\\.、\\s]',
+        '^【\\s*第?\\s*(\\d+|[一二三四五六七八九十百千万零〇]+)\\s*[章回节]\\s*】'
+      ],
+      2: [
+        '^(番外|外传|后日谈|IF线|平行世界|前言|序言|自序|后记|跋|感言|小剧场|特别篇|特典)',
+        '^[·:：\\s]?(番外|外传|后日谈|IF线|平行世界|小剧场|特别篇|特典)[·:：\\s]?.+'
+      ]
+    }
   },
   structuralAnchors: {
     maxLength: 40,
@@ -125,7 +127,6 @@ export const useChapterStore = defineStore('chapters', () => {
       id,
       projectId: projectStore.bundle.project.id,
       depth: 0, 
-      type: 'chapter',
       anchorLineNumber: lineNumber,
       anchorText: title,
       title: title,
@@ -185,7 +186,9 @@ export const useChapterStore = defineStore('chapters', () => {
     if (!projectStore.bundle) return
 
     const lines = projectStore.bundle.manuscript.content
-    const flatNodes = ChapterParser.detectChapters(lines, recognitionRules.value)
+    const validDepths = projectStore.currentProject?.hierarchies?.map(h => h.depth)
+    
+    const flatNodes = ChapterParser.detectChapters(lines, recognitionRules.value, validDepths)
 
     projectStore.takeSnapshot()
 
@@ -193,8 +196,7 @@ export const useChapterStore = defineStore('chapters', () => {
     const mappedChapters: Chapter[] = flatNodes.map(node => ({
       id: node.id,
       projectId: projectStore.bundle!.project.id,
-      depth: ChapterParser.getTypeLevel(node.type) - 1, // 假设 level 1 是 depth 0
-      type: node.type,
+      depth: node.depth,
       anchorLineNumber: node.startLine + 1, // 1-indexed
       anchorText: node.title,
       title: node.title,

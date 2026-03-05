@@ -31,14 +31,10 @@ export interface Outline {
   }
 }
 
-// --- Chapter (章节) ---
-export type ChapterType = 'volume' | 'chapter' | 'section' | 'scene' | 'special'
-
 export interface Chapter {
   id: string
   projectId: string
   depth: number              // 树深度，0: 顶层
-  type: ChapterType          // UI语义映射
   anchorLineNumber: number   // 标题行起始行号 (1-indexed)
   anchorText: string         // 校验文本内容 (用于恢复锚点)
   title: string              // 双向绑定正文内容
@@ -54,9 +50,7 @@ export interface Chapter {
  */
 export interface RecognitionRules {
   patterns: {
-    volume: string[]
-    chapter: string[]
-    special: string[]
+    hierarchies: Record<number, string[]>
   }
   structuralAnchors: {
     maxLength: number
@@ -77,10 +71,9 @@ export interface ChapterNode {
   id: string
   title: string
   originalTitle: string
-  type: ChapterType
+  depth: number
   startLine: number
   endLine: number
-  level: number
   children: ChapterNode[]
 }
 
