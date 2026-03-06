@@ -3,13 +3,22 @@
     <!-- 左侧：快速跳转 -->
     <SidePanel title="历史轨迹" width="w-64" side="left">
       <template #actions>
-        <IconButton
-          icon="fa-solid fa-plus"
-          size="sm"
-          variant="primary"
-          title="新建时间点"
-          @click="addTimelineEvent"
-        />
+        <div class="flex items-center gap-1">
+          <IconButton
+            icon="fa-solid fa-file-import"
+            size="sm"
+            variant="ghost"
+            title="批量导入"
+            @click="showImportModal = true"
+          />
+          <IconButton
+            icon="fa-solid fa-plus"
+            size="sm"
+            variant="primary"
+            title="新建时间点"
+            @click="addTimelineEvent"
+          />
+        </div>
       </template>
 
       <div class="p-2 space-y-2">
@@ -61,6 +70,9 @@
               <span class="text-ui-badge">按故事发生的相对顺序排列</span>
             </div>
             <div class="flex items-center gap-2">
+              <Button outline icon="fa-solid fa-file-import" @click="showImportModal = true">
+                批量导入
+              </Button>
               <Button icon="fa-solid fa-plus" @click="addTimelineEvent">
                 创建时间点
               </Button>
@@ -148,6 +160,8 @@
         </div>
       </div>
     </main>
+
+    <TimelineImportModal v-if="showImportModal" @close="showImportModal = false" />
   </div>
 </template>
 
@@ -162,11 +176,13 @@ import IconButton from '@/components/common/IconButton.vue'
 import Input from '@/components/common/Input.vue'
 import SidebarActionGroup from '@/components/layout/SidebarActionGroup.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import TimelineImportModal from '@/components/features/worldview/TimelineImportModal.vue'
 
 const worldviewStore = useWorldviewStore()
 const uiStore = useUIStore()
 const { startEdit, endEdit } = useFieldHistory()
 
+const showImportModal = ref(false)
 const searchQuery = ref('')
 const filteredEvents = computed(() => {
   if (!worldviewStore.worldview) return []

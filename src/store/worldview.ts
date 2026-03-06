@@ -98,6 +98,36 @@ export const useWorldviewStore = defineStore('worldview', () => {
     }
   }
 
+  /**
+   * 批量导入时间轴事件
+   */
+  function batchImportTimelineEvents(events: Partial<WorldTimelineEvent>[]) {
+    if (!projectStore.bundle) return
+
+    projectStore.takeSnapshot()
+    
+    let baseOrder = projectStore.bundle.worldview.timeline.length
+    
+    const newItems: WorldTimelineEvent[] = events.map((e, index) => ({
+      id: uuidv4(),
+      time: {
+        label: e.time?.label || '',
+        order: baseOrder + index
+      },
+      title: e.title || '批量导入事件',
+      description: e.description || '',
+      participants: e.participants || [],
+      impact: e.impact || []
+    }))
+
+    projectStore.bundle.worldview.timeline.push(...newItems)
+    
+    // 重新按 order 排序以保持逻辑一致
+    projectStore.bundle.worldview.timeline.sort((a, b) => a.time.order - b.time.order)
+    
+    projectStore.markDirty()
+  }
+
   function moveTimelineEvent(id: string, direction: 'up' | 'down') {
     if (projectStore.bundle) {
       const index = projectStore.bundle.worldview.timeline.findIndex(e => e.id === id)
@@ -148,6 +178,7 @@ export const useWorldviewStore = defineStore('worldview', () => {
     addTimelineEvent,
     updateTimelineEvent,
     removeTimelineEvent,
+    batchImportTimelineEvents,
     moveTimelineEvent
   }
 })
