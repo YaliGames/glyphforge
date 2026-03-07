@@ -3,7 +3,9 @@ import { ref, computed } from 'vue'
 import { SETTINGS_SCHEMA, type AIProfile } from '@/config/settings.schema'
 import { STORAGE_KEYS } from '@/config'
 
-export const useSettingsStore = defineStore('settings', () => {const settings = ref<Record<string, any>>({})
+export const useSettingsStore = defineStore('settings', () => {
+  const settings = ref<Record<string, any>>({})
+  const expandedStates = ref<Record<string, boolean>>({})
 
   // 初始化设置
   function initSettings() {
@@ -47,6 +49,27 @@ export const useSettingsStore = defineStore('settings', () => {const settings = 
    */
   function getSettings() {
     return settings.value
+  }
+
+  /**
+   * 获取单个设置项
+   */
+  function getSetting(key: string, defaultValue: any = undefined) {
+    return settings.value[key] !== undefined ? settings.value[key] : defaultValue
+  }
+
+  /**
+   * 切换设置项的展开/折叠状态
+   */
+  function toggleExpanded(key: string) {
+    expandedStates.value[key] = !expandedStates.value[key]
+  }
+
+  /**
+   * 获取设置项的展开状态
+   */
+  function isExpanded(key: string) {
+    return expandedStates.value[key] ?? false
   }
 
   /**
@@ -129,7 +152,10 @@ export const useSettingsStore = defineStore('settings', () => {const settings = 
   return {
     settings,
     getSettings,
+    getSetting,
     updateSetting,
+    toggleExpanded,
+    isExpanded,
     isDarkMode,
     activeAIProfile,
     availableAIProfiles,

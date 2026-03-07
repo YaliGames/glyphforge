@@ -317,6 +317,7 @@ import { ref, computed, watch } from 'vue'
 import { useCharacterStore } from '@/store/characters'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
+import { shouldConfirmDelete } from '@/utils/deleteConfirmation'
 import { useProjectStore } from '@/store/project'
 import { useAIStore } from '@/store/ai'
 import { useFieldHistory } from '@/composables/useFieldHistory'
@@ -437,20 +438,22 @@ function openAIAssistant(promptId = 'builtin-character-design') {
 const removeCharacter = async (id: string) => {
   const char = characterStore.charactersInPhase.find(c => c.id === id)
   const name = char?.name || '未命名角色'
+  const needsConfirm = shouldConfirmDelete('character')
 
-  const confirmed = await uiStore.showConfirm({
-    title: '删除角色',
-    message: `确定要删除角色 "${name}" 吗？`,
-    confirmText: '确定删除',
-    cancelText: '取消',
-    type: 'danger'
-  })
+  if (needsConfirm) {
+    const confirmed = await uiStore.showConfirm({
+      title: '删除角色',
+      message: `确定要删除角色 "${name}" 吗？`,
+      confirmText: '确定删除',
+      cancelText: '取消',
+      type: 'danger'
+    })
+    if (!confirmed) return
+  }
 
-  if (confirmed) {
-    characterStore.removeCharacter(id)
-    if (activeCharacterId.value === id) {
-      activeCharacterId.value = characterStore.charactersInPhase[0]?.id || null
-    }
+  characterStore.removeCharacter(id)
+  if (activeCharacterId.value === id) {
+    activeCharacterId.value = characterStore.charactersInPhase[0]?.id || null
   }
 }
 

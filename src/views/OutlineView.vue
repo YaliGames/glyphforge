@@ -137,6 +137,7 @@ import { useOutlineStore } from '@/store/outline'
 import { useAIStore } from '@/store/ai'
 import { useUIStore } from '@/store/ui'
 import { useFieldHistory } from '@/composables/useFieldHistory'
+import { shouldConfirmDelete } from '@/utils/deleteConfirmation'
 import OutlineEditor from '@/components/features/editor/OutlineEditor.vue'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import Button from '@/components/common/Button.vue'
@@ -278,15 +279,19 @@ function updateAct() {
 
 async function deleteCurrentAct() {
   if (currentActId.value) {
-    const ok = await uiStore.showConfirm({
-      title: '删除幕',
-      message: '确定要删除这一幕吗？正文内容不会受影响。',
-      type: 'danger'
-    })
-    if (ok) {
-      outlineStore.removeAct(currentActId.value)
-      currentActId.value = null
+    const needsConfirm = shouldConfirmDelete('outline')
+    
+    if (needsConfirm) {
+      const ok = await uiStore.showConfirm({
+        title: '删除幕',
+        message: '确定要删除这一幕吗？正文内容不会受影响。',
+        type: 'danger'
+      })
+      if (!ok) return
     }
+    
+    outlineStore.removeAct(currentActId.value)
+    currentActId.value = null
   }
 }
 

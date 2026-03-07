@@ -33,6 +33,9 @@ export interface SettingItem {
     value: any;
   };
   hidden?: boolean;
+  expandable?: boolean;           // 标记为可展开的父项
+  childrenLabel?: string;         // 展开后显示的标签
+  children?: SettingItem[];       // 子项数组
 }
 
 export interface SettingSection {
@@ -217,6 +220,66 @@ export const SETTINGS_SCHEMA: SettingSection[] = [
           }
         ],
         dependsOn: { key: 'ai.enabled', value: true }
+      }
+    ]
+  },
+  {
+    id: 'safety',
+    label: '安全与数据',
+    icon: 'fa-shield',
+    items: [
+      {
+        key: 'safety.deleteConfirmationEnabled',
+        label: '删除操作需要确认',
+        description: '关闭后，所有删除操作将不显示确认对话框。无论是否启用，删除操作都支持撤销。',
+        type: 'boolean',
+        default: true,
+        expandable: true,
+        childrenLabel: '更多',
+        children: [
+          {
+            key: 'safety.confirmDeleteOutlineStructure',
+            label: '删除大纲结构',
+            description: '删除大纲结构时是否显示确认对话框',
+            type: 'boolean',
+            default: true
+          },
+          {
+            key: 'safety.confirmDeleteChapter',
+            label: '删除章节',
+            description: '删除章节时是否显示确认对话框',
+            type: 'boolean',
+            default: true
+          },
+          {
+            key: 'safety.confirmDeleteCharacter',
+            label: '删除角色',
+            description: '删除人物角色时是否显示确认对话框',
+            type: 'boolean',
+            default: true
+          },
+          {
+            key: 'safety.confirmDeleteWorldviewCategory',
+            label: '删除设定维度',
+            description: '删除世界观设定维度时是否显示确认对话框',
+            type: 'boolean',
+            default: true
+          },
+          {
+            key: 'safety.confirmDeleteWorldviewItem',
+            label: '删除设定条目',
+            description: '删除设定维度中的条目时是否显示确认对话框',
+            type: 'boolean',
+            default: true
+          },
+          {
+            key: 'safety.confirmDeleteTimelineEvent',
+            label: '删除时间线事件',
+            description: '删除时间线事件时是否显示确认对话框',
+            type: 'boolean',
+            default: true
+          }
+        ]
       }
     ]
   },

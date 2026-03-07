@@ -165,6 +165,7 @@ import { useProjectStore } from '@/store/project'
 import { useFieldHistory } from '@/composables/useFieldHistory'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
+import { shouldConfirmDelete } from '@/utils/deleteConfirmation'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import ChapterTreeItem from '@/components/features/editor/ChapterTreeItem.vue'
 import MonacoEditor from '@/components/features/editor/MonacoEditor.vue'
@@ -416,19 +417,21 @@ function onEditorMounted(e: monaco.editor.IStandaloneCodeEditor) {
 async function confirmRemoveChapter(id: string) {
   const chapter = (chapterStore.flattenedChapters as any[]).find(c => c.id === id)
   const title = chapter?.title || '未命名章节'
-  
-  const confirmed = await uiStore.showConfirm({
-    title: '删除章节',
-    message: `确定要删除章节 "${title}" 吗？该操作仅移除目录结构，不会删除正文文字。`,
-    confirmText: '确定删除',
-    cancelText: '取消',
-    type: 'danger'
-  })
+  const needsConfirm = shouldConfirmDelete('chapter')
 
-  if (confirmed) {
-    chapterStore.removeChapter(id)
-    if (activeChapterId.value === id) activeChapterId.value = null
+  if (needsConfirm) {
+    const confirmed = await uiStore.showConfirm({
+      title: '删除章节',
+      message: `确定要删除章节 "${title}" 吗？该操作仅移除目录结构，不会删除正文文字。`,
+      confirmText: '确定删除',
+      cancelText: '取消',
+      type: 'danger'
+    })
+    if (!confirmed) return
   }
+
+  chapterStore.removeChapter(id)
+  if (activeChapterId.value === id) activeChapterId.value = null
 }
 
 function handleChapterSelect(id: string) {

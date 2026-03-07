@@ -49,6 +49,7 @@
 
             <div class="space-y-8 pl-1">
               <template v-for="item in section.items" :key="item.key">
+                <!-- 主项: 普通项或可展开项 -->
                 <div v-if="shouldShow(item)" class="flex items-start justify-between gap-12 group">
                   <div class="flex-1 space-y-1">
                     <div class="text-xs font-bold dark:text-gray-200 flex items-center gap-2">
@@ -58,7 +59,7 @@
                     <div class="text-[11px] text-gray-500 leading-relaxed">{{ item.description }}</div>
                   </div>
 
-                  <div class="shrink-0 flex items-center min-h-[32px]">
+                  <div class="shrink-0 flex items-center gap-3 min-h-[32px]">
                     <!-- Boolean Toggle -->
                     <label v-if="item.type === 'boolean'" class="relative inline-flex items-center cursor-pointer">
                       <input 
@@ -80,43 +81,123 @@
                       size="sm"
                     />
 
-                  <!-- Select Input -->
-                  <select 
-                    v-else-if="item.type === 'select'"
-                    :value="settingsStore.getSettings()[item.key]"
-                    @change="(e: any) => settingsStore.updateSetting(item.key, e.target.value)"
-                    class="bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500 transition-all min-w-[120px]"
-                  >
-                    <option v-for="opt in item.options" :key="opt.value" :value="opt.value">
-                      {{ opt.label }}
-                    </option>
-                  </select>
-
-                  <!-- Action Button -->
-                  <div v-else-if="item.type === 'action'" class="flex items-center">
-                    <button 
-                      v-if="item.action"
-                      @click="handleAction(item.action)"
-                      class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                    <!-- Select Input -->
+                    <select 
+                      v-else-if="item.type === 'select'"
+                      :value="settingsStore.getSettings()[item.key]"
+                      @change="(e: any) => settingsStore.updateSetting(item.key, e.target.value)"
+                      class="bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500 transition-all min-w-[120px]"
                     >
-                      <i v-if="item.icon" :class="['fa-solid', item.icon, 'mr-2']"></i>
-                      {{ item.buttonLabel || '执行操作' }}
+                      <option v-for="opt in item.options" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                      </option>
+                    </select>
+
+                    <!-- Action Button -->
+                    <div v-else-if="item.type === 'action'" class="flex items-center">
+                      <button 
+                        v-if="item.action"
+                        @click="handleAction(item.action)"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                      >
+                        <i v-if="item.icon" :class="['fa-solid', item.icon, 'mr-2']"></i>
+                        {{ item.buttonLabel || '执行操作' }}
+                      </button>
+                    </div>
+
+                    <!-- String Input -->
+                    <Input 
+                      v-else-if="item.type === 'string'"
+                      :model-value="settingsStore.getSettings()[item.key]"
+                      @update:model-value="(val) => settingsStore.updateSetting(item.key, val)"
+                      class="w-64"
+                      size="sm"
+                      placeholder="请输入内容..."
+                    />
+
+                    <!-- 展开按钮 (如果是可展开项，且该项启用) -->
+                    <button 
+                      v-if="item.expandable && settingsStore.getSettings()[item.key]"
+                      @click="settingsStore.toggleExpanded(item.key)"
+                      :class="[
+                        'flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-[#2d2d30] transition-all',
+                        settingsStore.isExpanded(item.key) ? 'rotate-180' : ''
+                      ]"
+                      title="展开/折叠"
+                    >
+                      <i class="fa-solid fa-chevron-down text-gray-400 text-xs"></i>
                     </button>
                   </div>
-
-                  <!-- String Input -->
-                  <Input 
-                    v-else-if="item.type === 'string'"
-                    :model-value="settingsStore.getSettings()[item.key]"
-                    @update:model-value="(val) => settingsStore.updateSetting(item.key, val)"
-                    class="w-64"
-                    size="sm"
-                    placeholder="请输入内容..."
-                  />
                 </div>
-              </div>
-            </template>
-          </div>
+
+                <!-- 子项: 只在展开且主开关启用时显示 -->
+                <template v-if="item.expandable && item.children && settingsStore.isExpanded(item.key) && settingsStore.getSettings()[item.key]">
+                  <div class="pl-6 space-y-6 border-l border-gray-200 dark:border-[#333] ml-2">
+                    <div v-if="item.childrenLabel" class="text-[10px] font-bold text-gray-400 uppercase tracking-wider py-2">
+                      {{ item.childrenLabel }}
+                    </div>
+                    <div class="space-y-6">
+                      <template v-for="child in item.children" :key="child.key">
+                        <div v-if="shouldShow(child)" class="flex items-start justify-between gap-12 group">
+                          <div class="flex-1 space-y-1">
+                            <div class="text-xs font-bold dark:text-gray-200 flex items-center gap-2">
+                              {{ child.label }}
+                              <span class="text-[9px] font-mono text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">[{{ child.key }}]</span>
+                            </div>
+                            <div class="text-[11px] text-gray-500 leading-relaxed">{{ child.description }}</div>
+                          </div>
+
+                          <div class="shrink-0 flex items-center min-h-[32px]">
+                            <!-- Child Boolean Toggle -->
+                            <label v-if="child.type === 'boolean'" class="relative inline-flex items-center cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                :checked="settingsStore.getSettings()[child.key]"
+                                @change="(e: any) => settingsStore.updateSetting(child.key, e.target.checked)"
+                                class="sr-only peer"
+                              >
+                              <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600"></div>
+                            </label>
+
+                            <!-- Child Number Input -->
+                            <Input 
+                              v-else-if="child.type === 'number'"
+                              type="number"
+                              :model-value="settingsStore.getSettings()[child.key]"
+                              @update:model-value="(val) => settingsStore.updateSetting(child.key, Number(val))"
+                              class="w-24 font-mono"
+                              size="sm"
+                            />
+
+                            <!-- Child Select Input -->
+                            <select 
+                              v-else-if="child.type === 'select'"
+                              :value="settingsStore.getSettings()[child.key]"
+                              @change="(e: any) => settingsStore.updateSetting(child.key, e.target.value)"
+                              class="bg-white dark:bg-[#1e1e1e] border dark:border-[#333333] rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500 transition-all min-w-[120px]"
+                            >
+                              <option v-for="opt in child.options" :key="opt.value" :value="opt.value">
+                                {{ opt.label }}
+                              </option>
+                            </select>
+
+                            <!-- Child String Input -->
+                            <Input 
+                              v-else-if="child.type === 'string'"
+                              :model-value="settingsStore.getSettings()[child.key]"
+                              @update:model-value="(val) => settingsStore.updateSetting(child.key, val)"
+                              class="w-64"
+                              size="sm"
+                              placeholder="请输入内容..."
+                            />
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </template>
+            </div>
         </div>
         </template>
       </div>
@@ -160,11 +241,48 @@ const filteredSchema = computed(() => {
   if (!query) return sourceSchema
 
   return sourceSchema.map(section => {
-    const filteredItems = section.items.filter(item => 
-      item.label.toLowerCase().includes(query) || 
-      item.description.toLowerCase().includes(query) ||
-      item.key.toLowerCase().includes(query)
-    )
+    const filteredItems = section.items.filter(item => {
+      // 检查主项是否匹配
+      const itemMatches = item.label.toLowerCase().includes(query) || 
+                          item.description.toLowerCase().includes(query) ||
+                          item.key.toLowerCase().includes(query)
+      
+      // 如果主项匹配，返回整个项（包括子项）
+      if (itemMatches) return true
+      
+      // 如果是可展开项，检查子项是否匹配
+      if (item.expandable && item.children) {
+        const childMatches = item.children.some(child =>
+          child.label.toLowerCase().includes(query) ||
+          child.description.toLowerCase().includes(query) ||
+          child.key.toLowerCase().includes(query)
+        )
+        // 如果子项匹配，过滤子项数组并返回该主项
+        if (childMatches) {
+          return true
+        }
+      }
+      
+      return false
+    }).map(item => {
+      // 如果是可展开项且有搜索结果，在子项中过滤出匹配的
+      if (item.expandable && item.children && query) {
+        const filteredChildren = item.children.filter(child =>
+          child.label.toLowerCase().includes(query) ||
+          child.description.toLowerCase().includes(query) ||
+          child.key.toLowerCase().includes(query)
+        )
+        // 如果有匹配的子项，自动展开
+        if (filteredChildren.length > 0 && !settingsStore.isExpanded(item.key)) {
+          settingsStore.toggleExpanded(item.key)
+        }
+        return {
+          ...item,
+          children: filteredChildren.length > 0 ? filteredChildren : item.children
+        }
+      }
+      return item
+    })
     
     if (filteredItems.length > 0) {
       return { ...section, items: [...filteredItems] }

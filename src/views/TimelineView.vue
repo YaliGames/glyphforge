@@ -170,6 +170,7 @@ import { ref, computed } from 'vue'
 import { useWorldviewStore } from '@/store/worldview'
 import { useFieldHistory } from '@/composables/useFieldHistory'
 import { useUIStore } from '@/store/ui'
+import { shouldConfirmDelete } from '@/utils/deleteConfirmation'
 import SidePanel from '@/components/layout/SidePanel.vue'
 import Button from '@/components/common/Button.vue'
 import IconButton from '@/components/common/IconButton.vue'
@@ -207,16 +208,20 @@ const addTimelineEvent = () => {
 }
 
 const removeTimelineEvent = async (id: string) => {
-  const confirmed = await uiStore.showConfirm({
-    title: '删除事件',
-    message: '确定要从时间线中移除此事件吗？',
-    confirmText: '确定删除',
-    cancelText: '取消',
-    type: 'danger'
-  })
-  if (confirmed) {
-    worldviewStore.removeTimelineEvent(id)
+  const needsConfirm = shouldConfirmDelete('timelineEvent')
+  
+  if (needsConfirm) {
+    const confirmed = await uiStore.showConfirm({
+      title: '删除事件',
+      message: '确定要从时间线中移除此事件吗？',
+      confirmText: '确定删除',
+      cancelText: '取消',
+      type: 'danger'
+    })
+    if (!confirmed) return
   }
+  
+  worldviewStore.removeTimelineEvent(id)
 }
 </script>
 

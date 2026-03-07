@@ -197,6 +197,7 @@ import { ref, computed, onMounted } from "vue";
 import { useWorldviewStore } from "@/store/worldview";
 import { useUIStore } from "@/store/ui";
 import { useSettingsStore } from "@/store/settings";
+import { shouldConfirmDelete } from "@/utils/deleteConfirmation";
 import { useProjectStore } from "@/store/project";
 import { useAIStore } from "@/store/ai";
 import { useFieldHistory } from "@/composables/useFieldHistory";
@@ -280,21 +281,44 @@ const addDetailItem = (cat: any) => {
 };
 
 const removeDetailItem = (cat: any, index: number) => {
-  projectStore.takeSnapshot();
-  cat.details.splice(index, 1);
-};
+  const needsConfirm = shouldConfirmDelete('worldviewItem')
+  
+  if (needsConfirm) {
+    uiStore.showConfirm({
+      title: '删除设定条目',
+      message: `确定要删除此条目吗？`,
+      confirmText: '确定删除',
+      cancelText: '取消',
+      type: 'danger'
+    }).then(confirmed => {
+      if (confirmed) {
+        projectStore.takeSnapshot()
+        cat.details.splice(index, 1)
+      }
+    })
+  } else {
+    projectStore.takeSnapshot()
+    cat.details.splice(index, 1)
+  }
+}
 
 async function confirmRemoveCategory(cat: any) {
-  const confirmed = await uiStore.showConfirm({
-    title: "删除设定维度",
-    message: `确定要删除 "${cat.name}" 及其所有条目吗？`,
-    confirmText: "确定删除",
-    cancelText: "取消",
-    type: "danger",
-  });
+  const needsConfirm = shouldConfirmDelete('worldviewCategory')
+  
+  if (needsConfirm) {
+    const confirmed = await uiStore.showConfirm({
+      title: "删除设定维度",
+      message: `确定要删除 "${cat.name}" 及其所有条目吗？`,
+      confirmText: "确定删除",
+      cancelText: "取消",
+      type: "danger",
+    });
 
-  if (confirmed) {
-    worldviewStore.removeCategory(cat.type);
+    if (confirmed) {
+      worldviewStore.removeCategory(cat.type);
+    }
+  } else {
+    worldviewStore.removeCategory(cat.type)
   }
 }
 
