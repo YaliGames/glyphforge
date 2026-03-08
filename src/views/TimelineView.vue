@@ -166,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useWorldviewStore } from '@/store/worldview'
 import { useFieldHistory } from '@/composables/useFieldHistory'
 import { useUIStore } from '@/store/ui'
@@ -203,8 +203,13 @@ function scrollToId(id: string) {
   }
 }
 
-const addTimelineEvent = () => {
+const addTimelineEvent = async () => {
   worldviewStore.addTimelineEvent()
+  await nextTick()
+  const lastEvent = worldviewStore.worldview?.timeline[worldviewStore.worldview?.timeline.length - 1]
+  if (lastEvent) {
+    scrollToId('event-' + lastEvent.id)
+  }
 }
 
 const removeTimelineEvent = async (id: string) => {
