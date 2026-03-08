@@ -17,8 +17,6 @@ export interface WorldTimelineEvent {
   }
   title: string
   description: string
-  participants: string[] // Entity IDs
-  impact: string[]       // Category types
 }
 
 export interface Worldview {

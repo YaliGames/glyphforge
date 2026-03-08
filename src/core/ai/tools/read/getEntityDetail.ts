@@ -131,11 +131,9 @@ export const getEntityDetailTool: DecoupledTool = {
       let source = { ...item };
       if (source.base) { Object.assign(source, source.base); delete source.base; }
       
-      // 特殊处理时间线字段映射
       if (type === 'timeline') {
         source.date = source.time?.label;
         source.content = source.description;
-        source.tags = source.impact;
       }
 
       const exportKeys = getAIExportKeys(type);

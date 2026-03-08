@@ -121,7 +121,6 @@ export const upsertEntitiesTool: DecoupledTool = {
           title: sanitizedData.title || '',
           description: sanitizedData.content || '',
           participants: sanitizedData.participants || [],
-          impact: sanitizedData.tags || [],
           time: {
             label: sanitizedData.date || '',
             order: 0 

@@ -132,28 +132,6 @@
                       @click="removeTimelineEvent(event.id)"
                     />
                 </div>
-
-                <div class="flex flex-wrap gap-4 pt-2 border-t border-divider">
-                  <div class="space-y-1.5 flex-1">
-                    <label class="text-ui-label">主要关联</label>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span v-for="pid in event.participants" :key="pid"
-                        class="px-2 py-0.5 bg-app-hover rounded-sm text-[10px] text-gray-600 dark:text-gray-400">{{
-                        pid }}</span>
-                      <button class="text-[10px] text-blue-500 hover:underline">+ 关联</button>
-                    </div>
-                  </div>
-                  <div class="space-y-1.5 flex-1">
-                    <label class="text-ui-label">波及影响</label>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span v-for="imp in event.impact" :key="imp"
-                        class="px-2 py-0.5 bg-orange-50 dark:bg-orange-900/10 text-orange-600 rounded-sm text-[10px]">{{
-                        imp
-                        }}</span>
-                      <button class="text-[10px] text-orange-500 hover:underline">+ 领域</button>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

@@ -74,9 +74,7 @@ export const useWorldviewStore = defineStore('worldview', () => {
           order: projectStore.bundle.worldview.timeline.length
         },
         title,
-        description: '',
-        participants: [],
-        impact: []
+        description: ''
       }
       projectStore.bundle.worldview.timeline.push(newEvent)
       // 按 order 排序
@@ -115,9 +113,7 @@ export const useWorldviewStore = defineStore('worldview', () => {
         order: baseOrder + index
       },
       title: e.title || '批量导入事件',
-      description: e.description || '',
-      participants: e.participants || [],
-      impact: e.impact || []
+      description: e.description || ''
     }))
 
     projectStore.bundle.worldview.timeline.push(...newItems)
