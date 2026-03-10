@@ -143,28 +143,77 @@
               添加条目
             </Button>
           </div>
-          <div class="grid grid-cols-1 gap-4">
+          <div class="grid grid-cols-1 gap-6">
             <div
-              v-for="(_, index) in activeCategory.details"
-              :key="index"
-              class="relative group/item"
+              v-for="(_, itemIndex) in activeCategory.details"
+              :key="itemIndex"
+              class="border border-divider rounded-main p-4 space-y-3 bg-app-surface hover:border-blue-200 dark:hover:border-blue-900/30 transition-colors"
             >
-              <Input
-                v-model="activeCategory.details[index]"
-                type="textarea"
-                placeholder="输入详细设定描述..."
-                auto-resize
-                @focus="startEdit()"
-                @blur="endEdit()"
-              />
-              <IconButton
-                icon="fa-solid fa-trash-can"
-                size="sm"
-                variant="danger"
-                title="删除条目"
-                class="absolute top-4 right-4 opacity-0 group-hover/item:opacity-100 z-10"
-                @click="removeDetailItem(activeCategory, index)"
-              />
+              <!-- 条目标题 -->
+              <div class="flex items-end gap-2">
+                <Input
+                  v-model="activeCategory.details[itemIndex].title"
+                  placeholder="标题"
+                  class="flex-1"
+                  @focus="startEdit()"
+                  @blur="endEdit()"
+                />
+                <IconButton
+                  icon="fa-solid fa-trash-can"
+                  size="sm"
+                  variant="danger"
+                  title="删除条目"
+                  @click="removeDetailItem(activeCategory, itemIndex)"
+                />
+              </div>
+
+              <!-- 分段列表 -->
+              <div class="border-t border-divider pt-3 space-y-2">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-ui-label text-xs">内容</label>
+                  <button
+                    @click="addSection(activeCategory, itemIndex)"
+                    class="text-[10px] text-blue-500 hover:underline"
+                  >
+                    + 添加分段
+                  </button>
+                </div>
+
+                <div
+                  v-for="(_, sectionIndex) in activeCategory.details[itemIndex].sections"
+                  :key="`section-${itemIndex}-${sectionIndex}`"
+                  class="group/section relative"
+                >
+                  <Input
+                    v-model="activeCategory.details[itemIndex].sections[sectionIndex]"
+                    type="textarea"
+                    placeholder="输入内容..."
+                    auto-resize
+                    :rows="2"
+                    @focus="startEdit()"
+                    @blur="endEdit()"
+                  />
+                  
+                  <!-- 分段操作按钮（使用 SidebarActionGroup） -->
+                  <div class="absolute top-1 right-1 flex items-center w-0 group-hover/section:w-[60px] transition-all duration-200 justify-end overflow-hidden">
+                    <SidebarActionGroup
+                      class="opacity-0 group-hover/section:opacity-100"
+                      :can-move-up="sectionIndex !== 0"
+                      :can-move-down="sectionIndex !== activeCategory.details[itemIndex].sections.length - 1"
+                      @move-up="moveSectionUp(activeCategory, itemIndex, sectionIndex)"
+                      @move-down="moveSectionDown(activeCategory, itemIndex, sectionIndex)"
+                      @delete="removeSection(activeCategory, itemIndex, sectionIndex)"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  v-if="activeCategory.details[itemIndex].sections.length === 0"
+                  class="py-6 text-center text-gray-400 text-[10px] border border-dashed border-divider rounded bg-gray-50 dark:bg-gray-900/20"
+                >
+                  暂无分段，点击"添加分段"开始编写
+                </div>
+              </div>
             </div>
 
             <div
@@ -260,6 +309,9 @@ function getCategoryIcon(type: string) {
 }
 
 function openAIAssistant(cat: any) {
+  const detailSummary = cat.details
+    .map((item: any) => `${item.title}: ${item.sections.join(' ')}`)
+    .join("；") || "暂无";
   aiStore.show({
     promptId: "builtin-worldview-design",
     granular: {
@@ -269,15 +321,40 @@ function openAIAssistant(cat: any) {
     },
     input: `正在深化【${cat.name}】相关设定。\n当前摘要：${
       cat.summary || "暂无"
-    }\n已记录条目：${
-      cat.details.filter((d: string) => d).join("；") || "暂无"
-    }\n请基于这些点，推演三个更具深度的关联细节或可能产生的社会冲突点。`,
+    }\n已记录条目：${detailSummary}\n请基于这些点，推演三个更具深度的关联细节或可能产生的社会冲突点。`,
   });
 }
 
 const addDetailItem = (cat: any) => {
   projectStore.takeSnapshot();
-  cat.details.push("");
+  cat.details.push({
+    title: "",
+    sections: [""]
+  });
+};
+
+const addSection = (cat: any, itemIndex: number) => {
+  projectStore.takeSnapshot();
+  cat.details[itemIndex].sections.push("");
+};
+
+const removeSection = (cat: any, itemIndex: number, sectionIndex: number) => {
+  projectStore.takeSnapshot();
+  cat.details[itemIndex].sections.splice(sectionIndex, 1);
+};
+
+const moveSectionUp = (cat: any, itemIndex: number, sectionIndex: number) => {
+  if (sectionIndex === 0) return;
+  projectStore.takeSnapshot();
+  const sections = cat.details[itemIndex].sections;
+  [sections[sectionIndex - 1], sections[sectionIndex]] = [sections[sectionIndex], sections[sectionIndex - 1]];
+};
+
+const moveSectionDown = (cat: any, itemIndex: number, sectionIndex: number) => {
+  const sections = cat.details[itemIndex].sections;
+  if (sectionIndex === sections.length - 1) return;
+  projectStore.takeSnapshot();
+  [sections[sectionIndex], sections[sectionIndex + 1]] = [sections[sectionIndex + 1], sections[sectionIndex]];
 };
 
 const removeDetailItem = (cat: any, index: number) => {

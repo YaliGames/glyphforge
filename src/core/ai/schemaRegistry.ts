@@ -98,7 +98,7 @@ export const SCHEMA_REGISTRY: Record<string, EntitySchema> = {
       },
       { key: 'name', label: '名称', type: 'string', description: '分类名称 (由系统自动关联 ID，无需 AI 修改)', aiExport: true, aiImport: false },
       { key: 'summary', label: '概述', type: 'string', description: '该分类的整体说明', aiExport: true, aiImport: true },
-      { key: 'details', label: '设定点', type: 'array', description: '具体设定点列表 (字符串数组)。更新时请提供全量数组，系统将执行完全替换。', aiExport: true, aiImport: true }
+      { key: 'details', label: '设定点', type: 'array', description: '具体设定点列表，每个条目包含标题和分段内容。格式: [{"title": "条目标题", "sections": ["段落1", "段落2"]}]。AI修改时应提供完整结构，系统将执行完全替换。', aiExport: true, aiImport: true }
     ]
   },
   chapters: {

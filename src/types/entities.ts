@@ -2,11 +2,16 @@
  * 世界观与角色实体相关定义
  */
 
+export interface DetailItem {
+  title: string      // 详情条目的标题
+  sections: string[] // 分段内容列表
+}
+
 export interface WorldCategory {
   type: string
   name: string
   summary: string
-  details: string[] // 列表形式，支持细分点
+  details: DetailItem[]
 }
 
 export interface WorldTimelineEvent {
