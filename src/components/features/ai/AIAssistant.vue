@@ -23,6 +23,18 @@
       </div>
       <div class="flex items-center gap-1">
         <IconButton
+          icon="fa-solid fa-bug"
+          :active="isDebugMockMode"
+          :title="isDebugMockMode ? '关闭 UI 调试预览' : '打开 UI 调试预览'"
+          @click="toggleDebugMockMode"
+        />
+        <IconButton
+          v-if="isDebugMockMode"
+          icon="fa-solid fa-rotate-right"
+          title="重置 mock 对话"
+          @click="resetDebugMockPreview"
+        />
+        <IconButton
           icon="fa-solid fa-gear"
           icon-class="group-hover:rotate-45 transition-transform"
           title="AI 模型管理"
@@ -40,15 +52,28 @@
     <div class="flex-1 relative overflow-hidden">
       <!-- 聊天记录滚动区 -->
       <div class="absolute inset-0 overflow-y-auto p-4 space-y-2 flex flex-col pb-8" ref="historyBox">
+        <div v-if="isDebugMockMode" class="shrink-0 flex items-center justify-between gap-3 px-3 py-2 rounded-2xl border border-amber-200/70 dark:border-amber-800/40 bg-amber-50/80 dark:bg-amber-900/10 text-amber-700 dark:text-amber-300 shadow-sm">
+          <div class="flex items-center gap-2 min-w-0">
+            <i class="fa-solid fa-bug text-[10px] shrink-0"></i>
+            <span class="text-[11px] font-bold truncate">UI 调试预览已开启，当前内容均为 mock 数据，不会写入项目。</span>
+          </div>
+          <button
+            @click="resetDebugMockPreview"
+            class="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-lg bg-white/70 dark:bg-black/20 border border-amber-200/70 dark:border-amber-700/40 hover:bg-white dark:hover:bg-black/30 transition-colors"
+          >
+            重置
+          </button>
+        </div>
+
         <EmptyState
-          v-if="aiStore.history.length === 0"
+          v-if="displayHistory.length === 0"
           icon="fa-comment-dots"
           size="xl"
           :circle="false"
           subtitle="选择要提供给AI参考内容，并开始对话"
         />
 
-        <div v-for="msg in aiStore.history" :key="msg.id">
+        <div v-for="msg in displayHistory" :key="msg.id">
           <div 
             v-if="msg.role !== 'tool' && (msg.content?.trim() || (msg.toolCalls && msg.toolCalls.length > 0))" 
             class="flex flex-col gap-2 shrink-0 group/msg" 
@@ -96,106 +121,89 @@
             </div>
             <div v-else class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
 
-            <!-- 智能建议操作卡片 -->
-            <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="mt-2 space-y-2">
-                <div v-for="call in msg.toolCalls" :key="call.id" 
-                  class="group/tool relative border transition-all duration-200 overflow-hidden"
+            <!-- 工具调用项（按顺序直接显示，不折叠） -->
+            <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="mt-3 space-y-0">
+              <div v-for="(call, callIndex) in msg.toolCalls" :key="call.id" 
+                class="group/tool relative transition-all duration-200 flex gap-0"
+              >
+                <!-- 左侧竖条：连接所有工具调用，贯穿整个高度 -->
+                <div class="w-0.5 shrink-0 bg-gradient-to-b"
                   :class="[
-                    (aiStore.executedToolCallIds.has(call.id) || readOnlyTools.includes(call.function.name))
-                    ? 'bg-transparent border-gray-200 dark:border-white/5 opacity-60' 
-                    : 'bg-[#f8f9fb] dark:bg-[#252526] border-[#e1e4e8] dark:border-[#3e3e42] rounded-lg shadow-sm hover:border-blue-400/50'
+                    callIndex === 0 && msg.toolCalls.length > 1 
+                      ? 'from-transparent via-gray-300 to-gray-300 dark:via-gray-600 dark:to-gray-600' 
+                      : callIndex === msg.toolCalls.length - 1 
+                      ? 'from-gray-300 via-gray-300 to-transparent dark:from-gray-600 dark:via-gray-600 dark:to-transparent'
+                      : 'from-gray-300 to-gray-300 dark:from-gray-600 dark:to-gray-600'
                   ]"
-                >
-                  <div class="p-3">
-                      <!-- 核心概览行：始终可见 -->
-                      <div class="flex items-start gap-3 cursor-pointer select-none" @click="expandedToolCallIds.has(call.id) ? expandedToolCallIds.delete(call.id) : expandedToolCallIds.add(call.id)">
-                        <!-- 状态图标 -->
-                        <div class="mt-0.5 shrink-0 w-5 h-5 rounded flex items-center justify-center text-[10px]"
-                          :class="[
-                            readOnlyTools.includes(call.function.name) || (aiStore.executedToolCallIds.has(call.id) && !isToolRejected(call.id) && !isToolFailed(call.id)) ? 'text-green-500 bg-green-500/5' : '',
-                            isToolRejected(call.id) ? 'text-gray-400 bg-gray-100 dark:bg-white/5' : '',
-                            isToolFailed(call.id) ? 'text-red-500 bg-red-500/5' : '',
-                            !aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) ? 'text-blue-500 bg-blue-500/5 dark:bg-blue-400/10' : ''
-                          ]"
-                        >
-                          <i v-if="readOnlyTools.includes(call.function.name) || (aiStore.executedToolCallIds.has(call.id) && !isToolRejected(call.id) && !isToolFailed(call.id))" class="fa-solid fa-square-check"></i>
-                          <i v-else-if="isToolRejected(call.id)" class="fa-solid fa-ban"></i>
-                          <i v-else-if="isToolFailed(call.id)" class="fa-solid fa-triangle-exclamation"></i>
-                          <i v-else class="fa-solid fa-wand-magic-sparkles"></i>
-                        </div>
+                ></div>
 
-                        <div class="flex-1 min-w-0">
-                            <div class="text-[12px] leading-relaxed text-gray-700 dark:text-gray-300 font-medium">
-                              <span v-if="readOnlyTools.includes(call.function.name)" class="text-[10px] opacity-60 font-bold uppercase mr-1">[已自动]</span>
-                              <span v-else-if="isToolRejected(call.id)" class="text-[10px] text-gray-400 font-bold uppercase mr-1">[已拒绝]</span>
-                              <span v-else-if="isToolFailed(call.id)" class="text-[10px] text-red-600 dark:text-red-500 font-bold uppercase mr-1">[执行失败]</span>
-                              <span v-else-if="aiStore.executedToolCallIds.has(call.id)" class="text-[10px] text-green-600 dark:text-green-500 opacity-80 font-bold uppercase mr-1">[已执行]</span>
-                              {{ getToolSummary(call) }}
-                            </div>
+                <!-- 工具内容区：包含摘要和展开面板 -->
+                <div class="flex-1 flex flex-col">
+                  <!-- 工具调用项：可展开详情 -->
+                  <div 
+                    class="flex items-center gap-2 cursor-pointer select-none p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    @click="expandedToolCallIds.has(call.id) ? expandedToolCallIds.delete(call.id) : expandedToolCallIds.add(call.id)"
+                  >
+                    <!-- 状态指示点 -->
+                    <div class="shrink-0 w-1.5 h-1.5 rounded-full"
+                    :class="[
+                      readOnlyTools.includes(call.function.name) || (isToolExecuted(call.id) && !isToolRejected(call.id) && !isToolFailed(call.id)) ? 'bg-green-500' : '',
+                      isToolRejected(call.id) ? 'bg-gray-400' : '',
+                      isToolFailed(call.id) ? 'bg-red-500' : '',
+                      !isToolExecuted(call.id) && !readOnlyTools.includes(call.function.name) ? 'bg-blue-500' : ''
+                    ]"
+                  />
 
-                            <!-- 修改动作按钮：始终可见 -->
-                            <div v-if="!aiStore.executedToolCallIds.has(call.id) && !readOnlyTools.includes(call.function.name) && !aiStore.isProcessing" class="mt-2.5 flex items-center gap-2">
-                              <button 
-                                @click.stop="handleApplyTool(msg.id, call)"
-                                class="text-[10px] bg-[#007acc] hover:bg-[#0062a3] text-white px-3 py-1.5 rounded transition-all font-bold shadow-md flex items-center gap-1.5 active:scale-95"
-                              >
-                                <i class="fa-solid fa-bolt-lightning text-[9px]"></i>
-                                确认执行
-                              </button>
-                              <button 
-                                @click.stop="handleRejectTool(msg.id, call)"
-                                class="text-[10px] bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded transition-all font-bold flex items-center gap-1.5 active:scale-95"
-                              >
-                                <i class="fa-solid fa-ban text-[8px]"></i>
-                                拒绝
-                              </button>
-                            </div>
-                        </div>
-
-                        <!-- 展开指示 -->
-                        <div class="text-[9px] text-gray-400 self-center">
-                          <i class="fa-solid" :class="expandedToolCallIds.has(call.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                        </div>
+                    <!-- 工具调用摘要 -->
+                    <div class="flex-1 min-w-0">
+                      <div class="text-[11px] leading-relaxed text-gray-700 dark:text-gray-300 font-medium">
+                        {{ getToolSummary(call) }}
                       </div>
+                    </div>
 
-                      <!-- 展开详情区 -->
-                      <div v-if="expandedToolCallIds.has(call.id)" class="mt-3 pt-3 border-t dark:border-white/5 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <!-- 1. 技术详情 -->
-                        <div class="space-y-1">
-                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                              <i class="fa-solid fa-terminal text-[8px]"></i>
-                              技术接口 (API)
-                            </div>
-                            <div class="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-500/5 inline-block px-1.5 py-0.5 rounded border border-blue-500/10">
-                              {{ call.function.name }}
-                            </div>
-                        </div>
+                    <!-- 展开指示 -->
+                    <i class="fa-solid fa-chevron-down text-[8px] text-gray-400 shrink-0" :class="expandedToolCallIds.has(call.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                  </div>
 
-                        <!-- 2. AI 传入参数 -->
-                        <div class="space-y-1">
-                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                              <i class="fa-solid fa-sliders text-[8px]"></i>
-                              执行参数
-                            </div>
-                            <pre class="p-2 bg-gray-50 dark:bg-black/20 rounded border dark:border-white/5 text-[10px] text-gray-500 overflow-x-auto whitespace-pre-wrap leading-tight max-h-[150px]">{{ formatArgs(call.function.arguments) }}</pre>
-                        </div>
+                  <!-- 工具详情展开区（需要批阅时在此显示按钮） -->
+                  <div v-if="expandedToolCallIds.has(call.id)" class="mt-2 mx-2 p-2 rounded border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-black/20 space-y-2 animate-in fade-in duration-200">
+                    <!-- 技术详情 -->
+                    <div class="space-y-1">
+                    <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">API: <span class="font-mono text-blue-600 dark:text-blue-400">{{ call.function.name }}</span></div>
+                    <pre class="p-1.5 bg-white dark:bg-black/40 rounded border dark:border-white/5 text-[9px] text-gray-500 overflow-x-auto whitespace-pre-wrap leading-tight max-h-[120px]">{{ formatArgs(call.function.arguments) }}</pre>
+                  </div>
 
-                        <!-- 3. 执行结果反馈 -->
-                        <div v-if="getToolResultForCall(call.id)" class="space-y-1">
-                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                              <i class="fa-solid fa-reply-all text-[8px]"></i>
-                              执行结果
-                            </div>
-                            <div 
-                              class="p-2 rounded border text-[10px] font-mono leading-relaxed"
-                              :class="isToolRejected(call.id) ? 'bg-gray-500/5 border-gray-500/10 text-gray-500' : 'bg-green-500/5 dark:bg-green-500/10 border-green-500/10 text-green-600 dark:text-green-400/80'"
-                            >
-                              {{ isToolRejected(call.id) ? '用户拒绝了此项操作。' : getToolResultForCall(call.id)?.content }}
-                            </div>
-                        </div>
-                      </div>
+                  <!-- 执行结果 -->
+                  <div v-if="getToolResultForCall(call.id)" class="space-y-1">
+                    <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">结果</div>
+                    <div 
+                      class="p-1.5 rounded text-[9px] font-mono leading-tight max-h-[80px] overflow-y-auto"
+                      :class="isToolRejected(call.id) ? 'bg-gray-100 dark:bg-gray-900/30 text-gray-500' : 'bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400'"
+                    >
+                      {{ isToolRejected(call.id) ? '已拒绝' : getToolResultForCall(call.id)?.content }}
+                    </div>
+                  </div>
+
+                  <!-- 操作按钮（需要批阅时显示） -->
+                  <div v-if="!isToolExecuted(call.id) && !readOnlyTools.includes(call.function.name) && !isAssistantBusy" class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200 dark:border-white/5">
+                    <button 
+                      @click.stop="handleApplyTool(msg.id, call)"
+                      class="text-[9px] bg-[#007acc] hover:bg-[#0062a3] text-white px-2 py-1 rounded transition-all font-bold flex items-center gap-1 active:scale-95"
+                    >
+                      <i class="fa-solid fa-bolt-lightning text-[8px]"></i>
+                      执行
+                    </button>
+                    <button 
+                      @click.stop="handleRejectTool(msg.id, call)"
+                      class="text-[9px] bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-600 dark:text-gray-400 px-2 py-1 rounded transition-all font-bold flex items-center gap-1 active:scale-95"
+                    >
+                      <i class="fa-solid fa-ban text-[8px]"></i>
+                      拒绝
+                    </button>
+                  </div>
                   </div>
                 </div>
+              </div>
             </div>
 
             <!-- 上下文引用 Chips：移动至泡泡右下角 -->
@@ -215,7 +223,7 @@
       </div>
 
       <!-- 处理中表现：仅在没有正在生成的回复内容时显示 -->
-        <div v-if="aiStore.isProcessing && (!aiStore.history.length || (aiStore.history[aiStore.history.length-1].role !== 'assistant' || (!aiStore.history[aiStore.history.length-1].content?.trim() && !aiStore.history[aiStore.history.length-1].toolCalls?.length)))" class="flex flex-col gap-2 items-start shrink-0">
+        <div v-if="showProcessingIndicator" class="flex flex-col gap-2 items-start shrink-0">
           <div class="flex items-center justify-between gap-2 px-1 text-[10px] text-gray-400 w-full">
               <div class="flex items-center gap-2">
                 <i class="fa-solid fa-robot animate-pulse"></i>
@@ -543,11 +551,12 @@
         <Input 
           ref="inputAreaRef"
           v-model="input"
+          :disabled="isDebugMockMode"
           type="textarea"
           :rows="4"
           color="purple"
           input-class="!rounded-2xl pl-4 pr-12 py-3 text-[13px] leading-relaxed shadow-sm"
-          placeholder="输入任务描述，支持 @ 引用实体..."
+          :placeholder="isDebugMockMode ? 'UI 调试预览已开启，当前输入不会发送' : '输入任务描述，支持 @ 引用实体...'"
           @input="handleAtInput"
           @blur="handleAtBlur"
           @keydown="handleAtKeydown"
@@ -579,7 +588,7 @@
           <span class="text-[9px] text-gray-400 font-medium">Ctrl+Enter</span>
           <button 
             @click="send"
-            :disabled="!input.trim() || aiStore.isProcessing"
+            :disabled="!input.trim() || aiStore.isProcessing || isDebugMockMode"
             class="h-full flex items-center px-4 bg-purple-600 text-white rounded-xl text-[11px] font-bold hover:bg-purple-700 disabled:opacity-30 transition-all shadow-md shadow-purple-500/20 active:scale-95"
           >
             <i v-if="!aiStore.isProcessing" class="fa-solid fa-paper-plane text-[9px]"></i>
@@ -654,7 +663,7 @@ import { useOutlineStore } from '@/store/outline'
 import { useWorldviewStore } from '@/store/worldview'
 import { useUIStore } from '@/store/ui'
 import { useSettingsStore } from '@/store/settings'
-import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall, type AIReference } from '@/types'
+import { PROJECT_REFERENCE_TREE, type ReferenceNode, type AIToolCall, type AIReference, type AIHistoryItem, type AIToolResult } from '@/types'
 import { AI_TOOLS, READ_ONLY_TOOLS, getTool } from '@/core/ai/tools'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Input from '@/components/common/Input.vue'
@@ -677,19 +686,230 @@ const historyBox = ref<HTMLElement | null>(null)
 const inputAreaRef = ref<any>(null)
 const activePanel = ref<'context' | 'prompts' | null>(null)
 
+const DEBUG_ENTITY_NAME_MAP: Record<string, Record<string, string>> = {
+  character: {
+    'char-01': '乔伊斯',
+    'char-02': '维罗妮卡',
+    'char-03': '执灯人'
+  },
+  chapters: {
+    'ch-01': '第一章：圣光塔',
+    'ch-02': '第二章：回声长廊'
+  },
+  worldview: {
+    'world-01': '圣光信仰',
+    'world-02': '塔城秩序'
+  }
+}
+
+const DEBUG_EXECUTED_TOOL_CALL_IDS = [
+  'search-1',
+  'list-1',
+  'detail-1',
+  'upsert-1',
+  'schema-1'
+]
+
+const DEBUG_EXPANDED_TOOL_CALL_IDS = [
+  'search-1',
+  'list-1',
+  'detail-1',
+  'upsert-1',
+  'schema-1',
+  'edit-1'
+]
+
+const isDebugMockMode = ref(false)
+const debugMockHistory = ref<AIHistoryItem[]>([])
+const debugExecutedToolCallIds = reactive(new Set<string>())
+
+function createDebugToolCall(id: string, name: string, args: Record<string, any>): AIToolCall {
+  return {
+    id,
+    type: 'function',
+    function: {
+      name,
+      arguments: JSON.stringify(args)
+    }
+  }
+}
+
+function createDebugToolResult(toolCallId: string, payload: Record<string, any>): AIToolResult {
+  return {
+    toolCallId,
+    content: JSON.stringify(payload, null, 2)
+  }
+}
+
+function createDebugMockHistory(): AIHistoryItem[] {
+  const now = Date.now()
+
+  return [
+    {
+      id: 'debug-user-1',
+      role: 'user',
+      content: '请帮我梳理“圣光塔”相关设定，并看看乔伊斯能否作为第一章核心视角。',
+      type: 'text',
+      selectedReferences: [
+        { type: 'character', id: 'char-01', label: '角色: 乔伊斯' },
+        { type: 'chapters', id: 'ch-01', label: '章节: 第一章：圣光塔' }
+      ],
+      timestamp: now
+    },
+    {
+      id: 'debug-assistant-1',
+      role: 'assistant',
+      content: `## 综合分析
+
+首先搜索了正文中的"圣光"关键词，共发现102个相关段落。
+
+**获取角色列表完成。** 现在查看乔伊斯的详细信息，然后进行相应的更新。
+
+**分析完成。** 建议更新乔伊斯的角色定义，强化她的核心身份。
+
+让我先查询数据字段**定义，然后尝试编辑正文内容。`,
+      type: 'text',
+      toolCalls: [
+        createDebugToolCall('search-1', 'searchEntities', { type: 'manuscript', query: '圣光' }),
+        createDebugToolCall('list-1', 'getEntityList', { type: 'character' }),
+        createDebugToolCall('detail-1', 'getEntityDetail', { type: 'character', ids: ['char-01'] }),
+        createDebugToolCall('upsert-1', 'upsertEntities', { entities: [{ type: 'character', id: 'char-01', name: '乔伊斯' }] }),
+        createDebugToolCall('schema-1', 'getEntitySchema', { type: 'character' }),
+        createDebugToolCall('edit-1', 'editTextBlock', { search_text: '乔伊斯踏入', replacement_text: '乔伊斯小心翼翼踏入' })
+      ],
+      timestamp: now + 1
+    },
+    {
+      id: 'debug-tool-1',
+      role: 'tool',
+      content: '',
+      type: 'text',
+      toolResults: [
+        createDebugToolResult('search-1', {
+          status: 'success',
+          data: {
+            type: 'manuscript',
+            query: '圣光',
+            count: 102,
+            results: [
+              { text: '圣光塔顶升起苍白的火焰', location: 'ch-01:p5' },
+              { text: '圣光沿着穹顶裂缝倾泻而下', location: 'ch-01:p12' }
+            ],
+            hasMore: true
+          },
+          message: '检索到 102 个匹配项。'
+        }),
+        createDebugToolResult('list-1', {
+          status: 'success',
+          data: {
+            type: 'character',
+            entities: [
+              { id: 'char-01', type: 'character', name: '乔伊斯' },
+              { id: 'char-02', type: 'character', name: '维罗妮卡' },
+              { id: 'char-03', type: 'character', name: '执灯人' }
+            ]
+          },
+          message: '已获取 3 个角色'
+        }),
+        createDebugToolResult('detail-1', {
+          status: 'success',
+          data: {
+            type: 'character',
+            entities: [{ id: 'char-01', type: 'character', name: '乔伊斯', tags: ['圣光', '调查员'] }]
+          },
+          message: '成功拉取 1 个实体的详情'
+        }),
+        createDebugToolResult('upsert-1', {
+          status: 'success',
+          data: {
+            created: [],
+            updated: [{ id: 'char-01', type: 'character' }]
+          },
+          message: '已成功更新 1 个角色'
+        }),
+        createDebugToolResult('schema-1', {
+          status: 'success',
+          data: {
+            type: 'character',
+            fields: ['name', 'age', 'background', 'tags']
+          },
+          message: '已获取字段定义'
+        }),
+        createDebugToolResult('edit-1', {
+          status: 'error',
+          data: { error: 'Text not found' },
+          message: '未找到匹配文本'
+        })
+      ],
+      timestamp: now + 2
+    }
+  ]
+}
+
+function scrollHistoryToBottom() {
+  if (historyBox.value) {
+    historyBox.value.scrollTop = historyBox.value.scrollHeight
+  }
+}
+
+function resetDebugMockPreview() {
+  debugMockHistory.value = createDebugMockHistory()
+  debugExecutedToolCallIds.clear()
+  DEBUG_EXECUTED_TOOL_CALL_IDS.forEach(id => debugExecutedToolCallIds.add(id))
+  expandedToolCallIds.clear()
+  DEBUG_EXPANDED_TOOL_CALL_IDS.forEach(id => expandedToolCallIds.add(id))
+  nextTick(() => {
+    scrollHistoryToBottom()
+  })
+}
+
+async function toggleDebugMockMode() {
+  isDebugMockMode.value = !isDebugMockMode.value
+  activePanel.value = null
+  closeAtMenu()
+
+  if (isDebugMockMode.value) {
+    input.value = ''
+    selectedPromptId.value = ''
+    resetDebugMockPreview()
+    await nextTick()
+    scrollHistoryToBottom()
+    uiStore.showToast('已开启 UI 调试预览', 'success')
+    return
+  }
+
+  expandedToolCallIds.clear()
+  await nextTick()
+  scrollHistoryToBottom()
+  uiStore.showToast('已退出 UI 调试预览', 'info')
+}
+
+const displayHistory = computed(() => isDebugMockMode.value ? debugMockHistory.value : aiStore.history)
+const isAssistantBusy = computed(() => !isDebugMockMode.value && aiStore.isProcessing)
+const showProcessingIndicator = computed(() => {
+  if (!isAssistantBusy.value) return false
+  const lastMsg = aiStore.history[aiStore.history.length - 1]
+  return !aiStore.history.length || (lastMsg.role !== 'assistant' || (!lastMsg.content?.trim() && !lastMsg.toolCalls?.length))
+})
+
+function isToolExecuted(callId: string) {
+  return isDebugMockMode.value
+    ? debugExecutedToolCallIds.has(callId)
+    : aiStore.executedToolCallIds.has(callId)
+}
+
 // --- 工具解析辅助 ---
 const readOnlyTools = READ_ONLY_TOOLS;
 
 /**
- * 自动管理工具卡片展开状态
- * 1. 发现新的待确认工具调用时，默认展开
- * 2. 工具执行成功后，自动折叠
+ * 自动管理工具调用展开状态
+ * 发现新的待确认工具调用时，自动展开该调用项（但不展开折叠列表，因为已删除）
  */
 watch(() => aiStore.history, (newHistory) => {
   const lastMsg = newHistory[newHistory.length - 1]
   if (lastMsg && lastMsg.role === 'assistant' && lastMsg.toolCalls) {
     lastMsg.toolCalls.forEach(call => {
-      // 如果是写入型工具，且未执行过，且不在已展开列表中，则自动展开
+      // 如果是写入型工具，且未执行过，则自动展开该调用项
       if (!readOnlyTools.includes(call.function.name) && 
           !aiStore.executedToolCallIds.has(call.id)) {
         expandedToolCallIds.add(call.id)
@@ -1096,7 +1316,7 @@ function formatArgs(raw: string) {
 
 function getToolResultForCall(callId: string) {
   // 从历史记录中查找对应的 tool 角色消息
-  for (const msg of aiStore.history) {
+  for (const msg of displayHistory.value) {
     if (msg.role === 'tool' && msg.toolResults) {
       const found = msg.toolResults.find(r => r.toolCallId === callId)
       if (found) return found
@@ -1133,80 +1353,184 @@ function isToolFailed(callId: string) {
   }
 }
 
-function getToolSummary(call: AIToolCall) {
-  try {
-    const rawArgs = call.function.arguments
-    if (!rawArgs) return '正在分析意图...'
+const ENTITY_TYPE_LABEL: Record<string, string> = {
+  character:    '角色',
+  worldview:    '世界观',
+  relationship: '关系',
+  timeline:     '时间线',
+  chapters:     '章节',
+  manuscript:   '正文',
+}
+
+function truncate(text: string, maxLen: number, suffix = '...') {
+  return text.length > maxLen ? text.slice(0, maxLen) + suffix : text
+}
+
+function entityTypeLabel(type: string) {
+  return ENTITY_TYPE_LABEL[type] ?? type
+}
+
+function resolveEntityDisplayId(type: string, id: string): string {
+  const opt = (aiStore.getContextOptions(type) as any[]).find(o => o.id === id)
+  return opt?.label ?? DEBUG_ENTITY_NAME_MAP[type]?.[id] ?? id
+}
+
+function upsertDebugToolResult(toolCallId: string, payload: Record<string, any>) {
+  const content = JSON.stringify(payload, null, 2)
+
+  for (const msg of debugMockHistory.value) {
+    if (msg.role !== 'tool' || !msg.toolResults) continue
+
+    const index = msg.toolResults.findIndex(result => result.toolCallId === toolCallId)
+    if (index !== -1) {
+      msg.toolResults[index] = { toolCallId, content }
+      return
+    }
+  }
+
+  const lastToolMsg = [...debugMockHistory.value].reverse().find(msg => msg.role === 'tool')
+  if (lastToolMsg) {
+    lastToolMsg.toolResults = [...(lastToolMsg.toolResults || []), { toolCallId, content }]
+    return
+  }
+
+  debugMockHistory.value.push({
+    id: `debug-tool-${Date.now()}`,
+    role: 'tool',
+    content: '',
+    type: 'text',
+    toolResults: [{ toolCallId, content }],
+    timestamp: Date.now()
+  })
+}
+
+function applyDebugTool(call: AIToolCall) {
+  debugExecutedToolCallIds.add(call.id)
+  expandedToolCallIds.delete(call.id)
+  upsertDebugToolResult(call.id, {
+    status: 'success',
+    message: '调试预览：已模拟执行该操作。'
+  })
+  uiStore.showToast('调试预览：已模拟执行', 'success')
+}
+
+function rejectDebugTool(call: AIToolCall) {
+  debugExecutedToolCallIds.add(call.id)
+  expandedToolCallIds.delete(call.id)
+  upsertDebugToolResult(call.id, {
+    status: 'rejected',
+    message: '调试预览：已模拟拒绝该操作。'
+  })
+  uiStore.showToast('调试预览：已模拟拒绝', 'info')
+}
+
+type ToolSummaryHandler = (args: any, callId?: string) => string
+
+const TOOL_SUMMARY_HANDLERS: Record<string, ToolSummaryHandler> = {
+
+  editTextBlock(args) {
+    const preview = truncate(args.search_text || '', 20)
+    return `修正正文中的 "${preview}"`
+  },
+
+  upsertEntities(args) {
+    const entities: any[] = args.entities || []
+    if (entities.length === 0) return '同步设定'
+    const actions = entities.map((e) => {
+      const label = entityTypeLabel(e.type)
+      const name  = (e.name || '').trim()
+      return e.id
+        ? `修改${label} \`${name || e.id}\``
+        : `创建${label} \`${name}\``
+    })
+    return actions.join('、')
+  },
+
+  deleteEntities(args) {
+    const entities: any[] = args.entities || []
+    if (entities.length === 0) return '删除实体'
+    const previews = entities.slice(0, 3).map((e) => {
+      const label = entityTypeLabel(e.type)
+      const display = resolveEntityDisplayId(e.type, e.id)
+      return `${label} \`${display}\``
+    })
+    const suffix = entities.length > 3 ? ` 等 ${entities.length} 项` : ''
+    return `删除 ${previews.join('、')}${suffix}`
+  },
+
+  getEntityList(args) {
+    return `获取全部${entityTypeLabel(args.type)}`
+  },
+
+  getEntityDetail(args) {
+    const label   = entityTypeLabel(args.type)
+    const idList: string[] = Array.isArray(args.ids) ? args.ids : (args.ids ? [args.ids] : [])
+    if (idList.length === 0) return `获取${label}详细信息`
+    const resolved = idList.slice(0, 3).map(id => resolveEntityDisplayId(args.type, id))
+    const preview  = resolved.join('、')
+    const suffix   = idList.length > 3 ? ` 等 ${idList.length} 个` : ' '
+    return `获取${label} \`${preview}\`${suffix}详细信息`
+  },
+
+  searchEntities(args, callId?: string) {
+    const label   = args.type ? entityTypeLabel(args.type) : '全部'
+    const preview = truncate(args.query || '', 15, '....')
     
-    let args: any
-    try {
-      args = JSON.parse(rawArgs)
-    } catch (e) {
-      if (rawArgs.length > 20) return `正在生成操作详情: ${rawArgs.slice(0, 50)}...`
-      return '解析参数中...'
+    // 尝试从工具结果中读取实际搜索结果数
+    let suffix = ''
+    if (callId) {
+      const result = getToolResultForCall(callId)
+      if (result) {
+        try {
+          const data = JSON.parse(result.content)
+          if (data?.data?.count != null) {
+            suffix = `（${data.data.count} 个结果）`
+          }
+        } catch (e) {
+          // 解析失败，不显示数量
+        }
+      }
     }
+    
+    return `搜索${label}关键词 \`${preview}\`${suffix}`
+  },
 
-    const typeMap: Record<string, string> = { 
-      'character': '角色', 
-      'worldview': '世界观', 
-      'relationship': '关系', 
-      'timeline': '时间线',
-      'chapters': '目录',
-      'manuscript': '正文'
-    }
+  getRelationGraph(_args) {
+    return '生成人物关系图谱'
+  },
 
-    if (call.function.name === 'editTextBlock') {
-      const search = (args.search_text || '')
-      return `精准修正文本：根据设定更新“${search.length > 15 ? search.slice(0, 15) + '...' : search}”的相关描述。`
-    }
-    if (call.function.name === 'upsertEntities') {
-      const entities = args.entities || []
-      const counts: Record<string, { create: number, update: number }> = {}
-      
-      entities.forEach((e: any) => {
-        const typeKey = typeMap[e.type] || e.type
-        if (!counts[typeKey]) counts[typeKey] = { create: 0, update: 0 }
-        if (e.id) counts[typeKey].update++
-        else counts[typeKey].create++
-      })
+  getEntitySchema(_args) {
+    return '获取字段定义'
+  },
+}
 
-      const details = Object.entries(counts).map(([type, c]) => {
-        const parts = []
-        if (c.create > 0) parts.push(`创建${c.create}个${type}`)
-        if (c.update > 0) parts.push(`更新${c.update}个${type}`)
-        return parts.join('、')
-      }).join('；')
+function getToolSummary(call: AIToolCall): string {
+  if (!call.function.arguments) return '分析意图中...'
 
-      return `同步设定档案：${details || '处理实体定义'}`
-    }
-    if (call.function.name === 'deleteEntities') {
-      return `清理失效数据：移除 ${args.entities?.length || 0} 项过时的工程条目。`
-    }
-    if (call.function.name === 'getEntityList') {
-       return `自动调取上下文：正在获取${typeMap[args.type] || args.type}的全量索引...`
-    }
-    if (call.function.name === 'getEntityDetail') {
-       return `深度背景分析：正在调取特定${typeMap[args.type] || args.type}条目的详细设定...`
-    }
-    if (call.function.name === 'searchEntities') {
-       return `全局搜索引用：正在检索与 "${args.query}" 相关的历史背景...`
-    }
-    if (call.function.name === 'getRelationGraph') {
-       return `关系图谱建模：正在构建当前视角下的全景人物/势力关系网络...`
-    }
-    if (call.function.name === 'getEntitySchema') {
-       return `正在解析模型字段定义与验证规则...`
-    }
-    if (call.function.name === 'searchEntities') {
-       return `正在项目中搜索 "${args.query}" 相关的内容...`
-    }
-    return `执行系统指令: ${call.function.name}`
-  } catch (e) {
-    return '解析任务详情时出错'
+  let args: any
+  try {
+    args = JSON.parse(call.function.arguments)
+  } catch {
+    return '解析参数中...'
+  }
+
+  const handler = TOOL_SUMMARY_HANDLERS[call.function.name]
+  if (!handler) return call.function.name
+
+  try {
+    // 为searchEntities类型的处理器传递与callId，以便它能从结果中读取计数
+    return handler(args, call.function.name === 'searchEntities' ? call.id : undefined)
+  } catch {
+    return call.function.name
   }
 }
 
 async function handleApplyTool(messageId: string, call: AIToolCall) {
+  if (isDebugMockMode.value) {
+    applyDebugTool(call)
+    return
+  }
+
   const toolName = call.function.name;
   console.group(`[AI Tool Engine] Applying Write-Tool: ${toolName}`);
   
@@ -1299,6 +1623,11 @@ async function handleApplyTool(messageId: string, call: AIToolCall) {
  * 拒绝执行 AI 建议的工具调用
  */
 async function handleRejectTool(messageId: string, call: AIToolCall) {
+  if (isDebugMockMode.value) {
+    rejectDebugTool(call)
+    return
+  }
+
   const ok = await uiStore.showConfirm({
     title: '拒绝 AI 操作',
     message: `确定要拒绝执行 “${getToolLabel(call.function.name)}” 吗？\n拒绝后 AI 将得知该操作未被允许，并根据情况调整后续建议。`,
@@ -1437,6 +1766,11 @@ const canReferenceCurrent = computed(() => {
 })
 
 async function send() {
+  if (isDebugMockMode.value) {
+    uiStore.showToast('请先关闭 UI 调试预览，再发送真实消息', 'info')
+    return
+  }
+
   if (!input.value.trim() || aiStore.isProcessing) return
 
   const userContent = input.value.trim()
@@ -1500,9 +1834,7 @@ async function send() {
   aiStore.granularSelections = {}
   
   await nextTick()
-  if (historyBox.value) {
-    historyBox.value.scrollTop = historyBox.value.scrollHeight
-  }
+  scrollHistoryToBottom()
 }
 
 watch(() => aiStore.isVisible, async (val) => {
@@ -1518,9 +1850,7 @@ watch(() => aiStore.isVisible, async (val) => {
 
     // 每一打开都滚动到底部
     await nextTick()
-    if (historyBox.value) {
-      historyBox.value.scrollTop = historyBox.value.scrollHeight
-    }
+    scrollHistoryToBottom()
   }
 })
 
@@ -1533,11 +1863,9 @@ function expandActiveKeys() {
   })
 }
 
-watch(() => aiStore.history.length, async () => {
+watch([() => aiStore.history.length, () => isDebugMockMode.value], async () => {
   await nextTick()
-  if (historyBox.value) {
-    historyBox.value.scrollTop = historyBox.value.scrollHeight
-  }
+  scrollHistoryToBottom()
 })
 
 async function copyContent(text: string) {
@@ -1552,7 +1880,7 @@ async function copyContent(text: string) {
 // 宽度调整逻辑
 let isResizing = false
 
-function startResize(e: MouseEvent) {
+function startResize() {
   isResizing = true
   document.addEventListener('mousemove', handleResize)
   document.addEventListener('mouseup', stopResize)

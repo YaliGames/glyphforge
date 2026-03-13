@@ -19,6 +19,22 @@ export interface AIReference {
   range?: { start: number; end: number }
 }
 
+/**
+ * 消息内的块级内容 - 同一消息内支持文本-工具-文本交替
+ */
+export interface AIMessageBlock {
+  type: 'text' | 'toolCall' | 'toolResult'
+  
+  // 文本块
+  text?: string
+  
+  // 工具调用块
+  toolCall?: AIToolCall
+  
+  // 工具结果块
+  toolResult?: AIToolResult
+}
+
 export interface AIHistoryItem {
   id: string
   role: 'user' | 'assistant' | 'tool' | 'system'
@@ -35,6 +51,10 @@ export interface AIHistoryItem {
   toolCalls?: AIToolCall[] // assistant 发出的工具调用指令
   toolCallId?: string      // role='tool' 时关联的调用 ID
   toolResults?: AIToolResult[] // 批量操作时的工具执行结果
+  
+  // 新增：块级内容支持（文本-工具-文本交替）
+  blocks?: AIMessageBlock[]
+  
   timestamp: number
 }
 
