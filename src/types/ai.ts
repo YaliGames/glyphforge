@@ -12,6 +12,8 @@ export interface AIPrompt {
 
 export type AIExecutionMode = 'chat' | 'agent'
 
+export type AIOutputStatus = 'idle' | 'waiting' | 'streaming' | 'failed'
+
 export interface AIReference {
   type: string
   id: string | 'all'

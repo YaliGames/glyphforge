@@ -51,7 +51,7 @@ const borderClass = computed(() => {
 
 let isResizing = false
 
-function startResize(e: MouseEvent) {
+function startResize() {
   isResizing = true
   document.addEventListener('mousemove', handleResize)
   document.addEventListener('mouseup', stopResize)

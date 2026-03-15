@@ -72,7 +72,7 @@ interface MenuItem {
   children?: MenuItem[]
 }
 
-const props = defineProps<{
+defineProps<{
   items: MenuItem[]
   isSubmenu?: boolean
 }>()

@@ -37,7 +37,7 @@
             <!-- 模型子项列表 (带层级连线效果) -->
             <div class="ml-3.5 pl-3 border-l-2 border-gray-100 dark:border-white/5 pt-1 space-y-1">
               <button 
-                v-for="model in (profile.models && profile.models.length > 0 ? profile.models.filter(m => m.trim()) : [null])" 
+                v-for="model in (profile.models && profile.models.length > 0 ? profile.models.filter((m: string) => m.trim()) : [null])" 
                 :key="model || 'none'"
                 @click.stop="model ? activateAndEdit(profile.id, model) : selectProfile(profile.id)"
                 :class="[

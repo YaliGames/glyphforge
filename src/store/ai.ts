@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch, computed, reactive } from 'vue'
-import type { AIPrompt, AIHistoryItem, AIToolCall, AIToolResult, AIExecutionMode, AIReference } from '@/types'
+import type { AIPrompt, AIHistoryItem, AIToolCall, AIToolResult, AIExecutionMode, AIReference, AIOutputStatus } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 import { useProjectStore } from './project'
 import { useSettingsStore } from './settings'
@@ -24,6 +24,8 @@ export const useAIStore = defineStore('ai', () => {
   const executedToolCallIds = reactive(new Set<string>()) // 记录已执行过的工具调用 ID
   const executionMode = ref<AIExecutionMode>('chat')
   const activeReferences = ref<AIReference[]>([])
+  const outputStatus = ref<AIOutputStatus>('idle')
+  const abortRequested = ref(false)
 
   // 用户自定义提示词，从 localStorage 加载
   const customPrompts = ref<AIPrompt[]>(JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOM_PROMPTS) || '[]'))
@@ -207,6 +209,9 @@ export const useAIStore = defineStore('ai', () => {
    * 中止 AI 生成
    */
   function stopGeneration() {
+    abortRequested.value = true
+    outputStatus.value = 'idle'
+
     const electronAPI = (window as any).electronAPI
     if (electronAPI?.aiAbort) {
       electronAPI.aiAbort()
@@ -296,9 +301,12 @@ export const useAIStore = defineStore('ai', () => {
 
     if (!activeProfile) {
       addHistory('assistant', '错误：未配置有效的 AI 模型。请前往设置页面配置。')
+      outputStatus.value = 'failed'
       return
     }
 
+    abortRequested.value = false
+    outputStatus.value = 'waiting'
     isProcessing.value = true
 
     // 非循环模式下，添加用户消息
@@ -494,12 +502,14 @@ export const useAIStore = defineStore('ai', () => {
                   const delta = chunk.choices?.[0]?.delta;
 
                   if (delta?.content) {
+                    outputStatus.value = 'streaming'
                     fullContent += delta.content;
                     const msg = history.value.find(m => m.id === assistantMsgId);
                     if (msg) msg.content = fullContent;
                   }
 
                   if (delta?.tool_calls) {
+                    outputStatus.value = 'streaming'
                     if (!toolCalls) toolCalls = [];
                     delta.tool_calls.forEach((tc: any) => {
                       const existing = toolCalls!.find(e => e.index === tc.index);
@@ -574,6 +584,7 @@ export const useAIStore = defineStore('ai', () => {
 
         const data = await response.json()
         if (activeProfile.provider === 'openai') {
+          outputStatus.value = 'streaming'
           const message = data.choices?.[0]?.message
           fullContent = message?.content || ''
           toolCalls = message?.tool_calls
@@ -641,18 +652,31 @@ export const useAIStore = defineStore('ai', () => {
       }
 
     } catch (error: any) {
+      const errorText = String(error?.message || error || '')
+      const normalizedError = errorText.toLowerCase()
+      const isAbort = abortRequested.value || /abort|aborted|cancel|cancelled/.test(normalizedError)
+
+      if (isAbort) {
+        outputStatus.value = 'idle'
+        const assistantMsg = history.value.find(m => m.id === assistantMsgId)
+        if (assistantMsg && !assistantMsg.content?.trim()) {
+          assistantMsg.content = '已终止输出。'
+          assistantMsg.type = 'text'
+        }
+        return
+      }
+
       console.error('[AI Error]', error)
-      stopGeneration()
 
       if (error._handled) throw error;
       error._handled = true;
 
+      outputStatus.value = 'failed'
+
       const assistantMsg = history.value.find(m => m.id === assistantMsgId)
-      
-      let errorText = error.message || error;
 
       if (assistantMsg) {
-        assistantMsg.content = `抱歉，请求模型时出错：\n${errorText}`
+        assistantMsg.content = `请求模型时出错：\n${errorText}`
         assistantMsg.type = 'error' as any
         assistantMsg.isError = true
         assistantMsg.retryParams = { displayContent, fullPrompt, references }
@@ -662,7 +686,11 @@ export const useAIStore = defineStore('ai', () => {
       const lastMsg = history.value[history.value.length - 1];
       if (lastMsg.role !== 'tool') {
         isProcessing.value = false
+        if (outputStatus.value !== 'failed') {
+          outputStatus.value = 'idle'
+        }
       }
+      abortRequested.value = false
     }
   }
 
@@ -670,9 +698,11 @@ export const useAIStore = defineStore('ai', () => {
     const index = history.value.findIndex(m => m.id === msgId)
     if (index === -1) return
 
-    history.value.splice(index, 1)
+    const target = history.value[index]
+    const retryParams = target.retryParams
 
-    await sendMessage('重试', '重试', undefined, false)
+    if (!retryParams) return
+    await sendMessage(retryParams.displayContent, retryParams.fullPrompt, retryParams.references, false)
   }
 
   return {
@@ -686,6 +716,7 @@ export const useAIStore = defineStore('ai', () => {
     executedToolCallIds,
     executionMode,
     activeReferences,
+    outputStatus,
     customPrompts,
     allPrompts,
     updatePrompt,
