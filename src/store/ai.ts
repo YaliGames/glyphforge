@@ -292,12 +292,22 @@ export const useAIStore = defineStore('ai', () => {
     history.value = []
   }
 
+  function normalizeTimeoutSeconds(value: any, fallback: number) {
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+    return parsed
+  }
+
   /**
    * 真正的发送逻辑
    */
   async function sendMessage(displayContent: string, fullPrompt: string, references?: Record<string, any>, isLoop = false) {
     const settingsStore = useSettingsStore()
     const activeProfile = settingsStore.activeAIProfile
+    const responseTimeoutSeconds = normalizeTimeoutSeconds(settingsStore.getSetting('ai.responseTimeoutSeconds', 30), 30)
+    const streamInterruptTimeoutSeconds = normalizeTimeoutSeconds(settingsStore.getSetting('ai.streamInterruptTimeoutSeconds', 15), 15)
+    const responseTimeoutMs = Math.max(1000, Math.floor(responseTimeoutSeconds * 1000))
+    const streamInterruptTimeoutMs = Math.max(1000, Math.floor(streamInterruptTimeoutSeconds * 1000))
 
     if (!activeProfile) {
       addHistory('assistant', '错误：未配置有效的 AI 模型。请前往设置页面配置。')
@@ -458,18 +468,18 @@ export const useAIStore = defineStore('ai', () => {
         let watchdog: any = null;
 
         const promise = new Promise<void>((resolve, reject) => {
-          // 设置定时器 (看门狗)：如果 30 秒没有任何数据返回，强制超时
+          // 设置定时器 (看门狗)：如果在配置时长内没有收到任何数据，强制超时
           watchdog = setTimeout(() => {
-            reject(new Error('AI 服务器响应超时 (30秒未收到数据)'));
-          }, 30000);
+            reject(new Error(`AI 服务器响应超时 (${responseTimeoutSeconds}秒未收到数据)`));
+          }, responseTimeoutMs);
 
           removeListener = electronAPI.onAIChunk((data: any) => {
             // 只要有任何数据返回（chunk），就重置计时器
             if (watchdog) {
               clearTimeout(watchdog);
               watchdog = setTimeout(() => {
-                reject(new Error('流式传输中断 (15秒无后续数据)'));
-              }, 15000);
+                reject(new Error(`流式传输中断 (${streamInterruptTimeoutSeconds}秒无后续数据)`));
+              }, streamInterruptTimeoutMs);
             }
 
             if (data.type === 'chunk') {
@@ -571,11 +581,22 @@ export const useAIStore = defineStore('ai', () => {
 
       } else {
         // --- 非流式/Web 模式 (降级处理) ---
-        const response = await fetch(activeProfile.endpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(body)
-        })
+        const controller = new AbortController()
+        const timeoutHandle = setTimeout(() => {
+          controller.abort()
+        }, responseTimeoutMs)
+
+        let response: Response
+        try {
+          response = await fetch(activeProfile.endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+            signal: controller.signal
+          })
+        } finally {
+          clearTimeout(timeoutHandle)
+        }
 
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}))
@@ -652,6 +673,10 @@ export const useAIStore = defineStore('ai', () => {
       }
 
     } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        error = new Error(`AI 服务器响应超时 (${responseTimeoutSeconds}秒未收到数据)`)
+      }
+
       const errorText = String(error?.message || error || '')
       const normalizedError = errorText.toLowerCase()
       const isAbort = abortRequested.value || /abort|aborted|cancel|cancelled/.test(normalizedError)

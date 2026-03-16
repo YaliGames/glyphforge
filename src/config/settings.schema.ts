@@ -220,6 +220,34 @@ export const SETTINGS_SCHEMA: SettingSection[] = [
           }
         ],
         dependsOn: { key: 'ai.enabled', value: true }
+      },
+      {
+        key: 'ai.responseTimeoutSeconds',
+        label: '响应超时时长（秒）',
+        description: '从请求发出到收到首个响应数据的最长等待时间，超时后将判定为请求失败。',
+        type: 'number',
+        default: 30,
+        dependsOn: { key: 'ai.enabled', value: true }
+      },
+      {
+        key: 'ai.streamInterruptTimeoutSeconds',
+        label: '流式传输中断时长（秒）',
+        description: '流式输出开始后，若超过该时长未收到后续数据，将判定为传输中断。',
+        type: 'number',
+        default: 15,
+        dependsOn: { key: 'ai.enabled', value: true }
+      },
+      {
+        key: 'ai.sendShortcut',
+        label: '发送/换行快捷键',
+        description: '配置输入框发送与换行方式。',
+        type: 'select',
+        default: 'ctrlEnter',
+        options: [
+          { label: 'Ctrl+Enter 发送（Enter 换行）', value: 'ctrlEnter' },
+          { label: 'Enter 发送（Ctrl+Enter 换行）', value: 'enter' }
+        ],
+        dependsOn: { key: 'ai.enabled', value: true }
       }
     ]
   },

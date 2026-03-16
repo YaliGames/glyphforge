@@ -93,7 +93,6 @@
         @input="emit('input-event', $event)"
         @blur="emit('input-blur')"
         @keydown="emit('input-keydown', $event)"
-        @keydown.enter.ctrl.exact="emit('send')"
       />
     </div>
 
@@ -124,7 +123,7 @@
       </div>
 
       <div class="flex items-center gap-3 h-full shrink-0">
-        <span class="text-ui-badge">Ctrl+Enter</span>
+        <span class="text-ui-badge">{{ sendShortcutLabel }}</span>
         <button
           @click="emit('send')"
           :disabled="isDebugMockMode || (!isProcessing && !inputValue.trim())"
@@ -161,6 +160,7 @@ const props = defineProps<{
   executionMode: AIExecutionMode
   modelName?: string
   isProcessing: boolean
+  sendShortcutLabel: string
   inputAreaRef: any
 }>()
 

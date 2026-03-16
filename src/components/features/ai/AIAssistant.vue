@@ -100,6 +100,7 @@
       :execution-mode="executionMode"
       :model-name="settingsStore.activeAIProfile?.model"
       :is-processing="aiStore.isProcessing"
+      :send-shortcut-label="sendShortcutLabel"
       :input-area-ref="inputAreaRef"
       @toggle-prompts="activePanel = activePanel === 'prompts' ? null : 'prompts'"
       @clear-prompt="selectedPromptId = ''"
@@ -108,7 +109,7 @@
       @remove-reference="removeReference"
       @input-event="handleAtInput"
       @input-blur="handleAtBlur"
-      @input-keydown="handleAtKeydown"
+      @input-keydown="handleInputKeydown"
       @open-model-config="uiStore.openModal('ai-profile')"
       @send="handleSendAction"
       @update:input-value="input = $event"
@@ -362,6 +363,17 @@ const executionMode = computed({
   }
 })
 
+type SendShortcutMode = 'enter' | 'ctrlEnter'
+
+const sendShortcutMode = computed<SendShortcutMode>(() => {
+  const configured = settingsStore.getSetting('ai.sendShortcut', 'ctrlEnter')
+  return configured === 'enter' ? 'enter' : 'ctrlEnter'
+})
+
+const sendShortcutLabel = computed(() => {
+  return sendShortcutMode.value === 'enter' ? 'Enter 发送' : 'Ctrl+Enter 发送'
+})
+
 const selectedPromptLabel = computed(() => {
   if (!selectedPromptId.value) return ''
   return aiStore.allPrompts.find(item => item.id === selectedPromptId.value)?.label || ''
@@ -427,6 +439,24 @@ async function send() {
   selectedPromptId.value = ''
   aiStore.referenceKeys = []
   aiStore.granularSelections = {}
+}
+
+function handleInputKeydown(event: KeyboardEvent) {
+  handleAtKeydown(event)
+  if (event.defaultPrevented) return
+
+  const isComposing = (event as any).isComposing || (event as any).keyCode === 229
+  if (isComposing) return
+  if (event.key !== 'Enter') return
+
+  const shouldSend = sendShortcutMode.value === 'enter'
+    ? !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey
+    : event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey
+
+  if (!shouldSend) return
+
+  event.preventDefault()
+  handleSendAction()
 }
 
 function handleSendAction() {
